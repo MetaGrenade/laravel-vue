@@ -14,7 +14,11 @@ const props = defineProps<{
     modelValue: number | null;
     initialUser?: UserOption | null;
     inputId?: string;
+    /** The route that looks members up: it answers `?q=` (what was typed) and `?id=` (one member, to show a choice already made). */
+    searchRoute?: string;
 }>();
+
+const searchRouteName = () => props.searchRoute ?? 'acp.support.users.search';
 
 const emit = defineEmits<{
     (e: 'update:modelValue', value: number | null): void;
@@ -70,7 +74,7 @@ const performSearch = async (term: string) => {
     fetchError.value = null;
 
     try {
-        const response = await fetch(route('acp.support.users.search', { q: term }), {
+        const response = await fetch(route(searchRouteName(), { q: term }), {
             headers: { Accept: 'application/json' },
             signal: controller.signal,
         });
@@ -96,7 +100,7 @@ const performSearch = async (term: string) => {
 
 const loadUserById = async (id: number) => {
     try {
-        const response = await fetch(route('acp.support.users.search', { id }), {
+        const response = await fetch(route(searchRouteName(), { id }), {
             headers: { Accept: 'application/json' },
         });
 

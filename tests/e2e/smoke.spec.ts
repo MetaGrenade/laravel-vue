@@ -892,6 +892,37 @@ test.describe('staff', () => {
         await expect(page.getByText(member.email)).toBeVisible();
     });
 
+    test('an administrator makes a key for a member found by typing, and its secret is shown once', async ({ page }) => {
+        await signIn(page, admin.email);
+        await page.goto('/acp/tokens');
+        await page.getByRole('button', { name: 'Create Token' }).click();
+
+        const dialog = page.getByRole('dialog');
+        const name = unique('Smoke key');
+        await dialog.getByLabel('Token name').fill(name);
+        await dialog.getByRole('checkbox', { name: /Full access/ }).click();
+
+        // Nobody is chosen to begin with (the list used to start on whoever came first), so asking for the key is refused and says why.
+        await dialog.getByRole('button', { name: 'Create token' }).click();
+        await expect(dialog.getByText(/user id field is required/i)).toBeVisible();
+
+        // The page does not carry the members: they are looked up as the address is typed, and the one that is clicked is the choice.
+        await dialog.getByPlaceholder('Search by nickname or email').fill(member.email.slice(0, 6));
+        await dialog.getByRole('button', { name: new RegExp(member.email) }).click();
+        await expect(dialog.getByText(member.nickname)).toBeVisible();
+
+        await dialog.getByRole('button', { name: 'Create token' }).click();
+
+        // The secret is shown, once. Closing it and reloading shows the key in the list, under the member it was made for, and not the secret.
+        const secret = await page.getByLabel('Token secret').inputValue();
+        expect(secret).toMatch(/^\d+\|\w{20,}$/);
+        await page.getByRole('dialog').getByRole('button', { name: 'Close' }).first().click();
+        await page.reload();
+        const row = page.getByRole('row').filter({ hasText: name });
+        await expect(row).toContainText(member.nickname);
+        await expect(page.getByText(secret)).toHaveCount(0);
+    });
+
     test('a site with no sign-in provider set up offers no provider button, and the system settings say what each still needs', async ({
         page,
         request,

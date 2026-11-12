@@ -7,12 +7,6 @@ parameters:
 			path: app/Events/ForumPostCreated.php
 
 		-
-			message: '#^Strict comparison using \!\=\= between float and null will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: app/Http/Controllers/Admin/AdminController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
 			identifier: property.notFound
 			count: 2

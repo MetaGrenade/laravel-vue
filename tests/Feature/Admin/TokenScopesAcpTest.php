@@ -51,6 +51,20 @@ class TokenScopesAcpTest extends TestCase
     }
 
     #[Test]
+    public function a_token_needs_a_member_to_be_made_for_and_nobody_chosen_is_not_member_zero(): void
+    {
+        $this->signInAdmin();
+
+        // The picker starts with nobody chosen: what is sent is nothing, or an empty value, and both read as "required".
+        foreach ([null, ''] as $nobody) {
+            $this->post(route('acp.tokens.store'), $this->payload(User::factory()->create(), ['user_id' => $nobody]))
+                ->assertSessionHasErrors(['user_id' => 'The user id field is required.']);
+        }
+
+        $this->assertSame(0, PersonalAccessToken::count());
+    }
+
+    #[Test]
     public function a_token_is_made_with_scopes_chosen_from_the_site(): void
     {
         $this->signInAdmin();
