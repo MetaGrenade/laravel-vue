@@ -3,6 +3,7 @@
 namespace App\Support\Forum;
 
 use App\Events\ForumPostCreated;
+use App\Jobs\NotifyMembers;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\ForumThreadRead;
@@ -57,22 +58,20 @@ class ForumPublisher
 
         $quiet = array_flip($this->ignored->quietFor($author));
 
-        $subscribers = $thread->subscribers()
-            ->where('users.id', '!=', $author->id)
-            ->get()
-            ->reject(fn (User $subscriber): bool => isset($quiet[$subscriber->id]))
-            ->values();
+        // Only who is to be told is worked out here; the telling is the queue's (NotifyMembers), a hundred members to a job.
+        $subscriberIds = [];
 
-        if ($subscribers->isNotEmpty()) {
-            foreach ($subscribers as $subscriber) {
-                $alreadyTold[(int) $subscriber->id] = true;
+        foreach ($thread->subscribers()->where('users.id', '!=', $author->id)->pluck('users.id') as $id) {
+            $id = (int) $id;
+
+            if (! isset($quiet[$id])) {
+                $subscriberIds[] = $id;
+                $alreadyTold[$id] = true;
             }
+        }
 
-            $notification = new ForumThreadUpdated($thread, $post);
-
-            $subscribers->each(function (User $subscriber) use ($notification): void {
-                $subscriber->notifyThroughPreferences($notification, 'forums', ['database', 'mail', 'push']);
-            });
+        if ($subscriberIds !== []) {
+            NotifyMembers::dispatchInChunks($subscriberIds, new ForumThreadUpdated($thread, $post), 'forums');
         }
 
         $this->notifyFollowers($thread, $post, $author, $alreadyTold);
@@ -139,11 +138,8 @@ class ForumPublisher
             return;
         }
 
-        $notification = new ForumPostMentioned($thread, $post);
-
-        $mentionedUsers->each(function (User $mentionedUser) use ($notification): void {
-            $mentionedUser->notifyThroughPreferences($notification, 'forums', ['database', 'mail', 'push']);
-        });
+        // A post can name as many members as it has room for, so these are told from the queue as well.
+        NotifyMembers::dispatchInChunks($mentionedUsers->pluck('id'), new ForumPostMentioned($thread, $post), 'forums');
     }
 
     /**
@@ -153,17 +149,13 @@ class ForumPublisher
     {
         $thread->loadMissing('board');
 
-        $followers = $this->followed->listeners($author, $alreadyTold);
+        $followerIds = $this->followed->listenerIds($author, $alreadyTold);
 
-        if ($followers->isEmpty()) {
+        if ($followerIds === []) {
             return;
         }
 
-        $notification = new ForumFollowedMemberPosted($thread, $post, $author);
-
-        $followers->each(function (User $follower) use ($notification): void {
-            $follower->notifyThroughPreferences($notification, 'forums', ['database', 'mail', 'push']);
-        });
+        NotifyMembers::dispatchInChunks($followerIds, new ForumFollowedMemberPosted($thread, $post, $author), 'forums');
     }
 
     private function markRead(ForumThread $thread, ForumPost $post, User $author): void

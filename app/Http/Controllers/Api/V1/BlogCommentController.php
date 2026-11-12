@@ -7,11 +7,11 @@ use App\Http\Requests\Api\V1\Blog\ReportBlogCommentRequest;
 use App\Http\Requests\Api\V1\Blog\StoreBlogCommentRequest;
 use App\Http\Requests\Api\V1\Blog\UpdateBlogCommentRequest;
 use App\Http\Resources\Api\V1\BlogCommentResource;
+use App\Jobs\NotifyMembers;
 use App\Models\Blog;
 use App\Models\BlogComment;
 use App\Models\BlogCommentReaction;
 use App\Models\BlogCommentReport;
-use App\Models\User;
 use App\Notifications\BlogCommentPosted;
 use App\Support\Spam\CommentGuard;
 use Illuminate\Http\JsonResponse;
@@ -83,24 +83,11 @@ class BlogCommentController extends Controller
             },
         ]);
 
-        $blog->loadMissing('user');
+        // Who is told is worked out here; the telling is the queue's, a hundred members to a job (NotifyMembers).
+        $recipientIds = $blog->commentRecipientIds($user);
 
-        $recipients = $blog->commentSubscribers()
-            ->where('users.id', '!=', $user->id)
-            ->get();
-
-        if ($blog->user && $blog->user->id !== $user->id) {
-            $recipients->push($blog->user);
-        }
-
-        $recipients = $recipients->unique('id')->values();
-
-        if ($recipients->isNotEmpty()) {
-            $notification = new BlogCommentPosted($blog, $comment);
-
-            $recipients->each(function (User $recipient) use ($notification): void {
-                $recipient->notifyThroughPreferences($notification, 'blogs', ['database', 'mail', 'push']);
-            });
+        if ($recipientIds !== []) {
+            NotifyMembers::dispatchInChunks($recipientIds, new BlogCommentPosted($blog, $comment), 'blogs');
         }
 
         return response()->json(new BlogCommentResource($comment), 201);

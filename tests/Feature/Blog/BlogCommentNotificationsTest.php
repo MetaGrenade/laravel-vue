@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Blog;
 
+use App\Jobs\NotifyMembers;
 use App\Models\Blog;
 use App\Models\User;
 use App\Notifications\BlogCommentPosted;
 use App\Support\Spam\CommentGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class BlogCommentNotificationsTest extends TestCase
@@ -125,5 +127,74 @@ class BlogCommentNotificationsTest extends TestCase
         );
 
         Notification::assertNotSentTo($commentAuthor, BlogCommentPosted::class);
+    }
+
+    public function test_the_request_only_picks_who_is_told_and_the_queue_does_the_telling(): void
+    {
+        Queue::fake();
+
+        $blog = Blog::factory()->published()->create();
+        $subscribers = User::factory()->count(2)->create();
+        $commentAuthor = User::factory()->create();
+
+        // The post's author follows the comments too, and so does the one commenting: neither is told twice or told of their own comment.
+        $blog->commentSubscribers()->attach([...$subscribers->pluck('id')->all(), $blog->user_id, $commentAuthor->id]);
+
+        $this->actingAs($commentAuthor);
+
+        $this->withSession([CommentGuard::SESSION_TOKEN_KEY => 'comment-captcha'])
+            ->postJson(route('blogs.comments.store', ['blog' => $blog->slug]), [
+                'body' => 'First!',
+                'captcha_token' => 'comment-captcha',
+                'honeypot' => '',
+            ])
+            ->assertCreated();
+
+        $this->assertDatabaseCount('notifications', 0);
+
+        Queue::assertPushed(NotifyMembers::class, 1);
+        Queue::assertPushed(NotifyMembers::class, function (NotifyMembers $job) use ($blog, $subscribers) {
+            $expected = [...$subscribers->pluck('id')->all(), $blog->user_id];
+            sort($expected);
+            $told = $job->recipientIds;
+            sort($told);
+
+            return $job->category === 'blogs'
+                && $job->notification instanceof BlogCommentPosted
+                && $told === $expected;
+        });
+    }
+
+    public function test_a_comment_on_a_post_with_many_followers_queues_short_jobs(): void
+    {
+        Queue::fake();
+
+        $blog = Blog::factory()->published()->create();
+        $blog->commentSubscribers()->attach(User::factory()->count(NotifyMembers::CHUNK + 5)->create()->pluck('id')->all());
+
+        $this->actingAs(User::factory()->create());
+
+        $this->withSession([CommentGuard::SESSION_TOKEN_KEY => 'comment-captcha'])
+            ->postJson(route('blogs.comments.store', ['blog' => $blog->slug]), [
+                'body' => 'First!',
+                'captcha_token' => 'comment-captcha',
+                'honeypot' => '',
+            ])
+            ->assertCreated();
+
+        // 105 followers and the post's author.
+        $sizes = Queue::pushed(NotifyMembers::class)->map(fn (NotifyMembers $job) => count($job->recipientIds))->all();
+
+        $this->assertSame([NotifyMembers::CHUNK, 6], $sizes);
+    }
+
+    public function test_the_author_of_a_post_is_not_told_of_their_own_comment(): void
+    {
+        $blog = Blog::factory()->published()->create();
+        $subscriber = User::factory()->create();
+        $blog->commentSubscribers()->attach($subscriber);
+
+        $this->assertSame([$subscriber->id], $blog->commentRecipientIds($blog->user));
+        $this->assertSame([$subscriber->id, $blog->user_id], $blog->commentRecipientIds(User::factory()->create()));
     }
 }

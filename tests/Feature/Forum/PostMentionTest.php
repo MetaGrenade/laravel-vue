@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Forum;
 
+use App\Jobs\NotifyMembers;
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
@@ -126,6 +127,12 @@ class PostMentionTest extends TestCase
         ]);
 
         $response->assertRedirect();
+
+        // The request only queues the telling: nobody is notified until a worker runs the job.
+        $this->assertDatabaseCount('notifications', 0);
+        Queue::assertPushed(NotifyMembers::class, fn (NotifyMembers $job) => $job->recipientIds === [$mentionedUser->id]);
+
+        Queue::pushed(NotifyMembers::class)->each(fn (NotifyMembers $job) => $job->handle());
 
         $this->assertDatabaseHas('notifications', [
             'notifiable_id' => $mentionedUser->id,

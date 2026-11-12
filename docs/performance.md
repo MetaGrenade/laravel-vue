@@ -110,7 +110,15 @@ The [query budgets](#what-it-measured-here) count a page's queries, so they hold
 - **The dashboard's support numbers are worked out by the database.** The average time to close a ticket read every closed ticket there had ever been into PHP, the average first response read every ticket of the last eight weeks *with every message in it, text included*, and the queue's age read every open ticket. Now each is one statement (`AdminController`: a grouped count, one join that finds each ticket's first answer, `Sql::secondsBetween()` for a time difference that differs by database). `AdminDashboardSlaMetricsTest` holds the numbers, with the edges of every bucket written out by hand, and fails if the dashboard reads the text of a message.
 - **A picker for a member is a search.** `StaffUserSearch` finds ten members by part of a nickname or email, or one by id; the support pages and the Create dialog of Admin → Tokens use it (`acp.support.users.search`, `acp.tokens.users.search`). Never hand a page a list of all the members.
 
-**Left as it is, and why:** the forum report list (Admin → Forums → Reports) reads every report of the chosen status and pages them in PHP, which is fine for the default (waiting) view and heavier for *All* and *Resolved* on a forum with many; it has not been measured. The API's poll list returns every published poll without paging. Both grow with what staff or moderators make or settle, not with the number of visitors, so they come after the pages above. A comment on a blog post notifies every subscriber inside the request; that is a different problem (the work, not the page) and is not touched here.
+**A request must not do work for everyone who follows what it makes.** A comment on a blog post, and a reply in the forum, told every subscriber and every follower of the author *inside the request*. Measured with 2,000 subscribers (the same in-memory database, the queue faked, one comment):
+
+| | Before | After |
+|---|--------|-------|
+| The request | 1,602 ms, 4,002 queries, 4,000 queued sends, +26 MB | 70 ms, 11 queries, 21 queued jobs, +2 MB |
+
+The work did not go away: it moved to the queue, a hundred members to a job, where several workers can share it (`App\Jobs\NotifyMembers`, [notifications.md](notifications.md#telling-many-people)). The request only picks *who*. A site that runs its queue as `sync` still does it all in the request, and a site with no worker sees no notices for followers until one runs.
+
+**Left as it is, and why:** the forum report list (Admin → Forums → Reports) reads every report of the chosen status and pages them in PHP, which is fine for the default (waiting) view and heavier for *All* and *Resolved* on a forum with many; it has not been measured. The API's poll list returns every published poll without paging. Both grow with what staff or moderators make or settle, not with the number of visitors, so they come after the pages above.
 
 ## A production checklist
 

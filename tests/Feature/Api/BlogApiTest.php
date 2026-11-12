@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Api;
 
+use App\Jobs\NotifyMembers;
 use App\Models\Blog;
 use App\Models\BlogComment;
 use App\Models\BlogCommentReport;
 use App\Models\User;
 use App\Support\Spam\CommentGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -117,6 +119,32 @@ class BlogApiTest extends TestCase
             'body' => 'Nice new comment',
             'status' => BlogComment::STATUS_APPROVED,
         ]);
+    }
+
+    public function test_a_comment_made_through_the_api_queues_the_telling_of_the_followers_and_the_author(): void
+    {
+        Queue::fake();
+
+        $blog = Blog::factory()->published()->create(['comments_enabled' => true]);
+        $follower = User::factory()->create();
+        $commenter = User::factory()->create();
+        $blog->commentSubscribers()->attach([$follower->id, $commenter->id]);
+
+        Sanctum::actingAs($commenter, ['*']);
+
+        $this
+            ->withSession([CommentGuard::SESSION_TOKEN_KEY => 'token-123'])
+            ->postJson(route('api.v1.blogs.comments.store', $blog), [
+                'body' => 'Nice new comment',
+                'captcha_token' => 'token-123',
+                'honeypot' => '',
+            ])
+            ->assertCreated();
+
+        // Nobody is told during the request; the commenter is not told of their own comment.
+        $this->assertDatabaseCount('notifications', 0);
+        Queue::assertPushed(NotifyMembers::class, 1);
+        Queue::assertPushed(NotifyMembers::class, fn (NotifyMembers $job) => $job->recipientIds === [$follower->id, $blog->user_id] && $job->category === 'blogs');
     }
 
     public function test_comment_creation_is_blocked_when_comments_disabled(): void

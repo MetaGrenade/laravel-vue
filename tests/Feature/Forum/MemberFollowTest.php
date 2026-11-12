@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Forum;
 
+use App\Jobs\NotifyMembers;
 use App\Models\AutomodRule;
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
@@ -17,6 +18,7 @@ use App\Support\WebsiteSections;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -248,6 +250,47 @@ class MemberFollowTest extends TestCase
         $this->assertGreaterThan($told, Notification::sent($follower, ForumFollowedMemberPosted::class)->count());
         Notification::assertSentTo($mentioned, ForumFollowedMemberPosted::class);
         Notification::assertNotSentTo($ignorer, ForumFollowedMemberPosted::class);
+    }
+
+    public function test_a_reply_only_picks_who_is_told_and_the_queue_does_the_telling(): void
+    {
+        Queue::fake();
+
+        $follower = User::factory()->create();
+        $subscriber = User::factory()->create();
+        $ignorer = User::factory()->create();
+        $mentioned = User::factory()->create(['nickname' => 'Heard']);
+        $banned = User::factory()->create();
+        $fanOfSomeoneElse = User::factory()->create();
+
+        // The author follows their own thread (people often do), and is not told of their own reply.
+        $this->thread->subscribers()->attach([$subscriber->id, $this->author->id]);
+
+        foreach ([$follower, $subscriber, $ignorer, $mentioned, $banned] as $member) {
+            $this->actingAs($member)->put(route('forum.follows.store', $this->author))->assertRedirect();
+        }
+
+        // Following another member is no reason to be told about this author.
+        $this->actingAs($fanOfSomeoneElse)->put(route('forum.follows.store', User::factory()->create()))->assertRedirect();
+
+        $this->actingAs($ignorer)->put(route('forum.ignores.store', $this->author))->assertRedirect();
+        $banned->forceFill(['is_banned' => true])->save();
+
+        $this->actingAs($this->author)->post(route('forum.posts.store', [$this->board, $this->thread]), [
+            'body' => '<p>Hello @Heard</p>',
+        ])->assertRedirect();
+
+        $this->assertDatabaseCount('notifications', 0);
+
+        // One job each, and every member in only one: the follower who is also named or subscribed is told the one way, the ignorer and the banned not at all.
+        $told = Queue::pushed(NotifyMembers::class)
+            ->mapWithKeys(fn (NotifyMembers $job) => [$job->notification::class => $job->recipientIds]);
+
+        $this->assertSame([ForumPostMentioned::class, ForumThreadUpdated::class, ForumFollowedMemberPosted::class], $told->keys()->all());
+        $this->assertSame([$mentioned->id], $told[ForumPostMentioned::class]);
+        $this->assertSame([$subscriber->id], $told[ForumThreadUpdated::class]);
+        $this->assertSame([$follower->id], $told[ForumFollowedMemberPosted::class]);
+        $this->assertTrue(Queue::pushed(NotifyMembers::class)->every(fn (NotifyMembers $job) => $job->category === 'forums'));
     }
 
     public function test_a_notice_opens_the_page_the_reply_is_on(): void
