@@ -29,7 +29,9 @@ class PollController extends Controller
             ->withCount('votes')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
-            ->paginate($perPage);
+            ->paginate($perPage)
+            // The links carry what was asked for (`per_page`), or the next page would be of the default size and skip or repeat polls.
+            ->withQueryString();
 
         // The two routes are public, so no middleware has looked for the key: ask for it here, or a key's owner is never recognised.
         $userVotes = $this->loadUserVotes($request->user('sanctum'), $polls->getCollection());

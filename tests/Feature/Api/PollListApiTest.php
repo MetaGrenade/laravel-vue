@@ -12,6 +12,7 @@ use App\Support\OpenApi\Specification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -78,6 +79,47 @@ class PollListApiTest extends TestCase
         $this->assertSame(url('/api/v1/polls?page=2'), $response->json('links.next'));
 
         $this->assertSame(array_slice($newestFirst, PollController::PER_PAGE), $this->idsOnPage('page=2'));
+    }
+
+    #[Test]
+    #[DataProvider('sizesOfAPage')]
+    public function following_the_links_walks_every_poll_once_in_pages_of_the_size_that_was_asked_for(int $perPage): void
+    {
+        $minutes = [7, 3, 15, 1, 20, 11, 5, 18, 2, 9, 14, 6, 19, 4, 13, 8, 17, 10, 16, 12];
+        $polls = collect($minutes)->mapWithKeys(fn (int $minute) => [$minute => $this->poll(sprintf('2026-03-01 10:%02d:00', $minute))]);
+
+        $first = $this->getJson('/api/v1/polls?per_page='.$perPage)->assertOk()->json();
+
+        // Every link the page carries (first, last, previous, next, and the numbered ones in `meta.links`) keeps the size that was asked for.
+        $links = [...array_filter($first['links']), ...array_filter(array_column($first['meta']['links'], 'url'))];
+        $this->assertNotEmpty($links);
+
+        foreach ($links as $link) {
+            $this->assertStringContainsString('per_page='.$perPage, $link);
+        }
+
+        $seen = array_column($first['polls'], 'id');
+        $sizes = [count($seen)];
+        $page = $first;
+
+        while ($page['links']['next'] !== null) {
+            $page = $this->getJson($page['links']['next'])->assertOk()->json();
+            $sizes[] = count($page['polls']);
+            $seen = [...$seen, ...array_column($page['polls'], 'id')];
+        }
+
+        // Each page but the last is as long as was asked for, and together they are all the polls, newest first, each once.
+        $this->assertSame($perPage, $sizes[0]);
+        $this->assertSame(array_fill(0, count($sizes) - 1, $perPage), array_slice($sizes, 0, -1));
+        $this->assertSame($polls->sortKeysDesc()->pluck('id')->values()->all(), $seen);
+    }
+
+    /**
+     * @return array<string, array{int}>
+     */
+    public static function sizesOfAPage(): array
+    {
+        return ['smaller than the default' => [3], 'larger than the default' => [18]];
     }
 
     #[Test]
