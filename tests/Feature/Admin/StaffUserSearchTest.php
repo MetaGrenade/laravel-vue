@@ -150,20 +150,22 @@ class StaffUserSearchTest extends TestCase
     #[DataProvider('searches')]
     public function it_is_for_staff_with_the_permission_for_the_page_that_uses_it(string $route, string $permission): void
     {
-        User::factory()->create(['nickname' => 'marigold']);
+        // A word no generated name or address contains: the members made below get random names, and a search for something like "mari" can
+        // find "Miss Maritza Hackett" first (it did, once).
+        User::factory()->create(['nickname' => 'quokka-fan']);
 
-        $this->getJson(route($route, ['q' => 'mari']))->assertUnauthorized();
+        $this->getJson(route($route, ['q' => 'quokka']))->assertUnauthorized();
 
-        $this->actingAs(User::factory()->create())->getJson(route($route, ['q' => 'mari']))->assertForbidden();
+        $this->actingAs(User::factory()->create())->getJson(route($route, ['q' => 'quokka']))->assertForbidden();
 
         // The admin area is for staff (a role) and then for what the page needs (a permission): the permission alone is not enough.
         $notStaff = User::factory()->create();
         $notStaff->givePermissionTo(Permission::findOrCreate($permission));
-        $this->actingAs($notStaff)->getJson(route($route, ['q' => 'mari']))->assertForbidden();
+        $this->actingAs($notStaff)->getJson(route($route, ['q' => 'quokka']))->assertForbidden();
 
         $staff = User::factory()->create()->assignRole(Role::findOrCreate('editor'));
         $staff->givePermissionTo(Permission::findOrCreate($permission));
-        $this->actingAs($staff)->getJson(route($route, ['q' => 'mari']))->assertOk()->assertJsonPath('data.0.nickname', 'marigold');
+        $this->actingAs($staff)->getJson(route($route, ['q' => 'quokka']))->assertOk()->assertJsonPath('data.0.nickname', 'quokka-fan');
     }
 
     #[Test]

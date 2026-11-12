@@ -91,6 +91,26 @@ class Blog extends Model
             ->withTimestamps();
     }
 
+    /**
+     * Who is told about a new comment by this member: whoever follows the comments, and the post's author, but not the one commenting.
+     *
+     * @return list<int>
+     */
+    public function commentRecipientIds(User $commenter): array
+    {
+        $ids = [];
+
+        foreach ($this->commentSubscribers()->where('users.id', '!=', $commenter->id)->pluck('users.id') as $id) {
+            $ids[(int) $id] = (int) $id;
+        }
+
+        if ($this->user_id !== $commenter->id) {
+            $ids[$this->user_id] = $this->user_id;
+        }
+
+        return array_values($ids);
+    }
+
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(BlogCategory::class, 'blog_blog_category')

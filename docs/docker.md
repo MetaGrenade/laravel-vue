@@ -11,7 +11,7 @@ One image, started three ways, plus the two services it needs.
 | Service | What it runs | Notes |
 | --- | --- | --- |
 | `app` | The web server: FrankenPHP (Caddy with PHP in it) on ports 80 and 443 | The only one that answers visitors. Gets a certificate by itself when `SERVER_NAME` is a domain name. |
-| `worker` | `php artisan metaforger:queue work redis ...` | Sends the queued emails and runs the jobs the shop and the scheduler start. A stop waits up to 90 seconds for the job it is running. It finishes and exits once an hour on purpose (`--max-time`, so that memory a job leaked is given back), and so does `queue:restart`; Docker starts it again each time. |
+| `worker` | `php artisan metaforger:queue work redis ...` | Sends the queued emails, tells followers and subscribers about a new post, and runs the jobs the shop and the scheduler start. A stop waits up to 90 seconds for the job it is running. It finishes and exits once an hour on purpose (`--max-time`, so that memory a job leaked is given back), and so does `queue:restart`; Docker starts it again each time. |
 | `scheduler` | `php artisan schedule:work` | Puts the timed jobs on the queue, once a minute. **Exactly one**; the worker runs them. |
 | `mysql` | MySQL 8.0 | Reachable from the other containers only. |
 | `redis` | Redis 7 | The cache, the sessions and the queue ([redis.md](redis.md)). Reachable from the other containers only, no password, no published port; it keeps its data in an append-only file, and refuses a write when it is full instead of dropping a job or a session. |

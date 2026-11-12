@@ -9,7 +9,6 @@ use App\Models\MemberFollow;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -83,21 +82,33 @@ class FollowedMembers
     }
 
     /**
-     * People who follow this author and should be told about a new post, apart from anyone already told another way.
+     * The ids of the people who follow this author and should be told about a new post, apart from anyone already told another way, banned
+     * members, and anyone who ignores the author or is ignored by them.
+     *
+     * Ids and not members: a member with ten thousand followers would otherwise have ten thousand accounts loaded to be told one by one
+     * (NotifyMembers loads them a hundred at a time), and a list that long must not become a `whereIn` either, which PostgreSQL stops at 65,535
+     * values. The banned are left out by a join for that reason.
      *
      * @param  array<int, true>  $except
-     * @return Collection<int, User>
+     * @return list<int>
      */
-    public function listeners(User $author, array $except): Collection
+    public function listenerIds(User $author, array $except): array
     {
         if ($author->is_banned) {
-            return new Collection;
+            return [];
         }
 
         $quiet = array_flip($this->ignored->quietFor($author));
         $ids = [];
 
-        foreach (MemberFollow::query()->where('followed_user_id', $author->id)->pluck('user_id') as $id) {
+        $followers = MemberFollow::query()
+            ->join('users', 'users.id', '=', 'member_follows.user_id')
+            ->where('member_follows.followed_user_id', $author->id)
+            ->where('users.is_banned', false)
+            ->orderBy('member_follows.user_id')
+            ->pluck('member_follows.user_id');
+
+        foreach ($followers as $id) {
             $id = (int) $id;
 
             if ($id === $author->id || isset($quiet[$id]) || isset($except[$id])) {
@@ -107,15 +118,7 @@ class FollowedMembers
             $ids[] = $id;
         }
 
-        if ($ids === []) {
-            return new Collection;
-        }
-
-        return User::query()
-            ->whereIn('id', $ids)
-            ->where('is_banned', false)
-            ->orderBy('id')
-            ->get();
+        return $ids;
     }
 
     /**
