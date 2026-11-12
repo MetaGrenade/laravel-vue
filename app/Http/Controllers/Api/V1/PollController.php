@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\V1\PollCollection;
 use App\Models\Poll;
 use App\Models\PollVote;
 use App\Models\User;
@@ -12,20 +13,28 @@ use Illuminate\Support\Collection;
 
 class PollController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    /** Polls to a page unless `per_page` says otherwise, and the most it will give. */
+    public const PER_PAGE = 15;
+
+    public const MAX_PER_PAGE = 50;
+
+    public function index(Request $request): PollCollection
     {
+        $perPage = max(1, min((int) $request->integer('per_page', self::PER_PAGE), self::MAX_PER_PAGE));
+
+        // The id settles polls made in the same second, so a poll is on one page and not on two (or none) as the pages are asked for.
         $polls = Poll::query()
             ->whereIn('status', ['published', 'closed'])
             ->with(['options' => fn ($query) => $query->withCount('votes')])
             ->withCount('votes')
             ->orderByDesc('created_at')
-            ->get();
+            ->orderByDesc('id')
+            ->paginate($perPage);
 
-        $userVotes = $this->loadUserVotes($request->user(), $polls);
+        // The two routes are public, so no middleware has looked for the key: ask for it here, or a key's owner is never recognised.
+        $userVotes = $this->loadUserVotes($request->user('sanctum'), $polls->getCollection());
 
-        return response()->json([
-            'polls' => $polls->map(fn (Poll $poll) => $this->serializePoll($poll, $userVotes)),
-        ]);
+        return new PollCollection($polls->through(fn (Poll $poll) => $this->serializePoll($poll, $userVotes)));
     }
 
     public function show(Request $request, Poll $poll): JsonResponse
@@ -37,7 +46,7 @@ class PollController extends Controller
         $poll->load(['options' => fn ($query) => $query->withCount('votes')]);
         $poll->loadCount('votes');
 
-        $userVotes = $this->loadUserVotes($request->user(), collect([$poll]));
+        $userVotes = $this->loadUserVotes($request->user('sanctum'), collect([$poll]));
 
         return response()->json([
             'poll' => $this->serializePoll($poll, $userVotes),

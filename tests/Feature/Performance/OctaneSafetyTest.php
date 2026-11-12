@@ -36,6 +36,7 @@ class OctaneSafetyTest extends TestCase
      */
     private const STATIC_PROPERTIES = [
         'Http/Controllers/Webhooks/StripeWebhookController.php::$applying' => 'Set when a delivery starts and removed in a finally, so it is empty between requests; it only stops one delivery being handled twice at once.',
+        'Http/Resources/Api/V1/PollCollection.php::$wrap' => 'The name the framework wraps the list in, the string `polls`, written once in the class and never set: the same for every request.',
         'Support/Localization/PreferenceOptions.php::$timezoneOptions' => 'PHP\'s own list of time zones: the same for every request.',
         'Support/Localization/PreferenceOptions.php::$localeOptions' => 'ICU\'s list of locales, each named in its own language rather than the request\'s: the same for every request.',
         'Support/Ownership.php::$owners' => 'Set once when teams plug in (1.1), a closure that is given the user and holds nothing of a request. The tests flush it.',
