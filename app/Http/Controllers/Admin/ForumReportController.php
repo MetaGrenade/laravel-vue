@@ -8,9 +8,11 @@ use App\Models\ForumBoard;
 use App\Models\ForumPostReport;
 use App\Models\ForumThreadReport;
 use App\Support\Localization\DateFormatter;
+use Closure;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -44,58 +46,6 @@ class ForumReportController extends Controller
         $perPage = max(5, min(100, $perPage));
         $page = max(1, (int) $request->query('page', 1));
 
-        $threadQuery = ForumThreadReport::query()
-            ->with([
-                'thread:id,forum_board_id,user_id,title,slug,is_locked,is_published',
-                'thread.board:id,title,slug,forum_category_id',
-                'reporter:id,nickname,email',
-                'reviewer:id,nickname,email',
-            ])
-            ->whereHas('thread')
-            ->orderByDesc('created_at');
-
-        $postQuery = ForumPostReport::query()
-            ->with([
-                'post:id,forum_thread_id,user_id,body',
-                'post.thread:id,forum_board_id,title,slug,is_locked,is_published',
-                'post.thread.board:id,title,slug,forum_category_id',
-                'post.author:id,nickname,email',
-                'reporter:id,nickname,email',
-                'reviewer:id,nickname,email',
-            ])
-            ->whereHas('post')
-            ->orderByDesc('created_at');
-
-        if ($status !== 'all') {
-            $threadQuery->where('status', $status);
-            $postQuery->where('status', $status);
-        }
-
-        if ($reasonCategory !== null) {
-            $threadQuery->where('reason_category', $reasonCategory);
-            $postQuery->where('reason_category', $reasonCategory);
-        }
-
-        if ($boardId !== null) {
-            $threadQuery->whereHas('thread', function ($query) use ($boardId) {
-                $query->where('forum_board_id', $boardId);
-            });
-
-            $postQuery->whereHas('post.thread', function ($query) use ($boardId) {
-                $query->where('forum_board_id', $boardId);
-            });
-        }
-
-        if ($search !== null) {
-            $threadQuery->whereHas('thread', function ($query) use ($search) {
-                $query->whereLike('title', "%{$search}%");
-            });
-
-            $postQuery->whereHas('post.thread', function ($query) use ($search) {
-                $query->whereLike('title', "%{$search}%");
-            });
-        }
-
         $formatter = DateFormatter::for($request->user());
 
         // Where a moderator goes to warn or ban the author of what was reported (docs/moderation.md); none for somebody who may do neither.
@@ -105,122 +55,31 @@ class ForumReportController extends Controller
             ? route('acp.users.moderation.show', ['user' => $authorId, 'subject' => $subject])
             : null;
 
-        $reports = collect();
+        // The database picks the page (threads' reports and posts' reports together, newest first) and only that page's reports are read in full.
+        // Every report that matched used to be read, with its thread, board, post and people, only to throw all but one page away.
+        $paginator = $this->reportKeys($type, $status, $reasonCategory, $boardId, $search)
+            ->paginate($perPage, ['*'], 'page', $page)
+            ->withQueryString();
 
-        if ($type === 'all' || $type === 'thread') {
-            $reports = $reports->merge(
-                $threadQuery->get()->map(function (ForumThreadReport $report) use ($formatter, $moderate) {
-                    $thread = $report->thread;
+        $keys = $paginator->getCollection();
+        $threadReports = $this->threadReports($keys->where('kind', 'thread')->pluck('id')->all());
+        $postReports = $this->postReports($keys->where('kind', 'post')->pluck('id')->all());
 
-                    return [
-                        'id' => $report->id,
-                        'type' => 'thread',
-                        'moderate_url' => $thread ? $moderate($thread->getAttribute('user_id'), 'forum_thread:'.$thread->getKey()) : null,
-                        'status' => $report->status,
-                        'reason_category' => $report->reason_category,
-                        'reason' => $report->reason,
-                        'evidence_url' => $report->evidence_url,
-                        'created_at' => $formatter->iso($report->created_at),
-                        'reviewed_at' => $formatter->iso($report->reviewed_at),
-                        'reporter' => $report->reporter ? [
-                            'id' => $report->reporter->id,
-                            'nickname' => $report->reporter->nickname,
-                            'email' => $report->reporter->email,
-                        ] : null,
-                        'reviewer' => $report->reviewer ? [
-                            'id' => $report->reviewer->id,
-                            'nickname' => $report->reviewer->nickname,
-                            'email' => $report->reviewer->email,
-                        ] : null,
-                        'thread' => $thread ? [
-                            'id' => $thread->id,
-                            'title' => $thread->title,
-                            'slug' => $thread->slug,
-                            'is_locked' => (bool) $thread->is_locked,
-                            'is_published' => (bool) $thread->is_published,
-                            'board' => $thread->board ? [
-                                'id' => $thread->board->id,
-                                'title' => $thread->board->title,
-                                'slug' => $thread->board->slug,
-                            ] : null,
-                        ] : null,
-                    ];
-                })
-            );
-        }
+        // A report deleted between the two reads leaves a short page rather than a broken one.
+        $sliced = $keys
+            ->map(function (object $key) use ($threadReports, $postReports, $formatter, $moderate) {
+                if ($key->kind === 'thread') {
+                    $report = $threadReports->get($key->id);
 
-        if ($type === 'all' || $type === 'post') {
-            $reports = $reports->merge(
-                $postQuery->get()->map(function (ForumPostReport $report) use ($formatter, $moderate) {
-                    $post = $report->post;
-                    $thread = $post?->thread;
+                    return $report === null ? null : $this->threadRow($report, $formatter, $moderate);
+                }
 
-                    return [
-                        'id' => $report->id,
-                        'type' => 'post',
-                        'moderate_url' => $post ? $moderate($post->getAttribute('user_id'), 'forum_post:'.$post->getKey()) : null,
-                        'status' => $report->status,
-                        'reason_category' => $report->reason_category,
-                        'reason' => $report->reason,
-                        'evidence_url' => $report->evidence_url,
-                        'created_at' => $formatter->iso($report->created_at),
-                        'reviewed_at' => $formatter->iso($report->reviewed_at),
-                        'reporter' => $report->reporter ? [
-                            'id' => $report->reporter->id,
-                            'nickname' => $report->reporter->nickname,
-                            'email' => $report->reporter->email,
-                        ] : null,
-                        'reviewer' => $report->reviewer ? [
-                            'id' => $report->reviewer->id,
-                            'nickname' => $report->reviewer->nickname,
-                            'email' => $report->reviewer->email,
-                        ] : null,
-                        'post' => $post ? [
-                            'id' => $post->id,
-                            'body_preview' => Str::limit(strip_tags($post->body), 160),
-                            'author' => $post->author ? [
-                                'id' => $post->author->id,
-                                'nickname' => $post->author->nickname,
-                                'email' => $post->author->email,
-                            ] : null,
-                        ] : null,
-                        'thread' => $thread ? [
-                            'id' => $thread->id,
-                            'title' => $thread->title,
-                            'slug' => $thread->slug,
-                            'is_locked' => (bool) $thread->is_locked,
-                            'is_published' => (bool) $thread->is_published,
-                            'board' => $thread->board ? [
-                                'id' => $thread->board->id,
-                                'title' => $thread->board->title,
-                                'slug' => $thread->board->slug,
-                            ] : null,
-                        ] : null,
-                    ];
-                })
-            );
-        }
+                $report = $postReports->get($key->id);
 
-        $sortedReports = $reports
-            ->sortByDesc(function (array $report) {
-                return $report['created_at'] ?? '';
+                return $report === null ? null : $this->postRow($report, $formatter, $moderate);
             })
+            ->filter()
             ->values();
-
-        $total = $sortedReports->count();
-        $sliced = $sortedReports->slice(($page - 1) * $perPage, $perPage)->values();
-
-        $paginator = new LengthAwarePaginator(
-            $sliced,
-            $total,
-            $perPage,
-            $page,
-            [
-                'path' => $request->url(),
-                'query' => $request->query(),
-            ]
-        );
-
         $threadCounts = ForumThreadReport::query()
             ->select('status', DB::raw('count(*) as aggregate'))
             ->groupBy('status')
@@ -416,6 +275,214 @@ class ForumReportController extends Controller
         }
 
         return back()->with('success', 'Post report updated.');
+    }
+
+    /**
+     * The reports that match the filters, as the least that can be counted and ordered: which kind each is, its id and when it was made.
+     * Reports of threads and of posts are two tables, read here as one list so that the database counts it and cuts a page out of it.
+     * Newest first; reports made in the same second list a thread's before a post's, and the later id first.
+     */
+    private function reportKeys(string $type, string $status, ?string $reasonCategory, ?int $boardId, ?string $search): QueryBuilder
+    {
+        $sources = [];
+
+        if ($type === 'all' || $type === 'thread') {
+            $threads = ForumThreadReport::query()->whereHas('thread');
+
+            if ($status !== 'all') {
+                $threads->where('status', $status);
+            }
+
+            if ($reasonCategory !== null) {
+                $threads->where('reason_category', $reasonCategory);
+            }
+
+            if ($boardId !== null) {
+                $threads->whereHas('thread', fn ($query) => $query->where('forum_board_id', $boardId));
+            }
+
+            if ($search !== null) {
+                $threads->whereHas('thread', fn ($query) => $query->whereLike('title', "%{$search}%"));
+            }
+
+            $sources[] = $threads->toBase()->select('id', 'created_at')->selectRaw("'thread' as kind");
+        }
+
+        if ($type === 'all' || $type === 'post') {
+            $posts = ForumPostReport::query()->whereHas('post');
+
+            if ($status !== 'all') {
+                $posts->where('status', $status);
+            }
+
+            if ($reasonCategory !== null) {
+                $posts->where('reason_category', $reasonCategory);
+            }
+
+            if ($boardId !== null) {
+                $posts->whereHas('post.thread', fn ($query) => $query->where('forum_board_id', $boardId));
+            }
+
+            if ($search !== null) {
+                $posts->whereHas('post.thread', fn ($query) => $query->whereLike('title', "%{$search}%"));
+            }
+
+            $sources[] = $posts->toBase()->select('id', 'created_at')->selectRaw("'post' as kind");
+        }
+
+        $union = array_shift($sources);
+
+        foreach ($sources as $source) {
+            $union->unionAll($source);
+        }
+
+        return DB::query()
+            ->fromSub($union, 'reports')
+            ->orderByDesc('created_at')
+            ->orderByDesc('kind')
+            ->orderByDesc('id');
+    }
+
+    /**
+     * @param  list<int>  $ids
+     * @return Collection<int, ForumThreadReport>
+     */
+    private function threadReports(array $ids): Collection
+    {
+        if ($ids === []) {
+            return new Collection;
+        }
+
+        return ForumThreadReport::query()
+            ->with([
+                'thread:id,forum_board_id,user_id,title,slug,is_locked,is_published',
+                'thread.board:id,title,slug,forum_category_id',
+                'reporter:id,nickname,email',
+                'reviewer:id,nickname,email',
+            ])
+            ->whereIn('id', $ids)
+            ->get()
+            ->keyBy('id');
+    }
+
+    /**
+     * @param  list<int>  $ids
+     * @return Collection<int, ForumPostReport>
+     */
+    private function postReports(array $ids): Collection
+    {
+        if ($ids === []) {
+            return new Collection;
+        }
+
+        return ForumPostReport::query()
+            ->with([
+                'post:id,forum_thread_id,user_id,body',
+                'post.thread:id,forum_board_id,title,slug,is_locked,is_published',
+                'post.thread.board:id,title,slug,forum_category_id',
+                'post.author:id,nickname,email',
+                'reporter:id,nickname,email',
+                'reviewer:id,nickname,email',
+            ])
+            ->whereIn('id', $ids)
+            ->get()
+            ->keyBy('id');
+    }
+
+    /**
+     * @param  Closure(?int, string): ?string  $moderate
+     * @return array<string, mixed>
+     */
+    private function threadRow(ForumThreadReport $report, DateFormatter $formatter, Closure $moderate): array
+    {
+        $thread = $report->thread;
+
+        return [
+            'id' => $report->id,
+            'type' => 'thread',
+            'moderate_url' => $thread ? $moderate($thread->getAttribute('user_id'), 'forum_thread:'.$thread->getKey()) : null,
+            'status' => $report->status,
+            'reason_category' => $report->reason_category,
+            'reason' => $report->reason,
+            'evidence_url' => $report->evidence_url,
+            'created_at' => $formatter->iso($report->created_at),
+            'reviewed_at' => $formatter->iso($report->reviewed_at),
+            'reporter' => $report->reporter ? [
+                'id' => $report->reporter->id,
+                'nickname' => $report->reporter->nickname,
+                'email' => $report->reporter->email,
+            ] : null,
+            'reviewer' => $report->reviewer ? [
+                'id' => $report->reviewer->id,
+                'nickname' => $report->reviewer->nickname,
+                'email' => $report->reviewer->email,
+            ] : null,
+            'thread' => $thread ? [
+                'id' => $thread->id,
+                'title' => $thread->title,
+                'slug' => $thread->slug,
+                'is_locked' => (bool) $thread->is_locked,
+                'is_published' => (bool) $thread->is_published,
+                'board' => $thread->board ? [
+                    'id' => $thread->board->id,
+                    'title' => $thread->board->title,
+                    'slug' => $thread->board->slug,
+                ] : null,
+            ] : null,
+        ];
+    }
+
+    /**
+     * @param  Closure(?int, string): ?string  $moderate
+     * @return array<string, mixed>
+     */
+    private function postRow(ForumPostReport $report, DateFormatter $formatter, Closure $moderate): array
+    {
+        $post = $report->post;
+        $thread = $post?->thread;
+
+        return [
+            'id' => $report->id,
+            'type' => 'post',
+            'moderate_url' => $post ? $moderate($post->getAttribute('user_id'), 'forum_post:'.$post->getKey()) : null,
+            'status' => $report->status,
+            'reason_category' => $report->reason_category,
+            'reason' => $report->reason,
+            'evidence_url' => $report->evidence_url,
+            'created_at' => $formatter->iso($report->created_at),
+            'reviewed_at' => $formatter->iso($report->reviewed_at),
+            'reporter' => $report->reporter ? [
+                'id' => $report->reporter->id,
+                'nickname' => $report->reporter->nickname,
+                'email' => $report->reporter->email,
+            ] : null,
+            'reviewer' => $report->reviewer ? [
+                'id' => $report->reviewer->id,
+                'nickname' => $report->reviewer->nickname,
+                'email' => $report->reviewer->email,
+            ] : null,
+            'post' => $post ? [
+                'id' => $post->id,
+                'body_preview' => Str::limit(strip_tags($post->body), 160),
+                'author' => $post->author ? [
+                    'id' => $post->author->id,
+                    'nickname' => $post->author->nickname,
+                    'email' => $post->author->email,
+                ] : null,
+            ] : null,
+            'thread' => $thread ? [
+                'id' => $thread->id,
+                'title' => $thread->title,
+                'slug' => $thread->slug,
+                'is_locked' => (bool) $thread->is_locked,
+                'is_published' => (bool) $thread->is_published,
+                'board' => $thread->board ? [
+                    'id' => $thread->board->id,
+                    'title' => $thread->board->title,
+                    'slug' => $thread->board->slug,
+                ] : null,
+            ] : null,
+        ];
     }
 
     private function guardReportContentAction(?string $action): void

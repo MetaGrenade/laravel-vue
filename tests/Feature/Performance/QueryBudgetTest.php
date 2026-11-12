@@ -14,6 +14,7 @@ use App\Models\Faq;
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
+use App\Models\ForumPostReport;
 use App\Models\ForumThread;
 use App\Models\ForumThreadReport;
 use App\Models\MemberFollow;
@@ -457,9 +458,18 @@ class QueryBudgetTest extends TestCase
                     'reason' => 'Looks like spam.',
                     'status' => ForumThreadReport::STATUS_PENDING,
                 ]);
+                // Both kinds, as they are read separately once the database has picked the page. That is 24 queries: 22 before the
+                // page was cut in the database, plus the one that counts the reports and the one that picks the page.
+                ForumPostReport::create([
+                    'forum_post_id' => $this->reply($thread)->id,
+                    'reporter_id' => User::factory()->create()->id,
+                    'reason_category' => 'spam',
+                    'reason' => 'Looks like spam.',
+                    'status' => ForumPostReport::STATUS_PENDING,
+                ]);
             },
             fn () => $this->actingAs($staff)->get(route('acp.forums.reports.index'))->assertOk(),
-            22,
+            26,
         );
     }
 
