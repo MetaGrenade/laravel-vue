@@ -13,7 +13,8 @@ class BlogCommentResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $user = $request->user();
+        // Asked of the guard by name: the list of comments is a public route, where nothing else has looked for the key.
+        $user = $request->user('sanctum');
 
         return [
             'id' => $this->id,

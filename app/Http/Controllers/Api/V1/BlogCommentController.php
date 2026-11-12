@@ -37,11 +37,16 @@ class BlogCommentController extends Controller
             default => 'oldest',
         };
 
+        // The route is public, so no middleware has looked for the key: ask for it here, or its owner is never recognised (their own reaction,
+        // and in the resource what they may do with each comment).
+        $viewerId = $request->user('sanctum')->id ?? 0; // no key: nobody, whose reactions are none
+
+        // The id is the last term of every order, so comments made in the same second (or liked as often) are each on one page and not on two or none.
         $comments = $blog->comments()
             ->with([
                 'user',
-                'reactions' => function ($query) use ($request) {
-                    $query->where('user_id', optional($request->user())->id ?? 0);
+                'reactions' => function ($query) use ($viewerId) {
+                    $query->where('user_id', $viewerId);
                 },
             ])
             ->where('status', BlogComment::STATUS_APPROVED)
@@ -49,11 +54,16 @@ class BlogCommentController extends Controller
                 $query
                     ->orderByRaw('(like_count - dislike_count) DESC')
                     ->orderByDesc('like_count')
-                    ->orderByDesc('created_at');
+                    ->orderByDesc('created_at')
+                    ->orderByDesc('id');
             }, function ($query) use ($sortMode) {
-                $query->orderBy('created_at', $sortMode === 'newest' ? 'desc' : 'asc');
+                $direction = $sortMode === 'newest' ? 'desc' : 'asc';
+
+                $query->orderBy('created_at', $direction)->orderBy('id', $direction);
             })
-            ->paginate($perPage);
+            ->paginate($perPage)
+            // The links carry what was asked for (`per_page`, `sort`), or the next page would be of the default size and order and skip or repeat comments.
+            ->withQueryString();
 
         return BlogCommentResource::collection($comments);
     }

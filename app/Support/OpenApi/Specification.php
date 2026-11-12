@@ -212,6 +212,7 @@ class Specification
             '/v1/blogs/{slug}/comments' => [
                 'get' => [
                     'summary' => 'List approved comments for a blog post',
+                    'description' => 'With a key, each comment says what the key\'s owner may do with it (`permissions`) and how they reacted (`reactions.user_reaction`); without one, nothing may be done and no reaction is shown. The links to the other pages keep `per_page` and `sort`.',
                     'tags' => ['Blog Comments'],
                     'parameters' => [
                         [
