@@ -497,20 +497,23 @@ class Specification
             '/v1/polls' => [
                 'get' => [
                     'summary' => 'List published and closed polls',
-                    'description' => 'With a key, each poll also says which options the key\'s owner has voted for.',
+                    'description' => 'With a key, each poll also says which options the key\'s owner has voted for. The polls come a page at a time (15 unless `per_page` says otherwise), under `polls` rather than `data`, with `links` and `meta` like the other lists.',
                     'tags' => ['Polls'],
+                    'parameters' => [
+                        static::paginationQueryParameter(),
+                        [
+                            'name' => 'per_page',
+                            'in' => 'query',
+                            'schema' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 15],
+                            'description' => 'Number of polls to return per page (max 50).',
+                        ],
+                    ],
                     'responses' => [
                         '200' => [
-                            'description' => 'The polls, newest first',
+                            'description' => 'One page of the polls, newest first',
                             'content' => [
                                 'application/json' => [
-                                    'schema' => [
-                                        'type' => 'object',
-                                        'properties' => [
-                                            'polls' => ['type' => 'array', 'items' => static::schemaRef('Poll')],
-                                        ],
-                                        'required' => ['polls'],
-                                    ],
+                                    'schema' => static::schemaRef('PaginatedPollCollection'),
                                 ],
                             ],
                         ],
@@ -1637,6 +1640,7 @@ class Specification
             'PaginatedBlogCollection' => static::paginatedSchema('Blog'),
             'PaginatedBlogCommentCollection' => static::paginatedSchema('BlogComment'),
             'PaginatedForumThreadCollection' => static::paginatedSchema('ForumThread'),
+            'PaginatedPollCollection' => static::paginatedSchema('Poll', 'polls'),
             'ValidationError' => [
                 'type' => 'object',
                 'properties' => [
@@ -1670,12 +1674,12 @@ class Specification
         ];
     }
 
-    protected static function paginatedSchema(string $resource): array
+    protected static function paginatedSchema(string $resource, string $key = 'data'): array
     {
         return [
             'type' => 'object',
             'properties' => [
-                'data' => [
+                $key => [
                     'type' => 'array',
                     'items' => static::schemaRef($resource),
                 ],
@@ -1701,7 +1705,7 @@ class Specification
                     ],
                 ],
             ],
-            'required' => ['data', 'links', 'meta'],
+            'required' => [$key, 'links', 'meta'],
         ];
     }
 

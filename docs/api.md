@@ -65,7 +65,7 @@ curl -X POST https://your-site/api/v1/blogs/a-first-post/comments \
 | `POST` | `/api/v1/blogs/{blog}/comments/{comment}/report` | `blog:write` | blog | Report a comment to the moderators (`reason_category` is required). |
 | `POST` | `/api/v1/blogs/{blog}/comments/subscriptions` | `blog:write` | blog | Follow the comments of a post. |
 | `DELETE` | `/api/v1/blogs/{blog}/comments/subscriptions` | `blog:write` | blog | Stop following them. |
-| `GET` | `/api/v1/polls` | public | — | Every published and closed poll with its options and vote counts. Not paged. |
+| `GET` | `/api/v1/polls` | public | — | The published and closed polls, newest first, with their options and vote counts. 15 to a page (`?per_page=` up to 50). With a key, each poll says which options the key's owner voted for. |
 | `GET` | `/api/v1/polls/{poll}` | public | — | One poll. |
 | `POST` | `/api/v1/polls/{poll}/vote` | `polls:vote` | — | Vote in a poll. |
 | `GET` | `/api/v1/forum/threads` | public | forum | Published threads, most recently active first, 15 to a page. |
@@ -96,7 +96,7 @@ Records are named by their slug (a post, a thread, a board, a poll) or their num
 
 ## What comes back
 
-- **Lists** (the blog, its comments, the threads) are Laravel pages: `data` (the rows), `links` (`first`, `last`, `prev`, `next`) and `meta` (`current_page`, `last_page`, `per_page`, `total`, and a `links` list of page buttons). Ask for another page with `?page=2`. The posts and the threads come 15 to a page and there is no parameter to change that (`?per_page=3` is ignored). The comments are the exception: 10 to a page unless you send `?per_page=`, which is held to 1 to 50 (`100` gives 50, and `0` or text gives 1), and `?sort=` takes `oldest` (the default), `newest` or `top` (most liked; any other word is `oldest`). The polls list is not a page at all: all polls, in `polls`.
+- **Lists** (the blog, its comments, the threads) are Laravel pages: `data` (the rows), `links` (`first`, `last`, `prev`, `next`) and `meta` (`current_page`, `last_page`, `per_page`, `total`, and a `links` list of page buttons). Ask for another page with `?page=2`. The posts and the threads come 15 to a page and there is no parameter to change that (`?per_page=3` is ignored). The comments are the exception: 10 to a page unless you send `?per_page=`, which is held to 1 to 50 (`100` gives 50, and `0` or text gives 1), and `?sort=` takes `oldest` (the default), `newest` or `top` (most liked; any other word is `oldest`). The polls are a page too, with the same `links` and `meta`, but the rows are under `polls` and not `data` (the key it always had, so a script that read `polls` keeps working, now for the first page: follow `links.next` for the rest). They come 15 to a page, and `?per_page=` is held to 1 to 50 as it is for the comments; the links keep the `per_page` you sent, so following `links.next` gives pages of the same size. A poll made in the same second as another still has one place in the order, so none is on two pages or on none.
 - **Dates** are ISO 8601 with an offset, such as `2026-11-08T09:17:24+00:00`. The `expires_at` of a new key is UTC with a trailing `Z`.
 - **There is no one envelope.** What the calls that were tried answered:
 
@@ -105,7 +105,7 @@ Records are named by their slug (a post, a thread, a board, a poll) or their num
 | Sign in | `201` | `token`, `abilities`, `expires_at`, `user` |
 | Sign out | `204` | nothing |
 | Profile | `200` | `data` |
-| Polls | `200` | `polls` (the list), `poll` (one) |
+| Polls | `200` | `polls`, `links` and `meta` (the list), `poll` (one) |
 | Write, edit or react to a comment | `201`, `200` | the comment itself |
 | Delete a comment | `200` | `message` and `id` |
 | Follow or unfollow a post, a thread | `200` | `subscribed` (and `subscribers_count` for a post) |
