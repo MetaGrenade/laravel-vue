@@ -6,7 +6,9 @@ use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Models\SearchQuery;
 use App\Models\SearchQueryAggregate;
+use App\Support\Csv\CsvCell;
 use App\Support\Localization\DateFormatter;
+use Generator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon as SupportCarbon;
@@ -18,6 +20,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class SearchAnalyticsController extends Controller
 {
     use InteractsWithInertiaPagination;
+
+    /** Rows read from the database at a time while a CSV is being written. */
+    private const EXPORT_CHUNK = 1000;
 
     public function index(Request $request): Response
     {
@@ -49,15 +54,10 @@ class SearchAnalyticsController extends Controller
     {
         $filename = 'search-aggregates-'.now()->format('Ymd-His').'.csv';
 
-        $aggregates = SearchQueryAggregate::query()
-            ->orderByDesc('total_count')
-            ->orderByDesc('last_ran_at')
-            ->get();
-
-        return response()->streamDownload(function () use ($aggregates) {
+        return response()->streamDownload(function () {
             $handle = fopen('php://output', 'w');
 
-            fputcsv($handle, [
+            $this->csvRow($handle, [
                 'Term',
                 'Searches',
                 'Zero Result Searches',
@@ -66,14 +66,14 @@ class SearchAnalyticsController extends Controller
                 'Last Searched',
             ]);
 
-            foreach ($aggregates as $aggregate) {
-                fputcsv($handle, [
-                    $aggregate->term,
+            foreach ($this->aggregatesInOrder() as $aggregate) {
+                $this->csvRow($handle, [
+                    CsvCell::text($aggregate->term),
                     $aggregate->total_count,
                     $aggregate->zero_result_count,
                     $this->calculateCtr($aggregate->total_count, $aggregate->zero_result_count),
                     $this->calculateAverageResults($aggregate->total_count, $aggregate->total_results),
-                    optional($aggregate->last_ran_at)?->toIso8601String(),
+                    $aggregate->last_ran_at?->toIso8601String(),
                 ]);
             }
 
@@ -87,22 +87,18 @@ class SearchAnalyticsController extends Controller
     {
         $filters = $this->validateFilters($request);
 
-        $searches = $this->recentSearchQuery($filters)
-            ->orderByDesc('created_at')
-            ->get(['term', 'result_count', 'created_at']);
-
         $filename = 'search-queries-'.now()->format('Ymd-His').'.csv';
 
-        return response()->streamDownload(function () use ($searches) {
+        return response()->streamDownload(function () use ($filters) {
             $handle = fopen('php://output', 'w');
 
-            fputcsv($handle, ['Term', 'Results Returned', 'Searched At']);
+            $this->csvRow($handle, ['Term', 'Results Returned', 'Searched At']);
 
-            foreach ($searches as $search) {
-                fputcsv($handle, [
-                    $search->term,
+            foreach ($this->searchesNewestFirst($filters) as $search) {
+                $this->csvRow($handle, [
+                    CsvCell::text($search->term),
                     $search->result_count,
-                    optional($search->created_at)?->toIso8601String(),
+                    $search->created_at?->toIso8601String(),
                 ]);
             }
 
@@ -110,6 +106,87 @@ class SearchAnalyticsController extends Controller
         }, $filename, [
             'Content-Type' => 'text/csv',
         ]);
+    }
+
+    /**
+     * One line of a CSV. The escape character is switched off (`''`): RFC 4180 doubles a quote and has no backslash escape, and with PHP's default
+     * a term that ends in a backslash before a quote (`a\"b`) is written with the quote NOT doubled, so a reader ends the cell there and puts the
+     * rest in the next one. PHP 8.4 also deprecates leaving the argument out.
+     *
+     * @param  resource  $handle
+     * @param  array<int, string|int|float|null>  $cells
+     */
+    private function csvRow($handle, array $cells): void
+    {
+        fputcsv($handle, $cells, ',', '"', '', "\n");
+    }
+
+    /**
+     * Every logged search that matches, newest first, a thousand at a time. Each page starts after the last row of the one before, by its time and id
+     * (the log is only ever added to, so a row never moves under the cursor), and not at an offset: the file of a busy site is hundreds of thousands
+     * of rows, and an offset would read all of the rows before it again for every page. The id also settles searches made in the same second.
+     *
+     * @param  array<string, mixed>  $filters
+     * @return Generator<int, SearchQuery>
+     */
+    private function searchesNewestFirst(array $filters): Generator
+    {
+        $last = null;
+
+        do {
+            $query = $this->recentSearchQuery($filters)
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->limit(self::EXPORT_CHUNK);
+
+            if ($last !== null) {
+                // The first line is what lets the database start in the index at the last time and read on from there (an OR on its own is read
+                // as "look at every row"); the second line only sorts out the rows that share that second.
+                $query->where('created_at', '<=', $last->created_at)
+                    ->where(fn ($after) => $after->where('created_at', '<', $last->created_at)->orWhere('id', '<', $last->id));
+            }
+
+            $rows = $query->get(['id', 'term', 'result_count', 'created_at']);
+
+            foreach ($rows as $row) {
+                yield $row;
+            }
+
+            $last = $rows->last();
+        } while ($rows->count() === self::EXPORT_CHUNK);
+    }
+
+    /**
+     * Every term with its counts, the most searched first. The order is worked out once, by the database, and kept as a list of ids (a number a row);
+     * the rows are then read a thousand at a time. The counts are rewritten by the nightly aggregation, so a page that started at a count would
+     * miss or repeat terms whose count changed while the file was being made; a list of ids cannot. A term the aggregation removes meanwhile is skipped.
+     *
+     * @return Generator<int, SearchQueryAggregate>
+     */
+    private function aggregatesInOrder(): Generator
+    {
+        $ids = [];
+
+        $order = SearchQueryAggregate::query()
+            ->orderByDesc('total_count')
+            ->orderByDesc('last_ran_at')
+            ->orderByDesc('id')
+            ->toBase()
+            ->select('id');
+
+        foreach ($order->cursor() as $row) {
+            $ids[] = (int) $row->id;
+        }
+
+        foreach (array_chunk($ids, self::EXPORT_CHUNK) as $slice) {
+            $rows = SearchQueryAggregate::query()->whereIn('id', $slice)->get()->keyBy('id');
+
+            foreach ($slice as $id) {
+                if ($rows->has($id)) {
+                    yield $rows->get($id);
+                }
+            }
+        }
     }
 
     protected function buildSummary(): array
