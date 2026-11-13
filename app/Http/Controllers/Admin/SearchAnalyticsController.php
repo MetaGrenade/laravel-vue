@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SearchQuery;
 use App\Models\SearchQueryAggregate;
 use App\Support\Csv\CsvCell;
+use App\Support\Csv\CsvRow;
 use App\Support\Localization\DateFormatter;
 use Generator;
 use Illuminate\Http\Request;
@@ -57,7 +58,7 @@ class SearchAnalyticsController extends Controller
         return response()->streamDownload(function () {
             $handle = fopen('php://output', 'w');
 
-            $this->csvRow($handle, [
+            CsvRow::write($handle, [
                 'Term',
                 'Searches',
                 'Zero Result Searches',
@@ -67,7 +68,7 @@ class SearchAnalyticsController extends Controller
             ]);
 
             foreach ($this->aggregatesInOrder() as $aggregate) {
-                $this->csvRow($handle, [
+                CsvRow::write($handle, [
                     CsvCell::text($aggregate->term),
                     $aggregate->total_count,
                     $aggregate->zero_result_count,
@@ -92,10 +93,10 @@ class SearchAnalyticsController extends Controller
         return response()->streamDownload(function () use ($filters) {
             $handle = fopen('php://output', 'w');
 
-            $this->csvRow($handle, ['Term', 'Results Returned', 'Searched At']);
+            CsvRow::write($handle, ['Term', 'Results Returned', 'Searched At']);
 
             foreach ($this->searchesNewestFirst($filters) as $search) {
-                $this->csvRow($handle, [
+                CsvRow::write($handle, [
                     CsvCell::text($search->term),
                     $search->result_count,
                     $search->created_at?->toIso8601String(),
@@ -106,19 +107,6 @@ class SearchAnalyticsController extends Controller
         }, $filename, [
             'Content-Type' => 'text/csv',
         ]);
-    }
-
-    /**
-     * One line of a CSV. The escape character is switched off (`''`): RFC 4180 doubles a quote and has no backslash escape, and with PHP's default
-     * a term that ends in a backslash before a quote (`a\"b`) is written with the quote NOT doubled, so a reader ends the cell there and puts the
-     * rest in the next one. PHP 8.4 also deprecates leaving the argument out.
-     *
-     * @param  resource  $handle
-     * @param  array<int, string|int|float|null>  $cells
-     */
-    private function csvRow($handle, array $cells): void
-    {
-        fputcsv($handle, $cells, ',', '"', '', "\n");
     }
 
     /**

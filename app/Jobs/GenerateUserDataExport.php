@@ -7,6 +7,8 @@ use App\Models\ModerationAction;
 use App\Models\UsageEvent;
 use App\Models\User;
 use App\Notifications\UserDataExportReady;
+use App\Support\Csv\CsvCell;
+use App\Support\Csv\CsvRow;
 use App\Support\Notifications\SplitDelivery;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -253,89 +255,55 @@ class GenerateUserDataExport implements ShouldQueue
             throw new RuntimeException('Unable to open temporary stream for export.');
         }
 
-        fputcsv($handle, ['resource_type', 'resource_id', 'summary', 'created_at', 'updated_at']);
+        CsvRow::write($handle, ['resource_type', 'resource_id', 'summary', 'created_at', 'updated_at']);
 
         foreach ($payload['blog_comments'] as $comment) {
-            fputcsv($handle, [
-                'blog_comment',
-                $comment['id'],
-                Str::limit((string) $comment['body'], 120),
-                $comment['created_at'],
-                $comment['updated_at'],
-            ]);
+            $this->csvRow($handle, 'blog_comment', $comment['id'], Str::limit((string) $comment['body'], 120), $comment['created_at'], $comment['updated_at']);
         }
 
         foreach ($payload['forum_posts'] as $post) {
-            fputcsv($handle, [
-                'forum_post',
-                $post['id'],
-                Str::limit((string) $post['body'], 120),
-                $post['created_at'],
-                $post['updated_at'],
-            ]);
+            $this->csvRow($handle, 'forum_post', $post['id'], Str::limit((string) $post['body'], 120), $post['created_at'], $post['updated_at']);
         }
 
         foreach ($payload['support_tickets'] as $ticket) {
-            fputcsv($handle, [
-                'support_ticket',
-                $ticket['id'],
-                Str::limit((string) $ticket['subject'], 120),
-                $ticket['created_at'],
-                $ticket['updated_at'],
-            ]);
+            $this->csvRow($handle, 'support_ticket', $ticket['id'], Str::limit((string) $ticket['subject'], 120), $ticket['created_at'], $ticket['updated_at']);
         }
 
         foreach ($payload['wishlist'] as $item) {
-            fputcsv($handle, [
-                'wishlist_item',
-                $item['id'],
-                Str::limit((string) $item['product'], 120),
-                $item['created_at'],
-                $item['updated_at'],
-            ]);
+            $this->csvRow($handle, 'wishlist_item', $item['id'], Str::limit((string) $item['product'], 120), $item['created_at'], $item['updated_at']);
         }
 
         foreach ($payload['product_reviews'] as $review) {
-            fputcsv($handle, [
+            $this->csvRow(
+                $handle,
                 'product_review',
                 $review['id'],
                 Str::limit($review['rating'].'/5 '.($review['product'] ?? '').': '.($review['title'] ?: $review['body']), 120),
                 $review['created_at'],
                 $review['updated_at'],
-            ]);
+            );
         }
 
         // The last thing that happened to a key stands for when it was changed: it was revoked, or else last used.
         foreach ($payload['api_keys'] as $key) {
-            fputcsv($handle, [
+            $this->csvRow(
+                $handle,
                 'api_key',
                 $key['id'],
                 Str::limit($key['name'].': '.implode(' ', $key['scopes']), 120),
                 $key['created_at'],
                 $key['revoked_at'] ?? $key['last_used_at'] ?? $key['created_at'],
-            ]);
+            );
         }
 
         // A row a day and meter, as in the JSON: the day is when it was used, and there is nothing to say it changed.
         foreach ($payload['usage'] as $day) {
-            fputcsv($handle, [
-                'usage',
-                $day['meter'].':'.$day['date'],
-                $day['units'].' '.$day['meter'].' used',
-                $day['date'],
-                $day['date'],
-            ]);
+            $this->csvRow($handle, 'usage', $day['meter'].':'.$day['date'], $day['units'].' '.$day['meter'].' used', $day['date'], $day['date']);
         }
 
         // A warning, a ban or the lifting of one, as the member was told.
         foreach ($payload['moderation'] as $action) {
-            fputcsv($handle, [
-                'moderation_'.$action['type'],
-                $action['id'],
-                Str::limit((string) $action['reason'], 120),
-                $action['created_at'],
-                $action['created_at'],
-            ]);
+            $this->csvRow($handle, 'moderation_'.$action['type'], $action['id'], Str::limit((string) $action['reason'], 120), $action['created_at'], $action['created_at']);
         }
 
         rewind($handle);
@@ -348,5 +316,17 @@ class GenerateUserDataExport implements ShouldQueue
         }
 
         return $contents;
+    }
+
+    /**
+     * One row of `export.csv`. The summary is what somebody typed: the member's own comment, post, ticket subject or key name, and also the reason a
+     * moderator gave and the name of a product, which somebody else wrote. A spreadsheet runs a cell that starts with `=`, `+`, `-` or `@` as a formula
+     * (CWE-1236), so the summary goes through `CsvCell::text()`; the rest of the row is ids, dates and fixed words. `CsvRow` writes the line.
+     *
+     * @param  resource  $handle
+     */
+    private function csvRow($handle, string $type, int|string $id, string $summary, ?string $createdAt, ?string $updatedAt): void
+    {
+        CsvRow::write($handle, [$type, $id, CsvCell::text($summary), $createdAt, $updatedAt]);
     }
 }
