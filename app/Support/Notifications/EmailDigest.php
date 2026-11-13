@@ -9,6 +9,7 @@ use App\Support\Localization\Locales;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Holds community emails for members who asked for one a day, and sends that email (docs/email-digests.md).
@@ -63,17 +64,44 @@ class EmailDigest
     }
 
     /**
-     * Send one email to each member who has something waiting, then drop those lines.
+     * The next members who have something waiting, lowest id first: at most `$limit` of them, all with an id above `$after`. The morning
+     * job walks the list with this, a page at a time, so it never holds more than a page of ids and is not disturbed by the lines the
+     * jobs it queues are deleting.
+     *
+     * @return list<int>
      */
-    public function sendDue(): int
+    public function waitingMemberIds(int $after, int $limit): array
+    {
+        return EmailDigestItem::query()
+            ->where('user_id', '>', $after)
+            ->distinct()
+            ->orderBy('user_id')
+            ->limit($limit)
+            ->pluck('user_id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Send one email to each of these members who has something waiting, then drop those lines. Returns how many were emailed.
+     *
+     * A member whose delivery fails (a bad row, a mail error that is raised while the email is queued) is reported and left with their
+     * lines for the next morning; it does not stop the members after them.
+     *
+     * @param  list<int>  $userIds
+     */
+    public function deliverTo(array $userIds): int
     {
         $sent = 0;
 
-        $userIds = EmailDigestItem::query()->distinct()->orderBy('user_id')->pluck('user_id');
-
         foreach ($userIds as $userId) {
-            if ($this->deliver((int) $userId)) {
-                $sent++;
+            try {
+                if ($this->deliver($userId)) {
+                    $sent++;
+                }
+            } catch (Throwable $exception) {
+                report($exception);
             }
         }
 
