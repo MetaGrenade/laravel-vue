@@ -307,6 +307,10 @@ class PollListApiTest extends TestCase
         });
 
         $queries = function (string $query) use ($headers): int {
+            // Sanctum records when a key was last used, and writes it only if the second has changed since it was last written: one more query,
+            // or not, according to the clock (the comment list's test failed on it in CI). Every request is made in a new second, so the write
+            // is always there.
+            $this->travel(2)->seconds();
             Auth::forgetGuards();
             DB::flushQueryLog();
             DB::enableQueryLog();
@@ -329,7 +333,7 @@ class PollListApiTest extends TestCase
         // 40 polls, 30 of them on the page; and what is asked for them is asked once, whatever the page.
         $this->assertSame(30, $read);
         $this->assertSame($one, $many);
-        // The key (found, and marked as used), the count, the page, the options and the votes of its owner.
-        $this->assertLessThanOrEqual(6, $many);
+        // The key and its owner (two reads) and the key marked as used (a write), the count, the page, the options and the votes of its owner.
+        $this->assertLessThanOrEqual(7, $many);
     }
 }
