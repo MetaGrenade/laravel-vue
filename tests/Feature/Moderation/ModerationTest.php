@@ -2,11 +2,9 @@
 
 namespace Tests\Feature\Moderation;
 
-use App\Jobs\GenerateUserDataExport;
 use App\Jobs\LiftRunOutBans;
 use App\Models\Blog;
 use App\Models\BlogComment;
-use App\Models\DataExport;
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
@@ -28,6 +26,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\ViewErrorBag;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Support\ReadsDataExport;
 use Tests\TestCase;
 
 /**
@@ -36,6 +35,7 @@ use Tests\TestCase;
  */
 class ModerationTest extends TestCase
 {
+    use ReadsDataExport;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -944,8 +944,7 @@ class ModerationTest extends TestCase
         $member = $this->member();
         $this->moderation()->warn($member, $moderator, 'Please stop that', 'Staff only: they are a repeat offender');
 
-        $build = new \ReflectionMethod(GenerateUserDataExport::class, 'buildPayload');
-        $data = $build->invoke(new GenerateUserDataExport(DataExport::factory()->for($member)->create()->id), $member);
+        $data = $this->dataExportJson($member);
 
         $this->assertCount(1, $data['moderation']);
         $this->assertSame('Please stop that', $data['moderation'][0]['reason']);
