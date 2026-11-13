@@ -15,6 +15,7 @@ use Database\Seeders\TokenLogDemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Prompts\Prompt;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -410,10 +411,24 @@ class InstallCommandTest extends TestCase
             ->assertSuccessful();
     }
 
+    /**
+     * Call the site "production". Laravel only answers a prompt through the console components, which is what `expectsConfirmation()` hears,
+     * while it believes it is running tests, and a site called "production" is not "testing". On laravel/framework 13.34 the state that
+     * says so was left behind by an earlier command of the run (the migration in setUp, which on a database that is migrated once per
+     * process, as MySQL and PostgreSQL are, is the first test's) and Windows always answers that way, so this could only fail on Linux CI.
+     * laravel/framework 13.42 clears that state after every test, so it is set here.
+     */
+    private function asProduction(): void
+    {
+        $this->app->detectEnvironment(fn () => 'production');
+
+        Prompt::fallbackWhen(true);
+    }
+
     #[Test]
     public function a_production_site_needs_force_and_nothing_is_written_without_it(): void
     {
-        $this->app->detectEnvironment(fn () => 'production');
+        $this->asProduction();
 
         $this->install($this->adminOptions())
             ->expectsConfirmation('Are you sure you want to run this command?', 'no')
@@ -431,7 +446,7 @@ class InstallCommandTest extends TestCase
 
         unset($_ENV['APP_ENV'], $_SERVER['APP_ENV']);
         putenv('APP_ENV');
-        $this->app->detectEnvironment(fn () => 'production');
+        $this->asProduction();
 
         try {
             $run();
