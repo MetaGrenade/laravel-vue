@@ -186,6 +186,10 @@ class BlogCommentListApiTest extends TestCase
         $url = route('api.v1.blogs.comments.index', $blog);
 
         $queries = function () use ($headers, $url): int {
+            // Sanctum records when a key was last used, and writes it only if the second has changed since it was last written: one more query,
+            // or not, according to the clock. That made this test fail on the slower databases in CI (8 and 9 queries on MySQL, 9 and 8 on
+            // PostgreSQL, with twelve inserts between the two requests). Every request is made in a new second, so the write is always there.
+            $this->travel(2)->seconds();
             Auth::forgetGuards();
             DB::flushQueryLog();
             DB::enableQueryLog();

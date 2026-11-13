@@ -133,6 +133,17 @@ The work did not go away: it moved to the queue, a hundred members to a job, whe
 
 This was the last of the two lists the sweep (every `->get()` in the controllers) had set aside; neither is left.
 
+**A file is written as it is read.** The two CSV files of Admin → Search analytics (every logged search, and every term with its counts) were built from every row in memory before the first line was sent, and Laravel's `->get()` makes a model of each: 158 MB at 100,000 searches (past PHP's default limit of 128 MB, the download ended in a fatal error), 39 MB at 20,000 terms. Measured in an in-memory SQLite database, one request each:
+
+| File | Before | After |
+|------|--------|-------|
+| Every search, 100,000 | 3.4 s, +158 MB | 2.2 s, +4.2 MB |
+| Every search, 1,000,000 | out of memory | 21 s, +4.2 MB (one query for each thousand rows) |
+| Every term, 20,000 | 0.96 s, +39 MB | 0.9 s, +5.5 MB |
+| Every term, 200,000 | out of memory | 8 s, +14.5 MB |
+
+The log is read from the newest row back, a thousand at a time, each page starting after the last row of the one before by `created_at` and id (`SearchAnalyticsController::searchesNewestFirst()`). The `created_at <= ?` line that comes before the `OR` is not decoration: with the `OR` alone SQLite read the index from its start again for every page, which took 104 seconds for the million, and with it the scan starts where the last page ended (the same query shape is what MySQL and PostgreSQL are best at, but this was not measured on them). The terms are kept as a list of ids in the order of the file and read by those ids, because the nightly aggregation rewrites their counts and a page that began at a count could miss or repeat a term. The 100,000 searches came out byte for byte the same before and after, and so did the 20,000 terms except that the 820 that tie (the same count and the same time) now come out later one first. The same file was also a hole: a visitor's search term was written as it was typed, so a search for `=HYPERLINK(...)` was a formula in the file staff opened ([search-index.md](search-index.md#the-search-log-and-its-two-files)). The exports of other people's words go through `CsvCell::text()`.
+
 ## A production checklist
 
 1. **`composer install --no-dev --optimize-autoloader`.** The classmap is read once, and the test tools are not on the server.
