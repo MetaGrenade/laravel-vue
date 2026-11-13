@@ -3,12 +3,10 @@
 namespace Tests\Feature\Moderation;
 
 use App\Enums\ReviewStatus;
-use App\Jobs\GenerateUserDataExport;
 use App\Models\AuditLog;
 use App\Models\Blog;
 use App\Models\BlogComment;
 use App\Models\BlogCommentReport;
-use App\Models\DataExport;
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
@@ -28,6 +26,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Support\ReadsDataExport;
 use Tests\TestCase;
 
 /**
@@ -36,6 +35,7 @@ use Tests\TestCase;
  */
 class ContentCleanupTest extends TestCase
 {
+    use ReadsDataExport;
     use RefreshDatabase;
 
     private ForumBoard $board;
@@ -550,9 +550,7 @@ class ContentCleanupTest extends TestCase
 
         $this->actingAs($spammer)->get(route('settings.standing'))->assertInertia(fn (Assert $page) => $page->has('notices', 0));
 
-        $build = new \ReflectionMethod(GenerateUserDataExport::class, 'buildPayload');
-        $data = $build->invoke(new GenerateUserDataExport(DataExport::factory()->for($spammer)->create()->id), $spammer);
-        $this->assertSame([], $data['moderation']);
+        $this->assertSame([], $this->dataExportJson($spammer)['moderation']);
     }
 
     // --- Who may ---------------------------------------------------------------------------------------------------------------------
