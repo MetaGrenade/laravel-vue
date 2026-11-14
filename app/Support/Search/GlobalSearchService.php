@@ -5,6 +5,7 @@ namespace App\Support\Search;
 use App\Models\Blog;
 use App\Models\Faq;
 use App\Models\ForumThread;
+use App\Support\Text\PlainText;
 use App\Support\WebsiteSections;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
@@ -128,7 +129,7 @@ class GlobalSearchService
     public function presentBlog(Blog $blog, string $term): array
     {
         $excerpt = is_string($blog->excerpt) ? trim($blog->excerpt) : '';
-        $body = is_string($blog->body) ? trim(strip_tags($blog->body)) : '';
+        $body = PlainText::of($blog->body);
         $author = $blog->user?->nickname ?? null;
         $description = $excerpt !== ''
             ? $excerpt
@@ -464,7 +465,7 @@ class GlobalSearchService
             return null;
         }
 
-        $normalized = trim(strip_tags($text));
+        $normalized = trim($text);
 
         if ($normalized === '') {
             return null;

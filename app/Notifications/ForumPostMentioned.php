@@ -7,12 +7,12 @@ use App\Models\ForumThread;
 use App\Notifications\Concerns\SendsBroadcastsSynchronously;
 use App\Support\Mail\MailText;
 use App\Support\Notifications\RecordsForDigest;
+use App\Support\Text\PlainText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Str;
 
 class ForumPostMentioned extends Notification implements RecordsForDigest, ShouldQueue
 {
@@ -58,7 +58,7 @@ class ForumPostMentioned extends Notification implements RecordsForDigest, Shoul
             ->subject(__('mail.forum.post_mentioned.title', ['title' => $this->thread->title]))
             ->greeting(MailText::greeting($notifiable))
             ->line(__('mail.forum.post_mentioned.line'))
-            ->line(Str::limit(strip_tags($this->post->body), 200))
+            ->line(PlainText::excerpt($this->post->body, 200))
             ->action(__('mail.forum.post_mentioned.action'), $url);
     }
 
@@ -90,7 +90,7 @@ class ForumPostMentioned extends Notification implements RecordsForDigest, Shoul
      */
     protected function payload(string $title): array
     {
-        $excerpt = Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags($this->post->body)) ?? ''), 140);
+        $excerpt = PlainText::excerpt($this->post->body, 140);
 
         return [
             'thread_id' => $this->thread->id,

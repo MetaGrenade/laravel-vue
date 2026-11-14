@@ -7,12 +7,12 @@ use App\Models\ForumThread;
 use App\Notifications\Concerns\SendsBroadcastsSynchronously;
 use App\Support\Mail\MailText;
 use App\Support\Notifications\RecordsForDigest;
+use App\Support\Text\PlainText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Str;
 
 class ForumThreadUpdated extends Notification implements RecordsForDigest, ShouldQueue
 {
@@ -59,7 +59,7 @@ class ForumThreadUpdated extends Notification implements RecordsForDigest, Shoul
             ->subject(__('mail.forum.thread_updated.title', ['title' => $this->thread->title]))
             ->greeting(MailText::greeting($notifiable))
             ->line(__('mail.forum.thread_updated.line', ['title' => $this->thread->title]))
-            ->line(Str::limit(strip_tags($this->post->body), 200))
+            ->line(PlainText::excerpt($this->post->body, 200))
             ->action(__('mail.forum.thread_updated.action'), $url)
             ->line(__('mail.forum.thread_updated.reason'));
     }
@@ -92,7 +92,7 @@ class ForumThreadUpdated extends Notification implements RecordsForDigest, Shoul
      */
     protected function payload(): array
     {
-        $excerpt = Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags($this->post->body)) ?? ''), 140);
+        $excerpt = PlainText::excerpt($this->post->body, 140);
         $title = __('mail.forum.thread_updated.title', ['title' => $this->thread->title]);
 
         return [

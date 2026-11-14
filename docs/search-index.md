@@ -17,7 +17,7 @@ Four indexes, and a record is in one only when a guest could already open it:
 
 Saving a record that stops qualifying removes its document. A new or edited reply asks for the thread's document again, once an engine is in use. Taking down a member's posts in bulk (see [moderation.md](moderation.md)) skips those model events, so the clean-up removes the unpublished threads from the index and rebuilds every other thread that lost a reply.
 
-The words stored are plain text, and a document stops at 8,000 characters.
+The words stored are plain text, and a document stops at 8,000 characters. Plain text means what a reader of the page gets: `Don't`, not `Don&#039;t` (a search for *don't* has to find it, and one for *039* must not), and the last word of a paragraph is not joined to the first of the next (`App\Support\Text\PlainText`). A document made before this was fixed has the old text until it is made again: `php artisan metaforger:search:reindex` ([Upgrading](upgrading.md#stored-text)).
 
 ## Searching
 

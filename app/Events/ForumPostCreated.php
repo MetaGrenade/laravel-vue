@@ -4,12 +4,12 @@ namespace App\Events;
 
 use App\Models\ForumPost;
 use App\Models\ForumThread;
+use App\Support\Text\PlainText;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Str;
 
 class ForumPostCreated implements ShouldBroadcastNow
 {
@@ -51,7 +51,7 @@ class ForumPostCreated implements ShouldBroadcastNow
                     'nickname' => $this->post->author?->nickname,
                     'avatar_url' => $this->post->author?->avatar_url,
                 ],
-                'excerpt' => Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags($this->post->body)) ?? ''), 160),
+                'excerpt' => PlainText::excerpt($this->post->body, 160),
                 'created_at' => optional($this->post->created_at)->toIso8601String(),
                 'url' => route('forum.threads.show', [
                     'board' => $boardSlug,

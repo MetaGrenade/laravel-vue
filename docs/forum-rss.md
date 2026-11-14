@@ -10,7 +10,7 @@ On the forum, and on a board, choose **Subscribe via RSS**. The address is also 
 
 The forum feed lists the latest twenty published threads, newest activity first. A board's feed lists only that board. A thread that is not published, including one held for review, is left out. A locked thread stays. Pinning a thread does not move it up the feed.
 
-Each line is the thread: its title, with the prefix in front when it has one, a short excerpt, the board, and a link to the thread. The words somebody else wrote are shown as words. The time on a line is when it was last posted in, not when a held reply was saved.
+Each line is the thread: its title, with the prefix in front when it has one, a short excerpt, the board, and a link to the thread. The words somebody else wrote are shown as words: the excerpt is given as text (`<summary type="text">`), so a tag a member typed is shown as the characters and a feed reader does not take it for markup. The time on a line is when it was last posted in, not when a held reply was saved.
 
 The feed is the same for everyone. It does not hide a member you ignore, and it is not limited to people you follow. A picture or a file on a post is not in the feed.
 

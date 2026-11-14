@@ -20,6 +20,7 @@ use App\Support\Localization\DateFormatter;
 use App\Support\Security\HtmlSanitizer;
 use App\Support\Seo\Seo;
 use App\Support\Spam\CommentGuard;
+use App\Support\Text\PlainText;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -572,10 +573,10 @@ class ForumController extends Controller
                 'datePublished' => $thread->created_at?->toAtomString(),
                 'dateModified' => ($thread->last_posted_at ?? $thread->updated_at)?->toAtomString(),
                 'author' => $thread->author ? ['@type' => 'Person', 'name' => $thread->author->nickname] : null,
-                'text' => $opener ? Str::limit(trim(strip_tags($opener->body)), 500) : null,
+                'text' => $opener ? PlainText::excerpt($opener->body, 500) : null,
                 'acceptedAnswer' => $solutionPost instanceof ForumPost ? [
                     '@type' => 'Answer',
-                    'text' => Str::limit(trim(strip_tags((string) $solutionPost->body)), 500),
+                    'text' => PlainText::excerpt($solutionPost->body, 500),
                 ] : null,
                 'interactionStatistic' => [
                     '@type' => 'InteractionCounter',
@@ -630,9 +631,9 @@ class ForumController extends Controller
         $cleaned = preg_replace('/<(script|style|iframe)[^>]*>.*?<\/\1>/is', '', $html) ?? '';
 
         $cleaned = str_ireplace(['<br />', '<br/>', '<br>'], "\n", $cleaned);
-        $cleaned = preg_replace('/<\/(p|div)>/i', "\n\n", $cleaned) ?? $cleaned;
+        $cleaned = preg_replace('/<\/?(p|div|li|blockquote|pre)>/i', "\n\n", $cleaned) ?? $cleaned;
 
-        $text = trim(strip_tags($cleaned));
+        $text = trim(html_entity_decode(strip_tags($cleaned), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
 
         if ($text === '') {
             return '<blockquote><p></p></blockquote><p></p>';
