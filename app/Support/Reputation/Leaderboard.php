@@ -9,6 +9,7 @@ use App\Models\ReputationEvent;
 use App\Models\User;
 use App\Support\Forum\PostPages;
 use App\Support\Localization\DateFormatter;
+use App\Support\Text\PlainText;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -188,15 +189,9 @@ class Leaderboard
 
     private function excerpt(?string $value): ?string
     {
-        $text = trim(html_entity_decode(strip_tags((string) $value), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $text = PlainText::of($value);
 
-        if ($text === '') {
-            return null;
-        }
-
-        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
-
-        return Str::limit($text, 180);
+        return $text === '' ? null : Str::limit($text, 180);
     }
 
     /**

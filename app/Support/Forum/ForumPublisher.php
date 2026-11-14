@@ -12,6 +12,7 @@ use App\Notifications\ForumFollowedMemberPosted;
 use App\Notifications\ForumPostMentioned;
 use App\Notifications\ForumThreadUpdated;
 use App\Support\Reputation\ReputationManager;
+use App\Support\Text\PlainText;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -177,7 +178,9 @@ class ForumPublisher
      */
     private function extractMentionNicknames(string $body): Collection
     {
-        $plainText = html_entity_decode(strip_tags($body));
+        // The words, with a space where a block ends: `<p>Thanks</p><p>@Ada look</p>` is "Thanks @Ada look", not "Thanks@Ada look", where the
+        // at sign follows a letter and is not the start of a name.
+        $plainText = PlainText::of($body);
 
         preg_match_all('/(?<![\\w@])@([A-Za-z0-9_.-]{2,50})/u', $plainText, $matches);
 

@@ -8,6 +8,7 @@ use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
+use App\Support\Text\PlainText;
 use App\Support\WebsiteSections;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -311,14 +312,9 @@ class Members
 
     private function excerpt(?string $value, int $limit): ?string
     {
-        $text = $this->text($value);
+        // A forum post is stored HTML, a bio is text; either way it is one line of words here, with a space where a block ends.
+        $text = PlainText::of($value);
 
-        if ($text === null) {
-            return null;
-        }
-
-        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
-
-        return Str::limit($text, $limit);
+        return $text === '' ? null : Str::limit($text, $limit);
     }
 }
