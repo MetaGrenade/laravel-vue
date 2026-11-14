@@ -1459,12 +1459,6 @@ parameters:
 			path: database/seeders/AcpDashboardDemoSeeder.php
 
 		-
-			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: database/seeders/AcpDashboardDemoSeeder.php
-
-		-
 			message: '#^Offset ''categories'' on array\{name\: string, slug\: string, description\: string, metadata\: array\{hero_image\: string\}, brand\: string, categories\: array\{0\: string, 1\?\: string\}, tags\: array\{string\}, options\: array\{\}\|array\{array\{name\: string, display_name\: string, values\: array\{0\: string, 1\: string, 2\: string, 3\?\: string\}\}\}, \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
 			count: 1
@@ -1497,11 +1491,5 @@ parameters:
 		-
 			message: '#^Offset ''last_used_at'' on array\{key\: string, user\: App\\Models\\User, name\: string, abilities\: array\{string, string\}, created_at\: Illuminate\\Support\\Carbon, last_used_at\: Illuminate\\Support\\Carbon\} on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
-			count: 1
-			path: database/seeders/TokenLogDemoSeeder.php
-
-		-
-			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
 			count: 1
 			path: database/seeders/TokenLogDemoSeeder.php
