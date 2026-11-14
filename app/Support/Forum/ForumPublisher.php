@@ -12,7 +12,6 @@ use App\Notifications\ForumFollowedMemberPosted;
 use App\Notifications\ForumPostMentioned;
 use App\Notifications\ForumThreadUpdated;
 use App\Support\Reputation\ReputationManager;
-use App\Support\Text\PlainText;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -29,6 +28,7 @@ class ForumPublisher
         private readonly ReputationManager $reputation,
         private readonly IgnoredMembers $ignored,
         private readonly FollowedMembers $followed,
+        private readonly MentionParser $mentions,
     ) {}
 
     /**
@@ -106,16 +106,40 @@ class ForumPublisher
      */
     public function resolveMentionedUsers(string $body, int $authorId): Collection
     {
-        $nicknames = $this->extractMentionNicknames($body);
+        $names = $this->mentions->parse($body);
+        $candidates = array_merge($names['named'], ...$names['typed']);
 
-        if ($nicknames->isEmpty()) {
+        if ($candidates === []) {
             return collect();
         }
 
-        return User::query()
-            ->whereIn('nickname', $nicknames)
-            ->where('id', '!=', $authorId)
-            ->get()
+        $members = [];
+
+        foreach (User::query()->whereIn('nickname', array_values(array_unique($candidates)))->get() as $member) {
+            $members[mb_strtolower((string) $member->nickname)] ??= $member;
+        }
+
+        // The author is dropped last, and not in the query: a member who names themselves as `Ada.` has not named `Ada`.
+        $found = [];
+
+        foreach ($names['named'] as $name) {
+            if (isset($members[mb_strtolower($name)])) {
+                $found[] = $members[mb_strtolower($name)];
+            }
+        }
+
+        foreach ($names['typed'] as $options) {
+            foreach ($options as $name) {
+                if (isset($members[mb_strtolower($name)])) {
+                    $found[] = $members[mb_strtolower($name)];
+
+                    break;
+                }
+            }
+        }
+
+        return collect($found)
+            ->reject(fn (User $member): bool => $member->id === $authorId)
             ->unique('id')
             ->values();
     }
@@ -171,23 +195,5 @@ class ForumPublisher
                 'last_read_at' => $post->created_at ?? now(),
             ],
         );
-    }
-
-    /**
-     * @return Collection<int, non-empty-string>
-     */
-    private function extractMentionNicknames(string $body): Collection
-    {
-        // The words, with a space where a block ends: `<p>Thanks</p><p>@Ada look</p>` is "Thanks @Ada look", not "Thanks@Ada look", where the
-        // at sign follows a letter and is not the start of a name.
-        $plainText = PlainText::of($body);
-
-        preg_match_all('/(?<![\\w@])@([A-Za-z0-9_.-]{2,50})/u', $plainText, $matches);
-
-        return collect($matches[1])
-            ->map(fn (string $nickname) => trim($nickname))
-            ->filter(fn (string $nickname) => $nickname !== '')
-            ->unique(fn (string $nickname) => mb_strtolower($nickname))
-            ->values();
     }
 }
