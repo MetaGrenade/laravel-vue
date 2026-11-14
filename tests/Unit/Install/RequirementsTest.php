@@ -201,6 +201,42 @@ class RequirementsTest extends TestCase
     }
 
     #[Test]
+    public function the_probe_says_whether_gd_asks_php_for_the_memory_of_a_picture_and_keeps_none_of_it(): void
+    {
+        $probe = new PhpProbe;
+
+        $before = memory_get_usage();
+        $counted = $probe->gdCountsAgainstMemoryLimit();
+
+        $this->assertLessThan(1048576, memory_get_usage() - $before, 'the picture it makes to find out is let go');
+
+        // An independent look at the same thing, with a bigger picture (9 MB): does PHP's own count move?
+        $before = memory_get_usage();
+        $picture = imagecreatetruecolor(1500, 1500);
+        $grew = memory_get_usage() - $before;
+        unset($picture);
+
+        $this->assertSame($grew >= 8 * 1048576, $counted);
+    }
+
+    #[Test]
+    public function a_gd_that_takes_its_memory_from_the_system_makes_the_memory_limit_beside_the_point(): void
+    {
+        $this->php->bytes = ['memory_limit' => 128 * 1048576];
+        $this->php->gdCounted = false;
+
+        $memory = $this->find($this->check(), 'PHP memory_limit');
+
+        $this->assertTrue($memory->ok);
+        $this->assertStringContainsString('takes its memory from the system', $memory->detail);
+
+        // And with the GD that comes with PHP the same limit is advice.
+        $this->php->gdCounted = true;
+
+        $this->assertFalse($this->find($this->check(), 'PHP memory_limit')->ok);
+    }
+
+    #[Test]
     public function the_probe_reports_the_memory_the_limit_is_held_against(): void
     {
         // What the system has given the process (in chunks), not what the script has asked for: that is what memory_limit counts.

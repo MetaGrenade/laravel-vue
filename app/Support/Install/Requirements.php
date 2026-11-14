@@ -99,16 +99,20 @@ class Requirements
             $this->php->extensionLoaded('exif') ? 'photos taken sideways are turned upright' : 'without it a photo taken sideways stays sideways',
         );
 
+        // Only the GD that comes with PHP takes its memory from PHP's limit; a distribution's library takes it from the system.
+        $counted = $this->php->gdCountsAgainstMemoryLimit();
         $memory = $this->php->bytes('memory_limit');
-        $roomy = $memory === null || $memory <= 0 || $memory >= self::MEMORY_ADVISED;
+        $roomy = ! $counted || $memory === null || $memory <= 0 || $memory >= self::MEMORY_ADVISED;
 
         $results[] = new Requirement(
             'PHP memory_limit',
             $roomy,
             false,
-            $roomy
-                ? 'room to save the largest picture the shop allows'
-                : 'is '.$this->megabytes((int) $memory)." in the command line PHP (the web server's php.ini can differ); ".$this->megabytes(self::MEMORY_ADVISED).' is advised, and with less a large photo is refused instead of saved',
+            match (true) {
+                ! $counted => 'does not limit pictures here: the GD of this PHP takes its memory from the system and not from memory_limit',
+                $roomy => 'room to save the largest picture the shop allows',
+                default => 'is '.$this->megabytes((int) $memory)." in the command line PHP (the web server's php.ini can differ); ".$this->megabytes(self::MEMORY_ADVISED).' is advised, and with less a large photo is refused instead of saved',
+            },
         );
 
         if ($uploadBytes > 0) {

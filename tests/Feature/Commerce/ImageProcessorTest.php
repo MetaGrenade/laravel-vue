@@ -4,6 +4,7 @@ namespace Tests\Feature\Commerce;
 
 use App\Support\Commerce\Catalogue\ImageProcessor;
 use App\Support\Commerce\Catalogue\ImageRejected;
+use App\Support\Install\PhpProbe;
 use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -461,11 +462,12 @@ class ImageProcessorTest extends TestCase
     /**
      * A processor on a machine whose PHP may use $limit bytes and has used $inUse of them.
      */
-    private function onAMachineWith(?int $limit, int $inUse = 40 * 1048576): ImageProcessor
+    private function onAMachineWith(?int $limit, int $inUse = 40 * 1048576, bool $gdCounted = true): ImageProcessor
     {
         $php = new FakePhpProbe;
         $php->bytes = ['memory_limit' => $limit];
         $php->memoryInUse = $inUse;
+        $php->gdCounted = $gdCounted;
 
         // The fake says the machine has everything; a JPEG would then be read for its EXIF note, which needs the real extension.
         if (! extension_loaded('exif')) {
@@ -555,6 +557,35 @@ class ImageProcessorTest extends TestCase
     }
 
     #[Test]
+    public function with_the_systems_gd_the_memory_limit_is_not_held_against_a_picture(): void
+    {
+        Log::spy();
+
+        // A distribution's GD takes the memory of a picture from the system, so PHP's limit says nothing about it:
+        // the same picture that is refused above goes on to be decoded (and is found to be cut off).
+        try {
+            $this->onAMachineWith(128 * 1048576, gdCounted: false)->process($this->claiming(4000, 3000));
+            $this->fail('A picture with a cut-off body was accepted.');
+        } catch (ImageRejected $exception) {
+            $this->assertStringContainsString('could not be read', $exception->getMessage());
+        }
+
+        Log::shouldNotHaveReceived('warning');
+    }
+
+    /**
+     * What the guard counts on was measured with the GD that comes with PHP, which asks PHP for the memory of a picture. A
+     * distribution's GD does not, so there is nothing for PHP to count and nothing to measure: the CI machines have that
+     * GD (a 4 megapixel picture moved PHP's peak by 430 kB), which is how the difference was found.
+     */
+    private function requireGdMemoryToCount(): void
+    {
+        if (! (new PhpProbe)->gdCountsAgainstMemoryLimit()) {
+            $this->markTestSkipped("The GD of this PHP takes its memory from the system, so PHP's own count does not see a picture.");
+        }
+    }
+
+    #[Test]
     public function the_pixel_limit_still_answers_first(): void
     {
         config(['commerce.images.max_pixels' => 4_000_000]);
@@ -614,6 +645,7 @@ class ImageProcessorTest extends TestCase
     #[DataProvider('drawn')]
     public function drawing_a_picture_takes_less_memory_than_the_guard_counts_on(string $how, bool $sideways, int $side): void
     {
+        $this->requireGdMemoryToCount();
         $this->requireExifToTurn($sideways ? 6 : 1);
 
         $upload = $this->photo($sideways ? 6 : 1, $side, $side);
@@ -634,6 +666,7 @@ class ImageProcessorTest extends TestCase
     #[Test]
     public function a_photo_taken_sideways_takes_no_more_memory_than_an_upright_one(): void
     {
+        $this->requireGdMemoryToCount();
         $this->requireExifToTurn();
 
         $measure = function (int $orientation): int {

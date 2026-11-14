@@ -204,6 +204,12 @@ class ImageProcessor
             return;
         }
 
+        // With the system's GD the memory of a picture is not PHP's to run out of: nothing here stops PHP, and a
+        // picture the machine cannot hold fails in GD, which is a refusal like any other (it could not be read or drawn).
+        if (! $this->php->gdCountsAgainstMemoryLimit()) {
+            return;
+        }
+
         $room = $limit - $this->php->memoryInUse();
         $pixels = $width * $height;
 
