@@ -194,10 +194,24 @@ class ImageProcessorTest extends TestCase
         ];
     }
 
+    /**
+     * Turning a photo upright needs the exif extension, which is advice and not a condition (docs/install.md): without it a
+     * photo is kept as it was stored, and `without_the_exif_extension_a_photo_is_kept_as_it_was_stored` says so on every machine.
+     * A test of the turn itself can only run where the extension is.
+     */
+    private function requireExifToTurn(int $orientation = 6): void
+    {
+        if ($orientation > 1 && ! extension_loaded('exif')) {
+            $this->markTestSkipped('The exif extension is not loaded here, so a photo taken sideways is kept as stored.');
+        }
+    }
+
     #[Test]
     #[DataProvider('turned')]
     public function a_photo_taken_sideways_is_turned_upright_at_every_size(int $orientation, string $corner, int $width, int $height): void
     {
+        $this->requireExifToTurn($orientation);
+
         config(['commerce.images.sizes' => ['large' => 250, 'medium' => 150, 'thumb' => 100]]);
 
         $result = $this->processor->process($this->photo($orientation));
@@ -217,6 +231,8 @@ class ImageProcessorTest extends TestCase
     #[DataProvider('turned')]
     public function one_webp_of_a_photo_taken_sideways_is_turned_upright(int $orientation, string $corner, int $width, int $height): void
     {
+        $this->requireExifToTurn($orientation);
+
         $webp = $this->processor->webp($this->photo($orientation), 1000);
 
         $this->assertSame($corner, $this->redCorner($webp));
@@ -227,12 +243,65 @@ class ImageProcessorTest extends TestCase
     #[DataProvider('turned')]
     public function every_width_of_a_photo_taken_sideways_is_turned_upright(int $orientation, string $corner, int $width, int $height): void
     {
+        $this->requireExifToTurn($orientation);
+
         $result = (new ImageProcessor)->webpAtWidths($this->photo($orientation), 250, [150, 80]);
 
         $this->assertSame($corner, $this->redCorner($result['large']));
         $this->assertSame($corner, $this->redCorner($result['widths'][150]));
         $this->assertSame($corner, $this->redCorner($result['widths'][80]));
         $this->assertSame($width > $height, $result['width'] > $result['height']);
+    }
+
+    /**
+     * @return array<string, array{0: int}>
+     */
+    public static function howItWasHeld(): array
+    {
+        return ['upright' => [1], 'upside down' => [3], 'a quarter turn clockwise' => [6], 'a quarter turn the other way' => [8]];
+    }
+
+    #[Test]
+    #[DataProvider('howItWasHeld')]
+    public function without_the_exif_extension_a_photo_is_kept_as_it_was_stored(int $orientation): void
+    {
+        // A machine without the extension is described to the processor, so this runs, and means the same, on every machine.
+        $php = new FakePhpProbe;
+        $php->missingExtensions = ['exif'];
+        $processor = new ImageProcessor($php);
+        $photo = $this->photo($orientation);
+
+        $result = $processor->process($photo);
+
+        $this->assertSame('top left', $this->redCorner($result->large));
+        $this->assertSame('top left', $this->redCorner($result->thumb));
+        $this->assertSame([300, 200], [$result->width, $result->height], 'still landscape, as it was stored');
+
+        $webp = $processor->webp($photo, 1000);
+
+        $this->assertSame('top left', $this->redCorner($webp));
+        $this->assertSame([300, 200], array_slice($this->inspect($webp), 0, 2));
+
+        $covers = $processor->webpAtWidths($photo, 250, [150, 80]);
+
+        $this->assertSame('top left', $this->redCorner($covers['large']));
+        $this->assertSame('top left', $this->redCorner($covers['widths'][150]));
+        $this->assertSame('top left', $this->redCorner($covers['widths'][80]));
+        $this->assertGreaterThan($covers['height'], $covers['width']);
+    }
+
+    #[Test]
+    public function the_processor_asks_the_machine_whether_it_has_the_exif_extension(): void
+    {
+        $this->requireExifToTurn();
+
+        // The same photo, on a machine that says it has the extension and one that says it has not.
+        $has = new ImageProcessor(new FakePhpProbe);
+        $hasNot = new ImageProcessor(tap(new FakePhpProbe, fn (FakePhpProbe $php) => $php->missingExtensions = ['exif']));
+        $photo = $this->photo(6);
+
+        $this->assertSame('top right', $this->redCorner($has->webp($photo, 1000)));
+        $this->assertSame('top left', $this->redCorner($hasNot->webp($photo, 1000)));
     }
 
     #[Test]
@@ -398,6 +467,11 @@ class ImageProcessorTest extends TestCase
         $php->bytes = ['memory_limit' => $limit];
         $php->memoryInUse = $inUse;
 
+        // The fake says the machine has everything; a JPEG would then be read for its EXIF note, which needs the real extension.
+        if (! extension_loaded('exif')) {
+            $php->missingExtensions[] = 'exif';
+        }
+
         return new ImageProcessor($php);
     }
 
@@ -540,6 +614,8 @@ class ImageProcessorTest extends TestCase
     #[DataProvider('drawn')]
     public function drawing_a_picture_takes_less_memory_than_the_guard_counts_on(string $how, bool $sideways, int $side): void
     {
+        $this->requireExifToTurn($sideways ? 6 : 1);
+
         $upload = $this->photo($sideways ? 6 : 1, $side, $side);
         $processor = new ImageProcessor;
 
@@ -558,6 +634,8 @@ class ImageProcessorTest extends TestCase
     #[Test]
     public function a_photo_taken_sideways_takes_no_more_memory_than_an_upright_one(): void
     {
+        $this->requireExifToTurn();
+
         $measure = function (int $orientation): int {
             $upload = $this->photo($orientation, 2000, 2000);
 

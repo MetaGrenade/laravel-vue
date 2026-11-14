@@ -234,7 +234,7 @@ class ImageProcessor
      */
     private function turnToUpright(string $bytes, int $type): int
     {
-        if ($type !== IMAGETYPE_JPEG || ! function_exists('exif_read_data')) {
+        if ($type !== IMAGETYPE_JPEG || ! $this->php->extensionLoaded('exif')) {
             return 0;
         }
 
