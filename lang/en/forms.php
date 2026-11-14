@@ -117,6 +117,7 @@ return [
         'type' => 'Upload a JPEG, PNG, WebP or GIF picture.',
         'no_size' => 'That picture has no size.',
         'too_large' => 'That picture is :size megapixels; the most allowed is :max. Make it smaller and try again.',
+        'too_large_here' => 'That picture is :size megapixels; this server has the memory for about :max. Make it smaller and try again.',
         'resize_failed' => 'That picture could not be resized.',
         'convert_failed' => 'That picture could not be converted.',
     ],

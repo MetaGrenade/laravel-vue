@@ -2,7 +2,7 @@
 
 Every picture the site shows from its own storage is a WebP the site made, never the file that was uploaded (metadata and anything hidden in the file do not survive). This page covers the sizes that are kept, how a page picks one, and how to serve the files from a CDN.
 
-> **Status:** built: blog covers are kept at three widths and each page asks for the one it needs; `PUBLIC_DISK_URL` points the public files at a CDN; a command draws older covers again. **Not built:** see [below](#not-built).
+> **Status:** built: blog covers are kept at three widths and each page asks for the one it needs; `PUBLIC_DISK_URL` points the public files at a CDN; a command draws older covers again; a picture that PHP has not the memory to draw is refused with a message, not a crash ([below](#how-much-memory-a-picture-needs)). **Not built:** see [below](#not-built).
 
 ## What is kept
 
@@ -70,8 +70,37 @@ All public picture addresses come from one disk setting, so a CDN needs no chang
 
 `PUBLIC_DISK_URL` is the address of the disk named `public`, which holds the blog covers and, by default, the product pictures. Product pictures can be on another disk (`COMMERCE_IMAGE_DISK`), which has its own address. Support files, forum files and downloads are on a private disk and are not served this way at all ([private-uploads.md](private-uploads.md)).
 
+## How much memory a picture needs
+
+Drawing a picture takes memory in proportion to its **pixels**, not to the size of the file. When PHP runs out it stops, which cannot be caught: the person who sent the picture is shown a server error (or, in the queue, the job is lost). `COMMERCE_IMAGE_MAX_PIXELS` (16 million) says what the shop accepts; it does not say what *this* server can draw. A stock `php.ini` gives PHP 128 MB; the Docker image sets 256 MB ([docker.md](docker.md)) and so does Herd.
+
+Measured with GD on PHP 8.4, the memory a picture took at its peak (a JPEG; a PNG took the same), with the 29 MB that PHP had used before it started left out:
+
+| Picture | Drawn at the shop's sizes | Kept at its own size (support tickets) |
+|---------|---------------------------|----------------------------------------|
+| 1000 × 1000 (1 megapixel) | 11.5 MB | 7.9 MB |
+| 1700 × 1700 (2.9) | 39.2 MB | 25.3 MB |
+| 2000 × 2000 (4) | 43.9 MB | 31.7 MB |
+| 3000 × 3000 (9) | 71.2 MB | 71.2 MB |
+| 4000 × 3000 (12) | 79.8 MB | 93.0 MB |
+| 4000 × 4000 (16) | 106.4 MB | 124.6 MB |
+| 8000 × 2000 (16) | 81.3 MB | 124.6 MB |
+
+(MB here is 1,048,576 bytes.) A picture is 4 bytes a pixel and needs a second copy of itself while it is scaled, turned or encoded, so a big one costs about 8 bytes a pixel; and every picture pays for the 1600 pixel version that is made and encoded whatever its size, which is why a small one costs more for each pixel than a big one. A photo taken sideways costs the same as an upright one: it is turned **after** it has been made small, because a quarter turn needs a second copy of whatever is turned, and a 16 megapixel photo is 64 MB. (It used to be turned first: 125 MB for the 16 megapixel photo, where an upright one took 106.)
+
+So **before a picture is decoded**, its declared size is checked against the memory PHP has left (`memory_limit` minus what the process has used so far), counting 8 bytes a pixel and 24 MiB on top (`ImageProcessor::memoryFor()`), which is above every row of the table by at least 17%. A picture that does not fit is refused like one over the pixel limit, with its own message, and the log says why, for the person who runs the site:
+
+> That picture is 12.0 megapixels; this server has the memory for about 8.4. Make it smaller and try again.
+
+That is what a 128 MB limit does to a 12 megapixel phone photo (40 MB of the 128 are taken by the time the picture is reached, which is a round figure for a page of this application and not a measured one). Before this check it was not refused: run in a script with `memory_limit=128M`, a 4000 × 3000 photo taken in portrait (so with a note to turn it) stopped PHP (*Allowed memory size of 134217728 bytes exhausted*) while its first size was being encoded. **To take such photos, give PHP 256 MB** in the `php.ini` of the web server *and* of the queue worker, which can differ from the command line one. The installer says so (*PHP memory_limit*, advice, [install.md](install.md#what-it-checks-on-the-machine)) for the PHP that runs it. No limit (`-1`) is never a reason to refuse.
+
+The limit that counts is the one of the process that does the work: the web server's for an upload (product pictures, covers, forum and support attachments), and the command line's for `metaforger:blog:covers:upgrade`.
+
+Not measured: PHP on Linux here (the numbers are from Windows, with the GD that comes with PHP). `ImageProcessorTest` repeats the measurement for four pictures and fails if the real peak is ever above what the check counts on, so a different GD shows up in CI.
+
 ## Not built
 
+- **Drawing a big photo in less memory.** GD has to decode the whole picture before it can make it smaller. Imagick can shrink a JPEG while it reads it, but it is another extension to require and to keep working.
 - **AVIF.** The GD extension does not always have it, and WebP is understood by every current browser. Another format is a second encoder to maintain for a smaller gain.
 - **Width and height attributes on the picture.** The size is in the file name now, but the page holds the space with the box the picture sits in, so the attributes would add nothing.
 - **Object storage for covers.** Covers are written to the disk named `public`. Pointing that disk at a bucket is a configuration change that has not been tried here.
@@ -82,5 +111,7 @@ All public picture addresses come from one disk setting, so a CDN needs no chang
 ## Testing
 
 `tests/Feature/Blog/BlogCoverSizesTest.php`: a cover is kept at three widths and the largest file's name says its size; a tall cover is cut by its width; no size is larger than the upload; the list, the post and the recommended posts carry every size and the cover's proportions, and the sharing address stays the largest; the widths in the `srcset` are the widths of the files (a narrow cover lists a size once); a cover of one file and a post with no cover send no `srcset`; every address comes from the disk's own address (a CDN); replacing a cover removes every old size and a refused replacement keeps them all; the upgrade command draws a cover again, updates the post and its revisions, leaves the post's time alone, does nothing the second time, does nothing on a dry run, and leaves a missing file and a file that is not a picture as they are.
+
+`tests/Feature/Commerce/ImageProcessorTest.php`: a picture is kept at three sizes, never enlarged, with its transparency, and without its metadata; what is not a picture, is damaged, is over the pixel limit or declares a size it does not have is refused before it is decoded; a photo taken upright, upside down or sideways either way comes out the right way up at every size, as one WebP and at each cover width; a picture that PHP has not the memory for is refused with what would fit and logged, on the exact byte, counting what the process has already used, and not when there is no limit; and the real peak of four kinds of picture, at two sizes, is below what the check counts on, and a photo taken sideways takes no more than an upright one. `tests/Unit/Install/RequirementsTest.php` covers the installer's advice about `memory_limit`.
 
 `scripts/cover-sizes.test.mjs` (`npm run bundle:test`, which CI runs): the `sizes` for a box of fixed height and for a box with a ratio of its own, for a wide cover, a cover no wider than its box, one whose proportions are not known, and a box that stops growing at a width of its own.

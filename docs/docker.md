@@ -154,6 +154,7 @@ docker run --rm -i --user root --entrypoint tar -v metaforger-site_storage:/stor
 - **A command** in the running site: `docker compose -f compose.production.yaml exec app php artisan about` (also `schedule:list`, `queue:failed`, `tinker`). `run --rm` starts a container of its own instead, which is what the steps above use for things that must not wait for the site to be up.
 - **More workers:** `docker compose -f compose.production.yaml up -d --scale worker=2`. Never more than one `scheduler`.
 - **Upload sizes.** PHP in the image accepts uploads up to 110 MB (`docker/php.ini`), a little over the 100 MB that digital files are allowed by default (`COMMERCE_DOWNLOAD_MAX_KB`). Raise the setting and you raise `upload_max_filesize` and `post_max_size` in that file too, and build again.
+- **Memory.** PHP in the image has 256 MB (`memory_limit` in `docker/php.ini`), enough to draw a photo of the 16 megapixels the shop accepts by default. A site that lowers it should lower `COMMERCE_IMAGE_MAX_PIXELS` to match, or the photos in between are refused with a message ([images.md](images.md#how-much-memory-a-picture-needs)).
 - **Mounting a folder instead of the `storage` volume** needs the folder to be writable by user id 33 (`www-data`).
 
 ## Not covered

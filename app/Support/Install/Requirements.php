@@ -29,6 +29,9 @@ class Requirements
         'pgsql' => 'pdo_pgsql',
     ];
 
+    /** What the Docker image gives PHP (`docker/php.ini`), and enough for the largest picture the shop allows by default (16 megapixels). */
+    public const MEMORY_ADVISED = 256 * 1048576;
+
     public function __construct(private readonly PhpProbe $php = new PhpProbe) {}
 
     /**
@@ -94,6 +97,18 @@ class Requirements
             $this->php->extensionLoaded('exif'),
             false,
             $this->php->extensionLoaded('exif') ? 'photos taken sideways are turned upright' : 'without it a photo taken sideways stays sideways',
+        );
+
+        $memory = $this->php->bytes('memory_limit');
+        $roomy = $memory === null || $memory <= 0 || $memory >= self::MEMORY_ADVISED;
+
+        $results[] = new Requirement(
+            'PHP memory_limit',
+            $roomy,
+            false,
+            $roomy
+                ? 'room to save the largest picture the shop allows'
+                : 'is '.$this->megabytes((int) $memory)." in the command line PHP (the web server's php.ini can differ); ".$this->megabytes(self::MEMORY_ADVISED).' is advised, and with less a large photo is refused instead of saved',
         );
 
         if ($uploadBytes > 0) {

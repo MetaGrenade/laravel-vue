@@ -23,6 +23,9 @@ class FakePhpProbe extends PhpProbe
     /** @var array<string, int|null> */
     public array $bytes = ['upload_max_filesize' => 104857600, 'post_max_size' => 104857600];
 
+    /** @var int What this process has been given so far, which `memory_limit` is held against. */
+    public int $memoryInUse = 0;
+
     /** @var list<string> */
     public array $unwritable = [];
 
@@ -48,6 +51,11 @@ class FakePhpProbe extends PhpProbe
     public function bytes(string $setting): ?int
     {
         return $this->bytes[$setting] ?? null;
+    }
+
+    public function memoryInUse(): int
+    {
+        return $this->memoryInUse;
     }
 
     public function writable(string $path): bool

@@ -300,7 +300,7 @@ The shop is [commerce.md](commerce.md). Taking payment needs Stripe or Tebex, a 
 | `COMMERCE_PAYMENT_WINDOW` | `60` | Minutes stock is held for an unpaid order before it is released. At least 30, because Stripe Checkout sessions cannot expire sooner. |
 | `COMMERCE_ORDER_PREFIX` | `MF` | The start of the order number, as in `MF-000123`. |
 | `COMMERCE_LOW_STOCK_THRESHOLD` | `5` | Tracked stock at or below this is flagged as low in the admin area. |
-| `COMMERCE_IMAGE_MAX_PIXELS` | `16000000` | The largest product picture accepted, as width times height. 16 million is a 4000 by 4000 photo. |
+| `COMMERCE_IMAGE_MAX_PIXELS` | `16000000` | The largest product picture accepted, as width times height. 16 million is a 4000 by 4000 photo. It also applies to blog covers and to forum and support pictures. PHP's `memory_limit` can allow fewer: with 128 MB, about 8 million ([images.md](images.md#how-much-memory-a-picture-needs)). |
 | `COMMERCE_DOWNLOAD_MAX_KB` | `102400` | The largest digital file, in kilobytes (100 MB). PHP's `upload_max_filesize` and `post_max_size` must allow it too. |
 | `COMMERCE_DOWNLOAD_LIMIT` | `10` | How many times a customer can download each file of an order. `0` is no limit. |
 | `COMMERCE_DOWNLOAD_EXPIRY_DAYS` | `0` | How many days after payment downloads stop working. `0` is never. |

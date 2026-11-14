@@ -48,6 +48,14 @@ class PhpProbe
         return $bytes === 0 && $value !== '0' ? null : $bytes;
     }
 
+    /**
+     * The memory this PHP process has been given by the system so far, which is what memory_limit is held against.
+     */
+    public function memoryInUse(): int
+    {
+        return memory_get_usage(true);
+    }
+
     public function writable(string $path): bool
     {
         return is_dir($path) ? is_writable($path) : (is_file($path) && is_writable($path));

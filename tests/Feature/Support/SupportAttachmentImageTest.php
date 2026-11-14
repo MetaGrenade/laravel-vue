@@ -6,10 +6,12 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
 use App\Models\User;
+use App\Support\Install\PhpProbe;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Support\FakePhpProbe;
 use Tests\TestCase;
 
 class SupportAttachmentImageTest extends TestCase
@@ -64,6 +66,33 @@ class SupportAttachmentImageTest extends TestCase
             'body' => 'This picture is enormous.',
             'attachments' => [UploadedFile::fake()->image('big.png', 8, 8)],
         ])->assertSessionHasErrors('attachments.0');
+
+        $this->assertSame(0, SupportTicket::query()->count());
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    #[Test]
+    public function a_picture_the_servers_memory_cannot_hold_is_a_message_on_the_form_and_not_a_server_error(): void
+    {
+        Storage::fake('local');
+
+        // PHP with the memory_limit of a stock php.ini (128 MB), 40 MB of it used by the time the picture is reached.
+        $php = new FakePhpProbe;
+        $php->bytes = ['memory_limit' => 128 * 1048576];
+        $php->memoryInUse = 40 * 1048576;
+        $this->app->instance(PhpProbe::class, $php);
+
+        // A 12 megapixel phone photo: the header says so; nothing else of it is needed to be refused.
+        $png = UploadedFile::fake()->image('plain.png', 8, 8)->getContent();
+        $photo = UploadedFile::fake()->createWithContent('phone.png', substr($png, 0, 16).pack('N', 4000).pack('N', 3000).substr($png, 24));
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('support.tickets.store'), [
+            'subject' => 'A photo of the fault',
+            'body' => 'It is attached.',
+            'attachments' => [$photo],
+        ])->assertSessionHasErrors(['attachments.0' => 'That picture is 12.0 megapixels; this server has the memory for about 8.4. Make it smaller and try again.']);
 
         $this->assertSame(0, SupportTicket::query()->count());
         $this->assertSame([], Storage::disk('local')->allFiles());

@@ -185,6 +185,53 @@ class RequirementsTest extends TestCase
     }
 
     #[Test]
+    public function a_memory_limit_below_what_the_docker_image_has_is_advice_that_says_both_sizes(): void
+    {
+        $this->php->bytes = ['memory_limit' => 128 * 1048576];
+
+        $results = $this->check();
+        $memory = $this->find($results, 'PHP memory_limit');
+
+        $this->assertFalse($memory->ok);
+        $this->assertFalse($memory->required);
+        $this->assertStringContainsString('128 MB', $memory->detail);
+        $this->assertStringContainsString('256 MB', $memory->detail);
+        $this->assertStringContainsString("web server's php.ini can differ", $memory->detail);
+        $this->assertSame([], $this->failed($results), 'a small memory limit does not stop the install');
+    }
+
+    #[Test]
+    public function the_probe_reports_the_memory_the_limit_is_held_against(): void
+    {
+        // What the system has given the process (in chunks), not what the script has asked for: that is what memory_limit counts.
+        $this->assertSame(memory_get_usage(true), (new PhpProbe)->memoryInUse());
+    }
+
+    #[Test]
+    public function a_memory_limit_of_256_megabytes_or_more_is_enough(): void
+    {
+        foreach ([256 * 1048576, 256 * 1048576 + 1, 512 * 1048576] as $bytes) {
+            $this->php->bytes = ['memory_limit' => $bytes];
+
+            $this->assertTrue($this->find($this->check(), 'PHP memory_limit')->ok, (string) $bytes);
+        }
+
+        $this->php->bytes = ['memory_limit' => 256 * 1048576 - 1];
+
+        $this->assertFalse($this->find($this->check(), 'PHP memory_limit')->ok);
+    }
+
+    #[Test]
+    public function no_memory_limit_or_one_php_does_not_give_is_enough(): void
+    {
+        foreach ([-1, 0, null] as $limit) {
+            $this->php->bytes = ['memory_limit' => $limit];
+
+            $this->assertTrue($this->find($this->check(), 'PHP memory_limit')->ok, var_export($limit, true));
+        }
+    }
+
+    #[Test]
     public function an_unlimited_or_unreadable_limit_is_enough(): void
     {
         $this->php->bytes = ['upload_max_filesize' => -1, 'post_max_size' => null];
