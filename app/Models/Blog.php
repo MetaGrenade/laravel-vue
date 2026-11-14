@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Casts\SanitizedHtml;
 use App\Models\Concerns\HasSearchDocument;
 use App\Support\Search\SearchText;
+use App\Support\Text\PlainText;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -35,6 +36,13 @@ class Blog extends Model
         'last_viewed_at',
     ];
 
+    /**
+     * `body_text` is for the search to read; no page or API response needs it, and it is as long as the body.
+     *
+     * @var list<string>
+     */
+    protected $hidden = ['body_text'];
+
     protected $casts = [
         'body' => SanitizedHtml::class.':article',
         'published_at' => 'datetime',
@@ -44,13 +52,22 @@ class Blog extends Model
     ];
 
     /**
-     * Boot method to auto-generate the slug when creating a blog post.
+     * Boot method to auto-generate the slug when creating a blog post, and to keep `body_text` the words of the body.
      */
     protected static function booted()
     {
         static::creating(function ($blog) {
             if (empty($blog->slug)) {
                 $blog->slug = Str::slug($blog->title);
+            }
+        });
+
+        // The body is HTML as the sanitiser stores it (`Don&#039;t`, `</p><p>`); the database search reads the words of it, which are made
+        // here, when the body is written, and not by every search for every post. Saving something else (a view counted, a status
+        // changed) leaves it alone.
+        static::saving(function (Blog $blog) {
+            if ($blog->isDirty('body')) {
+                $blog->setAttribute('body_text', PlainText::of($blog->body));
             }
         });
     }

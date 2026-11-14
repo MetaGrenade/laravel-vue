@@ -2,6 +2,7 @@
 
 use App\Support\OpenApi\Specification;
 use App\Support\Security\HtmlSanitizer;
+use App\Support\Text\PlainText;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -47,7 +48,10 @@ Artisan::command('content:sanitize {--dry-run : Report how many records would ch
                     $changed++;
 
                     if (! $this->option('dry-run')) {
-                        DB::table($table)->where('id', $row->id)->update(['body' => $clean]);
+                        // A blog keeps the words of its body for the search (Blog::booted); this writes around the model, so it does it too.
+                        $columns = $table === 'blogs' ? ['body' => $clean, 'body_text' => PlainText::of($clean)] : ['body' => $clean];
+
+                        DB::table($table)->where('id', $row->id)->update($columns);
                     }
                 }
             });
