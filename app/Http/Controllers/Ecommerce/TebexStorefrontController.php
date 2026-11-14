@@ -11,6 +11,7 @@ use App\Payments\Tebex\TebexStoreProfile;
 use App\Support\Commerce\CartManager;
 use App\Support\Security\HtmlSanitizer;
 use App\Support\Seo\Seo;
+use App\Support\Text\PlainText;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -160,7 +161,7 @@ class TebexStorefrontController extends Controller
 
     private function plainText(?string $html): string
     {
-        return trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags((string) $html))) ?? '');
+        return PlainText::of($html);
     }
 
     private function ensureSellsThroughTebex(): void

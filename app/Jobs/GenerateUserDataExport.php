@@ -11,6 +11,7 @@ use App\Support\Csv\CsvCell;
 use App\Support\Csv\CsvRow;
 use App\Support\Json\StreamedObject;
 use App\Support\Notifications\SplitDelivery;
+use App\Support\Text\PlainText;
 use Closure;
 use Generator;
 use Illuminate\Bus\Queueable;
@@ -258,7 +259,7 @@ class GenerateUserDataExport implements ShouldQueue
                 'updated_at' => $post->updated_at?->toIso8601String(),
             ];
 
-            $this->csvRow($csv, 'forum_post', $item['id'], Str::limit((string) $item['body'], 120), $item['created_at'], $item['updated_at']);
+            $this->csvRow($csv, 'forum_post', $item['id'], PlainText::excerpt($item['body'], 120), $item['created_at'], $item['updated_at']);
 
             yield $item;
         }

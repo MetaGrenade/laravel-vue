@@ -8,6 +8,7 @@ use App\Models\ForumThread;
 use App\Models\MemberFollow;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
+use App\Support\Text\PlainText;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
@@ -248,14 +249,8 @@ class FollowedMembers
 
     private function excerpt(?string $value): ?string
     {
-        $text = trim(html_entity_decode(strip_tags((string) $value), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $text = PlainText::of($value);
 
-        if ($text === '') {
-            return null;
-        }
-
-        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
-
-        return Str::limit($text, 180);
+        return $text === '' ? null : Str::limit($text, 180);
     }
 }

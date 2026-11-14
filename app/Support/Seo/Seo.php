@@ -2,6 +2,7 @@
 
 namespace App\Support\Seo;
 
+use App\Support\Text\PlainText;
 use DateTimeInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -255,8 +256,8 @@ class Seo
 
     private function clean(string $value, int $limit): string
     {
-        $text = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5)) ?? '');
-
-        return Str::limit($text, $limit, '…', preserveWords: true);
+        // What a page gives is often the stored HTML of a post (a blog post with no excerpt describes itself by its first words), so a block
+        // is a space and not nothing: `<h2>Intro</h2><p>First` is "Intro First", which is what a search result and a shared link show.
+        return Str::limit(PlainText::of($value), $limit, '…', preserveWords: true);
     }
 }

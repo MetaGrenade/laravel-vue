@@ -4,6 +4,7 @@ namespace App\Support\Legal;
 
 use App\Models\SystemSetting;
 use App\Support\Security\HtmlSanitizer;
+use App\Support\Text\PlainText;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Carbon\Exceptions\InvalidFormatException;
@@ -107,8 +108,7 @@ class LegalPages
             return $fallback;
         }
 
-        $text = preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($body), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
-        $text = trim(is_string($text) ? $text : '');
+        $text = PlainText::of($body);
 
         if ($text === '') {
             return $fallback;
