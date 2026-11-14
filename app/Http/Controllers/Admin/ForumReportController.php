@@ -8,6 +8,7 @@ use App\Models\ForumBoard;
 use App\Models\ForumPostReport;
 use App\Models\ForumThreadReport;
 use App\Support\Localization\DateFormatter;
+use App\Support\Text\PlainText;
 use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -463,7 +464,7 @@ class ForumReportController extends Controller
             ] : null,
             'post' => $post ? [
                 'id' => $post->id,
-                'body_preview' => Str::limit(strip_tags($post->body), 160),
+                'body_preview' => PlainText::excerpt($post->body, 160),
                 'author' => $post->author ? [
                     'id' => $post->author->id,
                     'nickname' => $post->author->nickname,

@@ -38,7 +38,7 @@ The request now only works out **who** is to be told (ids, never a list of membe
 
 ## What the bell does
 
-The page is given the member's **unread** notifications, newest first, ten at most, with the count of all of them (`notifications` in `HandleInertiaRequests`). Each line has a `title`, an `excerpt`, a `url`, and `data`, which is what the notification stored.
+The page is given the member's **unread** notifications, newest first, ten at most, with the count of all of them (`notifications` in `HandleInertiaRequests`). Each line has a `title`, an `excerpt`, a `url`, and `data`, which is what the notification stored. The `excerpt` of a forum notice is the start of the post as the member wrote it, on one line: `Don't` and `Q&A`, not the entities the post is stored with, and two paragraphs or two list items are two words (`App\Support\Text\PlainText`; the email says the same in its body).
 
 When an alert is pushed over the websocket, the header adds it at the top without a reload. What Laravel pushes is **not** the shape the page was given. The notification's own fields sit at the top level, next to the id and the type:
 

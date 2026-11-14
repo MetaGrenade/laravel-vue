@@ -224,7 +224,7 @@ class ForumThread extends Model
                 break;
             }
 
-            $plain = SearchText::plain($body, $remaining);
+            $plain = SearchText::html($body, $remaining);
 
             if ($plain === '') {
                 continue;

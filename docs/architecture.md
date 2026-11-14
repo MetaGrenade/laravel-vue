@@ -183,7 +183,7 @@ The shop never talks to Stripe or Tebex directly. `PaymentManager` resolves a pr
 | Search engines | `Seo`, per request; the sitemap and `robots.txt` | [configuration.md](configuration.md#search-engines-and-social-cards) |
 | Query counts | Lazy loading is forbidden in tests and each page has a ceiling | [query-budgets.md](query-budgets.md) |
 | Long-lived workers | State that a process keeps is listed and tested | [octane.md](octane.md) |
-| Rich text | Cleaned when it is written, by the `SanitizedHtml` cast and `app/Support/Security/HtmlSanitizer.php` (two policies, `forum` and `article`); `php artisan content:sanitize --dry-run` reports what an older record would change | The code; no page of its own yet |
+| Rich text | Cleaned when it is written, by the `SanitizedHtml` cast and `app/Support/Security/HtmlSanitizer.php` (two policies, `forum` and `article`); `php artisan content:sanitize --dry-run` reports what an older record would change. What is stored is HTML with its characters as entities (`Don't` is `Don&#039;t`), so a line of text made from it (a notice, a preview, an excerpt, a search document) comes from `App\Support\Text\PlainText`, never from `strip_tags` alone | The code; no page of its own yet |
 
 ## How it is kept true
 

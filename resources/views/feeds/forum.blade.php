@@ -14,7 +14,7 @@
                 <category term="{{ $entry['category']['term'] }}" label="{{ $entry['category']['label'] }}" />
             @endif
             @if (! empty($entry['excerpt']))
-                <summary type="html">{{ $entry['excerpt'] }}</summary>
+                <summary type="text">{{ $entry['excerpt'] }}</summary>
             @endif
             <published>{{ $entry['published_at'] }}</published>
             <updated>{{ $entry['updated_at'] }}</updated>

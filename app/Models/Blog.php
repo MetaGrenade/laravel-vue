@@ -173,7 +173,7 @@ class Blog extends Model
         return $this->searchDocument([
             'title' => (string) $this->title,
             'excerpt' => SearchText::plain($this->excerpt),
-            'body' => SearchText::plain($this->body),
+            'body' => SearchText::html($this->body),
             'author' => $this->searchNickname($this->user_id),
         ]);
     }

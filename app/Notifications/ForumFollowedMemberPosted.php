@@ -9,12 +9,12 @@ use App\Notifications\Concerns\SendsBroadcastsSynchronously;
 use App\Support\Forum\PostPages;
 use App\Support\Mail\MailText;
 use App\Support\Notifications\RecordsForDigest;
+use App\Support\Text\PlainText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Str;
 
 class ForumFollowedMemberPosted extends Notification implements RecordsForDigest, ShouldQueue
 {
@@ -58,7 +58,7 @@ class ForumFollowedMemberPosted extends Notification implements RecordsForDigest
             ->subject(__('mail.forum.followed_member_posted.title', ['name' => $name, 'title' => $this->thread->title]))
             ->greeting(MailText::greeting($notifiable))
             ->line(__('mail.forum.followed_member_posted.line', ['name' => $name, 'title' => $this->thread->title]))
-            ->line(Str::limit(strip_tags((string) $this->post->body), 200))
+            ->line(PlainText::excerpt($this->post->body, 200))
             ->action(__('mail.forum.followed_member_posted.action'), $this->url())
             ->line(__('mail.forum.followed_member_posted.reason', ['name' => $name]));
     }
@@ -90,7 +90,7 @@ class ForumFollowedMemberPosted extends Notification implements RecordsForDigest
     protected function payload(): array
     {
         $name = (string) $this->author->nickname;
-        $excerpt = Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags((string) $this->post->body)) ?? ''), 140);
+        $excerpt = PlainText::excerpt($this->post->body, 140);
         $title = __('mail.forum.followed_member_posted.title', ['name' => $name, 'title' => $this->thread->title]);
 
         return [

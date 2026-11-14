@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\Database\Transaction;
 use App\Support\Moderation\Automod;
 use App\Support\Moderation\AutomodVerdict;
+use App\Support\Text\PlainText;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -65,7 +66,6 @@ class ForumSubmissions
     public function thread(User $author, ForumBoard $board, string $title, string $body, ?ForumPrefix $prefix = null): ForumSubmission
     {
         $verdict = $this->check($author, $title, $body);
-        $bodyText = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
 
         $baseSlug = Str::slug($title);
         $baseSlug = $baseSlug === '' ? 'thread' : Str::limit($baseSlug, 240, '');
@@ -77,14 +77,14 @@ class ForumSubmissions
         $thread = null;
         $initialPost = null;
 
-        Transaction::run(function () use ($board, $author, $title, $slug, $body, $bodyText, $verdict, $prefix, &$thread, &$initialPost) {
+        Transaction::run(function () use ($board, $author, $title, $slug, $body, $verdict, $prefix, &$thread, &$initialPost) {
             $thread = new ForumThread([
                 'forum_board_id' => $board->id,
                 'forum_prefix_id' => $prefix?->id,
                 'user_id' => $author->id,
                 'title' => $title,
                 'slug' => $slug,
-                'excerpt' => Str::limit($bodyText, 160),
+                'excerpt' => PlainText::excerpt($body, 160),
                 'last_posted_at' => now(),
                 'last_post_user_id' => $author->id,
             ]);
