@@ -22,6 +22,7 @@ use App\Observers\SearchIndexObserver;
 use App\Payments\PaymentManager;
 use App\Payments\Stripe\CashierStripeGateway;
 use App\Payments\Stripe\StripeGateway;
+use App\Payments\Stripe\StripeHttp;
 use App\Payments\Tebex\TebexStoreProfile;
 use App\Policies\AddressPolicy;
 use App\Policies\BlogCommentPolicy;
@@ -130,6 +131,9 @@ class AppServiceProvider extends ServiceProvider
 
         $this->configureDefaults();
         $this->configureRateLimiting();
+
+        // A call to Stripe that never comes back is cut off after STRIPE_TIMEOUT seconds, not the library's 80.
+        StripeHttp::configure();
 
         RateLimiter::for('blog-comments', function ($request) {
             $attempts = (int) config('rate-limits.blog_comments_per_minute', 5);
