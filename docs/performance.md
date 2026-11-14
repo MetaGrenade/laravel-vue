@@ -203,7 +203,24 @@ Not changed, on purpose. **What is cut when the file is full** is still the end 
 
 The first row is the same work: before, each run was stopped at 200 calls; now the schedule queues 40 jobs of 25 orders (about 8 seconds each), and none is stopped, so the worker can use all five minutes. (20 runs for 150 is arithmetic from the 50 a run that five runs showed.) The orders that cannot be asked about are asked about once every 30 minutes (`RETRY_AFTER_MINUTES`) instead of at every run, and each failure is reported once in that time; in the last row they are asked about again at the 7th run, 30 minutes after the 1st. A run of the schedule that finds the queue behind adds the same orders again as new jobs; those are cheap (a job reads its orders again and finds them cancelled: 20 ms in the run above, no provider call).
 
-Not changed, on purpose: **an order the provider cannot answer about is still never cancelled**, however long that is, because cancelling an order that was paid is worse than holding its stock; it only waits 30 minutes between tries. Not done: the Stripe client has no timeout of its own, so it has the library's default of 80 seconds, longer than the worker's 60. A call that hangs stops its job (the 25 orders in it are tried again, by the worker's retries and then by the next run), and no other job is held up by it; a timeout of about 15 seconds on these calls would be the next step. A site on the `sync` queue runs it all inside the scheduler, as before.
+Not changed, on purpose: **an order the provider cannot answer about is still never cancelled**, however long that is, because cancelling an order that was paid is worse than holding its stock; it only waits 30 minutes between tries. A call to Stripe that hangs is cut off after 15 seconds, and not the library's 80 ([below](#stripe-calls-that-do-not-come-back)), so one order that cannot be answered about costs its job 15 seconds and not the rest of its 25 orders. A job in which every call hangs is still stopped by the worker at 60 seconds, after about four of them; each of those four got its 30 minute wait, so the job's next try and the next run of the schedule go on to the orders after them. A site on the `sync` queue runs it all inside the scheduler, as before.
+
+## Stripe calls that do not come back
+
+The Stripe library waits 80 seconds for an answer and 30 to make the connection, and the application used to leave that as it was. It is longer than a queue worker lets a job run (60 seconds, [redis.md](redis.md#the-queue)) and than most web servers wait for a page, so **one call that never came back cost the whole job or the whole request that made it**: the worker stopped the job, or the visitor was shown the web server's gateway timeout.
+
+Every call to Stripe (Cashier's, and the shop's own: checkouts, refunds, the question the order expiry asks) goes through the library's one shared HTTP client, which is given its limits when the application starts:
+
+| Setting | Default | Library's own |
+|---------|---------|---------------|
+| `STRIPE_TIMEOUT`, seconds to wait for an answer | 15 | 80 |
+| `STRIPE_CONNECT_TIMEOUT`, seconds to make the connection | 5 | 30 |
+
+A call that is cut off fails like any other call that cannot be answered (an `ApiConnectionException`, cURL error 28), which every caller already handles: an unpaid order past its window is asked about again 30 minutes later and is never cancelled meanwhile, a refund stays pending until **Check status** asks Stripe what became of it, and a checkout that could not be made cancels its order, gives the stock back and asks the buyer to try again, which makes a new order. (A call that Stripe did carry out but whose answer was cut off leaves a session at Stripe that no buyer was ever sent to; it lapses with the order's payment window.)
+
+One thing the limit does not cover: **Cashier turns on up to three automatic retries** (`Stripe::setMaxNetworkRetries(3)`) the first time its webhook controller handles an event, and the library keeps that setting for the rest of the process. In an ordinary PHP-FPM request that is only the webhook's own request, where a call that hangs can take four times the limit (a 2 second limit took 10 to 11 seconds in a test run that had handled a webhook first). A worker that serves many requests (Octane, [octane.md](octane.md); this repository has not run it) keeps the setting after its first webhook, so every Stripe call in it can take four times as long. Nothing else in the application turns retries on.
+
+Measured: a local server that accepts the connection and then says nothing, with the limit at 2 seconds, fails the call after 2 seconds (`StripeCallTimeoutTest`). Not measured against Stripe itself: 15 seconds is a choice and not a measured figure, meant to leave a wide margin over the second or two these calls normally take. Raise it only if the log shows timeouts for calls that Stripe did complete. `0` is "wait for ever", for somebody who wants the old behaviour.
 
 ## A production checklist
 

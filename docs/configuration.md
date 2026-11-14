@@ -322,6 +322,8 @@ Subscriptions and the shop's Stripe checkout are [billing.md](billing.md) and [c
 | `STRIPE_WEBHOOK_SECRET` | — | **Secret.** The signing secret (`whsec_...`) of the endpoint you added in the Stripe Dashboard. |
 | `STRIPE_CLI_WEBHOOK_SECRET` | — | **Secret.** The signing secret that `stripe listen` prints, accepted in addition to the one above. For a development machine: **leave it empty on a live site**, because anybody who has run the CLI knows a secret that would sign a payment. |
 | `STRIPE_WEBHOOK_TOLERANCE` | `300` | Seconds a signature may be older, or ahead, before it is refused. `0` accepts any time. |
+| `STRIPE_TIMEOUT` | `15` | Seconds a call to Stripe waits for an answer before it is given up on and fails (the library's own is 80, longer than the 60 seconds a queue worker lets a job run). `0` waits for ever. See [performance.md](performance.md#stripe-calls-that-do-not-come-back). |
+| `STRIPE_CONNECT_TIMEOUT` | `5` | Seconds a call to Stripe waits to make the connection (the library's own is 30). `0` waits for ever. |
 | `STRIPE_PRICE_STARTER` | `price_starter` | The Stripe price id of the example Starter plan. They only work once you have made the prices in Stripe. Plans can also be made in the admin area. |
 | `STRIPE_PRICE_PRO` | `price_pro` | The Stripe price id of the example Pro plan. |
 | `STRIPE_PORTAL_CONFIGURATION` | — | The id (`bpc_...`) of one of several customer portal configurations. Needed only if you made more than one. |
