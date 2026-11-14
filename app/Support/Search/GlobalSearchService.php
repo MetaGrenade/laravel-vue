@@ -129,7 +129,8 @@ class GlobalSearchService
     public function presentBlog(Blog $blog, string $term): array
     {
         $excerpt = is_string($blog->excerpt) ? trim($blog->excerpt) : '';
-        $body = PlainText::of($blog->body);
+        // The words of the body are kept in `body_text` (see Blog::booted); a post that has none yet is read from its HTML.
+        $body = is_string($blog->body_text) ? $blog->body_text : PlainText::of($blog->body);
         $author = $blog->user?->nickname ?? null;
         $description = $excerpt !== ''
             ? $excerpt
@@ -236,7 +237,7 @@ class GlobalSearchService
     private function searchBlogs(string $term, int $perPage, int $page): array
     {
         $query = Blog::query()
-            ->select(['blogs.id', 'blogs.title', 'blogs.slug', 'blogs.excerpt', 'blogs.body', 'blogs.published_at', 'blogs.created_at', 'blogs.user_id'])
+            ->select(['blogs.id', 'blogs.title', 'blogs.slug', 'blogs.excerpt', 'blogs.body_text', 'blogs.published_at', 'blogs.created_at', 'blogs.user_id'])
             ->leftJoin('users', 'users.id', '=', 'blogs.user_id')
             ->where(function ($query) {
                 $query->where('blogs.status', 'published')
@@ -251,13 +252,13 @@ class GlobalSearchService
 
                 $query->whereLike('blogs.title', $likeTerm)
                     ->orWhereLike('blogs.excerpt', $likeTerm)
-                    ->orWhereLike('blogs.body', $likeTerm)
+                    ->orWhereLike('blogs.body_text', $likeTerm)
                     ->orWhereLike('users.nickname', $likeTerm);
             })
             ->selectRaw(...$this->relevanceExpression([
                 'blogs.title' => 5,
                 'blogs.excerpt' => 3,
-                'blogs.body' => 3,
+                'blogs.body_text' => 3,
                 'users.nickname' => 2,
             ], $term))
             ->with(['user:id,nickname'])
@@ -523,10 +524,21 @@ class GlobalSearchService
 
     private function applyHighlight(string $text, string $term): string
     {
-        $escaped = e($text);
-        $pattern = '/'.preg_quote($term, '/').'/i';
+        // The text is cut at the term while it is still text, and each piece is escaped after: looked for in the escaped text, a term with an
+        // apostrophe, a quote or an ampersand (`don't`, `Tom & Jerry`) is never found, and `amp` is found inside `&amp;` and breaks it.
+        $pieces = preg_split('/('.preg_quote($term, '/').')/i', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
 
-        return (string) preg_replace($pattern, '<mark>$0</mark>', $escaped);
+        if ($pieces === false) {
+            return e($text);
+        }
+
+        $highlighted = '';
+
+        foreach ($pieces as $index => $piece) {
+            $highlighted .= $index % 2 === 1 ? '<mark>'.e($piece).'</mark>' : e($piece);
+        }
+
+        return $highlighted;
     }
 
     private function likeTerm(string $term): string
