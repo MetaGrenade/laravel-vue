@@ -36,6 +36,15 @@ The request now only works out **who** is to be told (ids, never a list of membe
 - **It needs the worker.** Without one, the notices and alerts for followers and subscribers wait in the queue like the emails ([deployment.md](deployment.md)). With `QUEUE_CONNECTION=sync` everything is done during the request, as it was before, and is as slow as it was.
 - **Who is told is decided when the post is made, and who is deleted or has changed their mind by the time a worker runs is decided then:** a member who is gone is skipped, and a member's choices are read when they are told.
 
+## Who a post mentions
+
+`ForumPublisher::resolveMentionedUsers()` works out who a post names (not its author), and `App\Support\Forum\MentionParser` reads the post as it is stored. A nickname is anything up to 255 characters that nobody else has (`Ada Lovelace`, `Zoë`, `Łukasz`, `Ada.`), so there are two ways to name one:
+
+- **The editor's node.** Choosing a member from the list writes `<a data-type="mention" data-nickname="Ada Lovelace">@Ada Lovelace</a>` (a `span` when there is no profile link), and the name in it is the name that is looked up, spaces and all. A node is believed when what it shows is the name it carries (case and the space between words do not count), so a reader who sees `@Bob` is never told a different member. One that does not match, or has no name, is read as the text it shows. A believed node's text is taken out before the rest is read, so the first word of `Ada Lovelace` is not read again as a member called `Ada`.
+- **`@nickname` typed in the text** (a post made through the API, or typed by hand). It runs for 2 to 50 letters or digits of any language, marks, `_`, `.` and `-`, and stops at anything else, so a name with a space can only be named by the editor's node. The `.` or `-` that ends a sentence (`Thanks @Ada.`) is not told from one that ends a name (`Ada.`), so every shorter name it can be is a candidate and the longest one that is a member is who is meant.
+
+The author is dropped last, not in the query: a member who writes `@Ada.` about themselves has not named the member `Ada`. The text is made with `PlainText`, so a block is a space and `<p>Thanks</p><p>@Ada look</p>` has the at sign after a space. A name is compared in lower case in PHP, and not by the database's collation: the query finds the candidates, and `mb_strtolower` decides which member answers to which. On a database whose collation ignores accents, a typed `@zoe` does not find the member `Zoë`; `@Zoë` and the editor's node do.
+
 ## What the bell does
 
 The page is given the member's **unread** notifications, newest first, ten at most, with the count of all of them (`notifications` in `HandleInertiaRequests`). Each line has a `title`, an `excerpt`, a `url`, and `data`, which is what the notification stored. The `excerpt` of a forum notice is the start of the post as the member wrote it, on one line: `Don't` and `Q&A`, not the entities the post is stored with, and two paragraphs or two list items are two words (`App\Support\Text\PlainText`; the email says the same in its body).
