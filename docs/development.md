@@ -97,7 +97,7 @@ Then point `.env` at them. Unless `DB_DATABASE` and `DB_PASSWORD` are set in `.e
 | `composer setup` | First-time setup of the code: install dependencies, create `.env`, generate the key, migrate and build assets. Follow it with `metaforger:install`. |
 | `composer dev` / `composer dev:ssr` | Run the server, queue worker, scheduler and Vite (the SSR variant builds SSR first and adds log tailing and the SSR server). |
 | `php artisan metaforger:queue listen` / `work` | A queue worker that also reads the `mail` queue. |
-| `php artisan commerce:expire-orders` | Cancel unpaid orders past their payment window and release their stock (the scheduler runs this every five minutes). |
+| `php artisan commerce:expire-orders` | Cancel unpaid orders past their payment window and release their stock, now and in this process (the scheduler queues the same work every five minutes, in small jobs; see [commerce.md](commerce.md#stock)). |
 | `php artisan tebex:sync` | Refresh the shop's copy of a Tebex store ([Tebex](tebex.md)). |
 | `php artisan metaforger:search:sync` / `reindex` / `health` | Apply the Meilisearch settings, rebuild its documents, and check that it is reachable and holds what it should ([Search index](search-index.md)). |
 | `php artisan lang:check` | Fail if a language is missing keys the fallback language has. |
