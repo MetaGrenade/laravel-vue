@@ -4,11 +4,13 @@ namespace Tests\Feature\Forum;
 
 use App\Events\ForumPostCreated;
 use App\Models\Blog;
+use App\Models\Faq;
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumPostReport;
 use App\Models\ForumThread;
+use App\Models\Product;
 use App\Models\User;
 use App\Notifications\ForumFollowedMemberPosted;
 use App\Notifications\ForumPostMentioned;
@@ -303,10 +305,53 @@ class StoredTextAsTextTest extends TestCase
     #[Test]
     public function the_words_of_a_post_are_what_the_search_index_holds(): void
     {
-        $this->assertSame(self::WORDS, SearchText::plain($this->reply($this->thread())->body));
+        $this->assertSame(self::WORDS, SearchText::html($this->reply($this->thread())->body));
 
-        // So that a search for "Don't" finds it, and a search for "amp" or "039" does not.
-        $this->assertSame('Don\'t panic & run', $this->thread('Don&#039;t panic &amp; run')->toSearchableArray()['excerpt']);
+        // So that a search for "Don't" finds it, and a search for "amp" or "039" does not. The excerpt of a thread is text already (made so
+        // when the thread was, and by the migration for the ones before), so the index holds it as it is.
+        $this->assertSame('Don\'t panic & run', $this->thread('Don\'t panic & run')->toSearchableArray()['excerpt']);
+    }
+
+    #[Test]
+    public function a_blog_body_is_indexed_as_the_words_and_its_excerpt_as_it_was_typed(): void
+    {
+        $blog = Blog::factory()->create(['excerpt' => 'Write &amp; for an ampersand', 'body' => self::TYPED]);
+
+        $document = $blog->toSearchableArray();
+
+        $this->assertSame(self::WORDS, $document['body'], 'the body is rich text: stored as the sanitiser makes it, read back as the words');
+        $this->assertSame('Write &amp; for an ampersand', $document['excerpt'], 'the excerpt is text as the staff typed it, and the page shows it as it is');
+    }
+
+    #[Test]
+    public function the_fields_that_hold_text_as_it_was_typed_keep_an_entity_that_was_typed(): void
+    {
+        $typed = 'Write &amp; to escape an ampersand and &lt;b&gt; for bold, in <em>HTML</em>';
+        // The text a reader sees on the page: tags (which are not text) are gone, the five characters &amp; are not.
+        $kept = 'Write &amp; to escape an ampersand and &lt;b&gt; for bold, in HTML';
+
+        $faq = Faq::factory()->create(['answer' => $typed, 'published' => true]);
+        $product = Product::factory()->create(['description' => $typed]);
+
+        $this->assertSame($kept, $faq->toSearchableArray()['answer']);
+        $this->assertSame($kept, $product->toSearchableArray()['description']);
+    }
+
+    #[Test]
+    public function the_excerpt_of_a_thread_is_not_decoded_a_second_time_when_it_is_indexed(): void
+    {
+        // A member typed the five characters &amp; in the editor: they are stored as &amp;amp;.
+        $this->actingAs(User::factory()->create())
+            ->post(route('forum.threads.store', $this->board()), ['title' => 'Entities', 'body' => '<p>Write &amp;amp; for an ampersand</p>'])
+            ->assertRedirect();
+
+        $thread = ForumThread::query()->where('title', 'Entities')->sole();
+
+        // Decoded once, when the excerpt was made.
+        $this->assertSame('Write &amp; for an ampersand', $thread->excerpt);
+        // And not again: the index holds the same words as the excerpt, and the replies the same words the post has.
+        $this->assertSame('Write &amp; for an ampersand', $thread->toSearchableArray()['excerpt']);
+        $this->assertSame('Write &amp; for an ampersand', $thread->toSearchableArray()['replies']);
     }
 
     #[Test]
