@@ -75,6 +75,7 @@ The password has to pass the same rules as a member's. On a production site, and
 | `storage`, `bootstrap/cache` (and `database` for SQLite) can be written to | yes | Logs, caches, uploads, the SQLite file |
 | `exif` | advice | Photos taken sideways are turned upright |
 | `upload_max_filesize` and `post_max_size` at least the largest download staff may upload (`COMMERCE_DOWNLOAD_MAX_KB`) | advice | Larger files are refused by PHP before the site sees them |
+| `memory_limit` of 256 MB or more (or none) | advice | With less, a large photo is refused with a message instead of being saved: a 12 megapixel one does not fit in 128 MB. Only for the GD that comes with PHP; a distribution's GD takes its memory from the system, and the installer says so ([images.md](images.md#how-much-memory-a-picture-needs)) |
 
 The command looks at the PHP that runs it, which is the command line one. The web server's PHP (PHP-FPM, Apache, Herd's) can have a different `php.ini`: check the upload limits there too, with `phpinfo()` or `php-fpm -i`.
 

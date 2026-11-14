@@ -48,6 +48,35 @@ class PhpProbe
         return $bytes === 0 && $value !== '0' ? null : $bytes;
     }
 
+    /**
+     * Whether the memory GD takes for a picture counts against `memory_limit`. It does when GD is the one that comes with
+     * PHP, which asks PHP for its memory. It does not when GD is the system's library (the packages of Debian and Ubuntu):
+     * that asks the system, PHP never sees the memory a picture takes, and `memory_limit` says nothing about it. Found out
+     * by making a picture of 4 MB and seeing whether PHP's own count moves, because nothing else tells the two apart.
+     */
+    public function gdCountsAgainstMemoryLimit(): bool
+    {
+        if (! extension_loaded('gd')) {
+            return false;
+        }
+
+        $before = memory_get_usage();
+        $probe = imagecreatetruecolor(1024, 1024);
+        $counted = memory_get_usage() - $before >= 3 * 1048576;
+
+        unset($probe);
+
+        return $counted;
+    }
+
+    /**
+     * The memory this PHP process has been given by the system so far, which is what memory_limit is held against.
+     */
+    public function memoryInUse(): int
+    {
+        return memory_get_usage(true);
+    }
+
     public function writable(string $path): bool
     {
         return is_dir($path) ? is_writable($path) : (is_file($path) && is_writable($path));

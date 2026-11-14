@@ -222,6 +222,12 @@ One thing the limit does not cover: **Cashier turns on up to three automatic ret
 
 Measured: a local server that accepts the connection and then says nothing, with the limit at 2 seconds, fails the call after 2 seconds (`StripeCallTimeoutTest`). Not measured against Stripe itself: 15 seconds is a choice and not a measured figure, meant to leave a wide margin over the second or two these calls normally take. Raise it only if the log shows timeouts for calls that Stripe did complete. `0` is "wait for ever", for somebody who wants the old behaviour.
 
+## Pictures: the memory they need
+
+A picture takes memory in proportion to its pixels, and PHP's own default of 128 MB is not enough for an ordinary phone photo: measured, a 12 megapixel photo taken in portrait stopped PHP in a script with that limit, and a 16 megapixel one needs about 106 MB more than PHP had already used (125 MB when it is kept at its own size, as support attachments are). PHP's out-of-memory error cannot be caught, so the person who sent the photo saw a server error and, in the queue, the job was lost.
+
+Two changes: a photo taken sideways is turned **after** it has been made small and not before (a quarter turn needs a second copy of whatever is turned: 125 MB became 106 MB for the 16 megapixel photo), and a picture whose declared size will not fit in the memory PHP has left is refused with a message before it is decoded, and the log says why. The figures, what the check counts on and the advice (256 MB, which the Docker image has) are in [images.md](images.md#how-much-memory-a-picture-needs). All of this is for the GD that comes with PHP, which takes its memory from PHP: a distribution's GD (Debian, Ubuntu) takes it from the system, so `memory_limit` does not see a picture and the check stands aside for it. Measured with PHP's own GD on Windows only; the CI machines have the other kind (a 4 megapixel picture moved PHP's peak by 430 kB there), so the measurement test skips itself on them and nothing has measured PHP's own GD on Linux.
+
 ## A production checklist
 
 1. **`composer install --no-dev --optimize-autoloader`.** The classmap is read once, and the test tools are not on the server.

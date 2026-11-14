@@ -185,6 +185,89 @@ class RequirementsTest extends TestCase
     }
 
     #[Test]
+    public function a_memory_limit_below_what_the_docker_image_has_is_advice_that_says_both_sizes(): void
+    {
+        $this->php->bytes = ['memory_limit' => 128 * 1048576];
+
+        $results = $this->check();
+        $memory = $this->find($results, 'PHP memory_limit');
+
+        $this->assertFalse($memory->ok);
+        $this->assertFalse($memory->required);
+        $this->assertStringContainsString('128 MB', $memory->detail);
+        $this->assertStringContainsString('256 MB', $memory->detail);
+        $this->assertStringContainsString("web server's php.ini can differ", $memory->detail);
+        $this->assertSame([], $this->failed($results), 'a small memory limit does not stop the install');
+    }
+
+    #[Test]
+    public function the_probe_says_whether_gd_asks_php_for_the_memory_of_a_picture_and_keeps_none_of_it(): void
+    {
+        $probe = new PhpProbe;
+
+        $before = memory_get_usage();
+        $counted = $probe->gdCountsAgainstMemoryLimit();
+
+        $this->assertLessThan(1048576, memory_get_usage() - $before, 'the picture it makes to find out is let go');
+
+        // An independent look at the same thing, with a bigger picture (9 MB): does PHP's own count move?
+        $before = memory_get_usage();
+        $picture = imagecreatetruecolor(1500, 1500);
+        $grew = memory_get_usage() - $before;
+        unset($picture);
+
+        $this->assertSame($grew >= 8 * 1048576, $counted);
+    }
+
+    #[Test]
+    public function a_gd_that_takes_its_memory_from_the_system_makes_the_memory_limit_beside_the_point(): void
+    {
+        $this->php->bytes = ['memory_limit' => 128 * 1048576];
+        $this->php->gdCounted = false;
+
+        $memory = $this->find($this->check(), 'PHP memory_limit');
+
+        $this->assertTrue($memory->ok);
+        $this->assertStringContainsString('takes its memory from the system', $memory->detail);
+
+        // And with the GD that comes with PHP the same limit is advice.
+        $this->php->gdCounted = true;
+
+        $this->assertFalse($this->find($this->check(), 'PHP memory_limit')->ok);
+    }
+
+    #[Test]
+    public function the_probe_reports_the_memory_the_limit_is_held_against(): void
+    {
+        // What the system has given the process (in chunks), not what the script has asked for: that is what memory_limit counts.
+        $this->assertSame(memory_get_usage(true), (new PhpProbe)->memoryInUse());
+    }
+
+    #[Test]
+    public function a_memory_limit_of_256_megabytes_or_more_is_enough(): void
+    {
+        foreach ([256 * 1048576, 256 * 1048576 + 1, 512 * 1048576] as $bytes) {
+            $this->php->bytes = ['memory_limit' => $bytes];
+
+            $this->assertTrue($this->find($this->check(), 'PHP memory_limit')->ok, (string) $bytes);
+        }
+
+        $this->php->bytes = ['memory_limit' => 256 * 1048576 - 1];
+
+        $this->assertFalse($this->find($this->check(), 'PHP memory_limit')->ok);
+    }
+
+    #[Test]
+    public function no_memory_limit_or_one_php_does_not_give_is_enough(): void
+    {
+        foreach ([-1, 0, null] as $limit) {
+            $this->php->bytes = ['memory_limit' => $limit];
+
+            $this->assertTrue($this->find($this->check(), 'PHP memory_limit')->ok, var_export($limit, true));
+        }
+    }
+
+    #[Test]
     public function an_unlimited_or_unreadable_limit_is_enough(): void
     {
         $this->php->bytes = ['upload_max_filesize' => -1, 'post_max_size' => null];
