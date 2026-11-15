@@ -9,6 +9,7 @@ use App\Payments\PaymentManager;
 use App\Payments\Tebex\TebexSelling;
 use App\Payments\Tebex\TebexStoreProfile;
 use App\Support\Commerce\CartManager;
+use App\Support\Search\LikePattern;
 use App\Support\Security\HtmlSanitizer;
 use App\Support\Seo\Seo;
 use App\Support\Text\PlainText;
@@ -46,7 +47,9 @@ class TebexStorefrontController extends Controller
             ->with('category:id,name')
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $query->where(function ($query) use ($search) {
-                    $query->whereLike('name', "%{$search}%")->orWhereLike('description', "%{$search}%");
+                    $like = LikePattern::contains($search);
+
+                    $query->whereRaw(LikePattern::clause('name'), [$like])->orWhereRaw(LikePattern::clause('description'), [$like]);
                 });
             })
             ->when($filters['category'] ?? null, fn ($query, int $category) => $query->where('tebex_category_id', $category))

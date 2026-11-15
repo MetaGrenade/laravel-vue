@@ -11,6 +11,7 @@ use App\Models\BlogView;
 use App\Models\User;
 use App\Support\Blog\BlogCovers;
 use App\Support\Localization\DateFormatter;
+use App\Support\Search\LikePattern;
 use App\Support\Seo\Seo;
 use App\Support\Spam\CommentGuard;
 use Illuminate\Http\Request;
@@ -72,8 +73,10 @@ class BlogController extends Controller
 
         if ($searchFilter->isNotEmpty()) {
             $blogsQuery->where(function ($query) use ($searchFilter) {
-                $query->whereLike('title', '%'.$searchFilter->toString().'%')
-                    ->orWhereLike('excerpt', '%'.$searchFilter->toString().'%');
+                $like = LikePattern::contains($searchFilter->toString());
+
+                $query->whereRaw(LikePattern::clause('title'), [$like])
+                    ->orWhereRaw(LikePattern::clause('excerpt'), [$like]);
             });
         }
 

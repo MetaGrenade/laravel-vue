@@ -20,6 +20,7 @@ use App\Support\Commerce\ProductAvailability;
 use App\Support\Commerce\Reviews\ProductReviews;
 use App\Support\Commerce\StorefrontProducts;
 use App\Support\Commerce\Wishlists;
+use App\Support\Search\LikePattern;
 use App\Support\Seo\Seo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -54,8 +55,10 @@ class ProductCatalogController extends Controller
         $products = StorefrontProducts::query()
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $query->where(function ($query) use ($search) {
-                    $query->whereLike('name', "%{$search}%")
-                        ->orWhereLike('description', "%{$search}%");
+                    $like = LikePattern::contains($search);
+
+                    $query->whereRaw(LikePattern::clause('name'), [$like])
+                        ->orWhereRaw(LikePattern::clause('description'), [$like]);
                 });
             })
             ->when($filters['category'] ?? null, function ($query, array $categories) {

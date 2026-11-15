@@ -248,12 +248,12 @@ class GlobalSearchService
                     });
             })
             ->where(function ($query) use ($term) {
-                $likeTerm = $this->likeTerm($term);
+                $like = LikePattern::contains($term);
 
-                $query->whereLike('blogs.title', $likeTerm)
-                    ->orWhereLike('blogs.excerpt', $likeTerm)
-                    ->orWhereLike('blogs.body_text', $likeTerm)
-                    ->orWhereLike('users.nickname', $likeTerm);
+                $query->whereRaw(LikePattern::clause('blogs.title'), [$like])
+                    ->orWhereRaw(LikePattern::clause('blogs.excerpt'), [$like])
+                    ->orWhereRaw(LikePattern::clause('blogs.body_text'), [$like])
+                    ->orWhereRaw(LikePattern::clause('users.nickname'), [$like]);
             })
             ->selectRaw(...$this->relevanceExpression([
                 'blogs.title' => 5,
@@ -295,11 +295,11 @@ class GlobalSearchService
             ->leftJoin('users', 'users.id', '=', 'forum_threads.user_id')
             ->where('forum_threads.is_published', true)
             ->where(function ($query) use ($term) {
-                $likeTerm = $this->likeTerm($term);
+                $like = LikePattern::contains($term);
 
-                $query->whereLike('forum_threads.title', $likeTerm)
-                    ->orWhereLike('forum_threads.excerpt', $likeTerm)
-                    ->orWhereLike('users.nickname', $likeTerm);
+                $query->whereRaw(LikePattern::clause('forum_threads.title'), [$like])
+                    ->orWhereRaw(LikePattern::clause('forum_threads.excerpt'), [$like])
+                    ->orWhereRaw(LikePattern::clause('users.nickname'), [$like]);
             })
             ->selectRaw(...$this->relevanceExpression([
                 'forum_threads.title' => 5,
@@ -333,11 +333,11 @@ class GlobalSearchService
             ->leftJoin('faq_categories', 'faq_categories.id', '=', 'faqs.faq_category_id')
             ->where('faqs.published', true)
             ->where(function ($query) use ($term) {
-                $likeTerm = $this->likeTerm($term);
+                $like = LikePattern::contains($term);
 
-                $query->whereLike('faqs.question', $likeTerm)
-                    ->orWhereLike('faqs.answer', $likeTerm)
-                    ->orWhereLike('faq_categories.name', $likeTerm);
+                $query->whereRaw(LikePattern::clause('faqs.question'), [$like])
+                    ->orWhereRaw(LikePattern::clause('faqs.answer'), [$like])
+                    ->orWhereRaw(LikePattern::clause('faq_categories.name'), [$like]);
             })
             ->selectRaw(...$this->relevanceExpression([
                 'faqs.question' => 5,
@@ -448,11 +448,11 @@ class GlobalSearchService
 
         $bindings = [];
         $clauses = [];
-        $needle = $this->likeTerm($term);
+        $needle = LikePattern::contains($term);
 
         foreach ($columns as $column => $weight) {
             $bindings[] = $needle;
-            $clauses[] = "CASE WHEN LOWER({$column}) LIKE LOWER(?) THEN {$weight} ELSE 0 END";
+            $clauses[] = 'CASE WHEN '.LikePattern::clause($column)." THEN {$weight} ELSE 0 END";
         }
 
         $expression = implode(' + ', $clauses);
@@ -539,10 +539,5 @@ class GlobalSearchService
         }
 
         return $highlighted;
-    }
-
-    private function likeTerm(string $term): string
-    {
-        return '%'.Str::lower($term).'%';
     }
 }

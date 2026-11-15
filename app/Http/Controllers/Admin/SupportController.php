@@ -33,6 +33,7 @@ use App\Notifications\TicketStatusUpdated;
 use App\Support\Database\Transaction;
 use App\Support\Localization\DateFormatter;
 use App\Support\Members\StaffUserSearch;
+use App\Support\Search\LikePattern;
 use App\Support\SupportAttachmentStorage;
 use App\Support\SupportSlaConfiguration;
 use App\Support\SupportTicketAutoAssigner;
@@ -356,29 +357,28 @@ class SupportController extends Controller
 
         $ticketQuery = SupportTicket::query()
             ->when($ticketsSearchTerm, function ($query) use ($ticketsSearchTerm) {
-                $escaped = $this->escapeForLike($ticketsSearchTerm);
-                $like = "%{$escaped}%";
+                $like = LikePattern::contains($ticketsSearchTerm);
 
                 $query->where(function ($query) use ($like) {
                     $query
-                        ->whereLike('subject', $like)
-                        ->orWhereLike('body', $like)
-                        ->orWhereLike('status', $like)
-                        ->orWhereLike('priority', $like)
+                        ->whereRaw(LikePattern::clause('subject'), [$like])
+                        ->orWhereRaw(LikePattern::clause('body'), [$like])
+                        ->orWhereRaw(LikePattern::clause('status'), [$like])
+                        ->orWhereRaw(LikePattern::clause('priority'), [$like])
                         ->orWhereHas('user', function ($query) use ($like) {
                             $query
-                                ->whereLike('nickname', $like)
-                                ->orWhereLike('email', $like);
+                                ->whereRaw(LikePattern::clause('nickname'), [$like])
+                                ->orWhereRaw(LikePattern::clause('email'), [$like]);
                         })
                         ->orWhereHas('assignee', function ($query) use ($like) {
                             $query
-                                ->whereLike('nickname', $like)
-                                ->orWhereLike('email', $like);
+                                ->whereRaw(LikePattern::clause('nickname'), [$like])
+                                ->orWhereRaw(LikePattern::clause('email'), [$like]);
                         })
                         ->orWhereHas('resolver', function ($query) use ($like) {
                             $query
-                                ->whereLike('nickname', $like)
-                                ->orWhereLike('email', $like);
+                                ->whereRaw(LikePattern::clause('nickname'), [$like])
+                                ->orWhereRaw(LikePattern::clause('email'), [$like]);
                         });
                 });
             })
@@ -404,13 +404,12 @@ class SupportController extends Controller
                 'feedback as not_helpful_feedback_count' => fn ($query) => $query->where('is_helpful', false),
             ])
             ->when($faqsSearchTerm, function ($query) use ($faqsSearchTerm) {
-                $escaped = $this->escapeForLike($faqsSearchTerm);
-                $like = "%{$escaped}%";
+                $like = LikePattern::contains($faqsSearchTerm);
 
                 $query->where(function ($query) use ($like) {
                     $query
-                        ->whereLike('question', $like)
-                        ->orWhereLike('answer', $like);
+                        ->whereRaw(LikePattern::clause('question'), [$like])
+                        ->orWhereRaw(LikePattern::clause('answer'), [$like]);
                 });
             });
 
@@ -581,11 +580,6 @@ class SupportController extends Controller
                 'date_to' => optional($createdTo)?->toDateString(),
             ],
         ]);
-    }
-
-    private function escapeForLike(string $value): string
-    {
-        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 
     private function normalizeStatusFilter(Stringable $status): ?string

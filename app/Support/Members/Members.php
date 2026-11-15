@@ -8,6 +8,7 @@ use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\User;
 use App\Support\Localization\DateFormatter;
+use App\Support\Search\LikePattern;
 use App\Support\Text\PlainText;
 use App\Support\WebsiteSections;
 use Illuminate\Database\Eloquent\Builder;
@@ -36,7 +37,7 @@ class Members
             ->select(['id', 'nickname', 'avatar_url', 'profile_bio', 'reputation_points', 'created_at']);
 
         if ($search !== '') {
-            $query->whereLike('nickname', '%'.$search.'%');
+            $query->whereRaw(LikePattern::clause('nickname'), [LikePattern::contains($search)]);
         }
 
         match ($sort) {

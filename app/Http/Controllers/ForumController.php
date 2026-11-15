@@ -17,6 +17,7 @@ use App\Support\Forum\ForumSubmissions;
 use App\Support\Forum\IgnoredMembers;
 use App\Support\Forum\ThreadPrefixes;
 use App\Support\Localization\DateFormatter;
+use App\Support\Search\LikePattern;
 use App\Support\Security\HtmlSanitizer;
 use App\Support\Seo\Seo;
 use App\Support\Spam\CommentGuard;
@@ -137,17 +138,17 @@ class ForumController extends Controller
             ]);
         }
 
-        $escaped = addcslashes($query, '%_');
+        $begins = LikePattern::startsWith($query);
 
         $users = User::query()
             ->select('id', 'nickname', 'avatar_url')
             ->whereNotNull('nickname')
             ->where('id', '!=', $user->id)
-            ->where(function ($builder) use ($escaped) {
-                $builder->whereLike('nickname', $escaped.'%')
-                    ->orWhereLike('nickname', '%'.$escaped.'%');
+            ->where(function ($builder) use ($begins, $query) {
+                $builder->whereRaw(LikePattern::clause('nickname'), [$begins])
+                    ->orWhereRaw(LikePattern::clause('nickname'), [LikePattern::contains($query)]);
             })
-            ->orderByRaw('LOWER(nickname) like ? desc', [Str::lower($escaped).'%'])
+            ->orderByRaw(LikePattern::clause('nickname').' desc', [$begins])
             ->orderBy('nickname')
             ->limit(8)
             ->get()
@@ -211,13 +212,12 @@ class ForumController extends Controller
             ->withCount('posts');
 
         if ($search !== '') {
-            $escaped = addcslashes($search, '%_');
-            $likeTerm = "%{$escaped}%";
+            $likeTerm = LikePattern::contains($search);
 
             $threadsQuery->where(function ($query) use ($likeTerm) {
-                $query->whereLike('forum_threads.title', $likeTerm)
-                    ->orWhereLike('forum_threads.excerpt', $likeTerm)
-                    ->orWhereLike('thread_authors.nickname', $likeTerm)
+                $query->whereRaw(LikePattern::clause('forum_threads.title'), [$likeTerm])
+                    ->orWhereRaw(LikePattern::clause('forum_threads.excerpt'), [$likeTerm])
+                    ->orWhereRaw(LikePattern::clause('thread_authors.nickname'), [$likeTerm])
                     ->orWhereExists(function ($postQuery) use ($likeTerm) {
                         // A table, not the model: the scope that leaves held replies out does not reach it (docs/automod.md).
                         $postQuery->selectRaw('1')
@@ -225,7 +225,7 @@ class ForumController extends Controller
                             ->whereColumn('forum_posts.forum_thread_id', 'forum_threads.id')
                             ->whereNull('forum_posts.deleted_at')
                             ->whereNull('forum_posts.held_at')
-                            ->whereLike('forum_posts.body', $likeTerm);
+                            ->whereRaw(LikePattern::clause('forum_posts.body'), [$likeTerm]);
                     });
             });
         }

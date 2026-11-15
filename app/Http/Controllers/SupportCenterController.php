@@ -20,6 +20,7 @@ use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
 use App\Support\Database\Transaction;
 use App\Support\Localization\DateFormatter;
+use App\Support\Search\LikePattern;
 use App\Support\Seo\Seo;
 use App\Support\SupportAttachmentStorage;
 use App\Support\SupportTicketAutoAssigner;
@@ -94,18 +95,17 @@ class SupportCenterController extends Controller
                     $query->where('priority', $ticketPriority);
                 })
                 ->when($ticketsSearchTerm, function ($query) use ($ticketsSearchTerm) {
-                    $escaped = $this->escapeForLike($ticketsSearchTerm);
-                    $like = "%{$escaped}%";
+                    $like = LikePattern::contains($ticketsSearchTerm);
 
                     $query->where(function ($query) use ($like) {
                         $query
-                            ->whereLike('subject', $like)
-                            ->orWhereLike('status', $like)
-                            ->orWhereLike('priority', $like)
+                            ->whereRaw(LikePattern::clause('subject'), [$like])
+                            ->orWhereRaw(LikePattern::clause('status'), [$like])
+                            ->orWhereRaw(LikePattern::clause('priority'), [$like])
                             ->orWhereHas('assignee', function ($query) use ($like) {
                                 $query
-                                    ->whereLike('nickname', $like)
-                                    ->orWhereLike('email', $like);
+                                    ->whereRaw(LikePattern::clause('nickname'), [$like])
+                                    ->orWhereRaw(LikePattern::clause('email'), [$like]);
                             });
                     });
                 })
@@ -173,13 +173,12 @@ class SupportCenterController extends Controller
             ->when($faqId, fn ($query) => $query->whereKey($faqId))
             ->when(! $faqId && $faqCategoryId, fn ($query) => $query->where('faq_category_id', $faqCategoryId))
             ->when(! $faqId && $faqsSearchTerm, function ($query) use ($faqsSearchTerm) {
-                $escaped = $this->escapeForLike($faqsSearchTerm);
-                $like = "%{$escaped}%";
+                $like = LikePattern::contains($faqsSearchTerm);
 
                 $query->where(function ($query) use ($like) {
                     $query
-                        ->whereLike('question', $like)
-                        ->orWhereLike('answer', $like);
+                        ->whereRaw(LikePattern::clause('question'), [$like])
+                        ->orWhereRaw(LikePattern::clause('answer'), [$like]);
                 });
             })
             ->orderBy('order')
@@ -549,10 +548,5 @@ class SupportCenterController extends Controller
         ]);
 
         return back()->with('success', 'Ticket reopened. We will take another look.');
-    }
-
-    private function escapeForLike(string $value): string
-    {
-        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 }

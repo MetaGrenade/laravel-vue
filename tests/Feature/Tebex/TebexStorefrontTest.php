@@ -149,6 +149,22 @@ class TebexStorefrontTest extends TestCase
     }
 
     #[Test]
+    public function what_is_searched_for_is_letters_not_a_pattern(): void
+    {
+        $category = TebexCategory::factory()->create(['name' => 'Ranks']);
+
+        foreach (['100% off', '100 off', 'a_b', 'axb'] as $name) {
+            $this->package(['name' => $name, 'description' => 'A description.', 'tebex_category_id' => $category->id]);
+        }
+
+        foreach ([['100%', ['100% off']], ['a_b', ['a_b']], ['_', ['a_b']], ['a%c', []]] as [$term, $expected]) {
+            $this->get(route('shop.packages', ['search' => $term]))->assertInertia(fn (Assert $page) => $page
+                ->has('packages.data', count($expected))
+                ->where('packages.data', fn ($packages) => collect($packages)->pluck('name')->sort()->values()->all() === $expected));
+        }
+    }
+
+    #[Test]
     public function a_category_with_nothing_for_sale_is_not_offered(): void
     {
         $empty = TebexCategory::factory()->create(['name' => 'Empty']);
