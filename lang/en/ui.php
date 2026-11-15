@@ -37,6 +37,8 @@ return [
     // The cart in the header (the sheet that opens from the trolley) and the wishlist beside it.
     'cart' => [
         'open' => 'Open cart',
+        // The name of the button when the cart has something in it: the number on the badge is part of it, so it is not lost to a screen reader.
+        'open_count' => 'Open cart, :count item|Open cart, :count items',
         'title' => 'Your cart',
         'description' => 'Review your items before checkout.',
         'empty' => 'Your cart is empty.',

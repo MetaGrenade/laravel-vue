@@ -71,7 +71,6 @@ const submit = () => {
                         type="text"
                         required
                         autofocus
-                        :tabindex="1"
                         autocomplete="nickname"
                         v-model="form.nickname"
                         :placeholder="t('auth.register.nickname')"
@@ -85,7 +84,6 @@ const submit = () => {
                         id="email"
                         type="email"
                         required
-                        :tabindex="2"
                         autocomplete="email"
                         v-model="form.email"
                         :placeholder="t('auth.common.email_placeholder')"
@@ -99,7 +97,6 @@ const submit = () => {
                         id="password"
                         type="password"
                         required
-                        :tabindex="3"
                         autocomplete="new-password"
                         v-model="form.password"
                         :placeholder="t('auth.common.password')"
@@ -113,7 +110,6 @@ const submit = () => {
                         id="password_confirmation"
                         type="password"
                         required
-                        :tabindex="4"
                         autocomplete="new-password"
                         v-model="form.password_confirmation"
                         :placeholder="t('auth.common.confirm_password')"
@@ -121,7 +117,7 @@ const submit = () => {
                     <InputError :message="form.errors.password_confirmation" />
                 </div>
 
-                <Button type="submit" class="mt-2 w-full" tabindex="5" :disabled="form.processing">
+                <Button type="submit" class="mt-2 w-full" :disabled="form.processing">
                     <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
                     {{ t('auth.register.submit') }}
                 </Button>
@@ -129,7 +125,7 @@ const submit = () => {
 
             <div class="text-center text-sm text-muted-foreground">
                 {{ t('auth.register.have_account') }}
-                <TextLink :href="route('login')" class="underline underline-offset-4" :tabindex="6">{{ t('auth.register.log_in') }}</TextLink>
+                <TextLink :href="route('login')" class="underline underline-offset-4">{{ t('auth.register.log_in') }}</TextLink>
             </div>
         </form>
     </AuthBase>

@@ -740,7 +740,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                 <TabsContent value="tickets" class="space-y-6">
                     <!-- Search and New Ticket Button -->
                     <div class="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-xs xl:flex-row xl:items-center xl:justify-between">
-                        <h3 class="text-xl font-semibold tracking-tight">My Tickets</h3>
+                        <h2 class="text-xl font-semibold tracking-tight">My Tickets</h2>
                         <div class="flex w-full flex-col gap-3 md:flex-row md:flex-wrap md:items-center xl:w-auto xl:justify-end">
                             <Input
                                 v-model="ticketSearchQuery"
@@ -1109,7 +1109,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                     <div class="space-y-6">
                         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                             <div class="space-y-1">
-                                <h3 class="text-2xl font-semibold">Frequently Asked Questions</h3>
+                                <h2 class="text-2xl font-semibold">Frequently Asked Questions</h2>
                                 <p class="text-sm text-muted-foreground">Browse curated answers by topic or search for what you need.</p>
                             </div>
 
@@ -1155,9 +1155,9 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                     class="flex flex-col gap-2 rounded-xl border bg-card px-4 py-3 shadow-xs md:flex-row md:items-center md:justify-between"
                                 >
                                     <div>
-                                        <h4 class="text-lg font-semibold tracking-tight">
+                                        <h3 class="text-lg font-semibold tracking-tight">
                                             {{ group.category?.name ?? 'FAQs' }}
-                                        </h4>
+                                        </h3>
                                         <p v-if="group.category?.description" class="text-sm text-muted-foreground">
                                             {{ group.category.description }}
                                         </p>

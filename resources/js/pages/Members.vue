@@ -118,13 +118,13 @@ const sortHref = (value: string) => route('members.index', { sort: value, ...(pr
 
             <ul v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 <li v-for="member in members.data" :key="member.id">
+                    <!-- The link is named by what is on the card (the name is its first words), and the picture beside the name is decoration. -->
                     <Link
                         :href="member.url"
                         class="flex h-full gap-4 rounded-xl border bg-card p-4 shadow-xs transition-colors hover:border-primary/40"
-                        :aria-label="t('members.profile.open_profile', { name: member.nickname })"
                     >
                         <Avatar class="size-14 shrink-0">
-                            <AvatarImage v-if="member.avatar_url" :src="member.avatar_url" :alt="member.nickname" />
+                            <AvatarImage v-if="member.avatar_url" :src="member.avatar_url" alt="" />
                             <AvatarFallback class="text-sm font-semibold uppercase">{{ getInitials(member.nickname) }}</AvatarFallback>
                         </Avatar>
                         <span class="min-w-0">

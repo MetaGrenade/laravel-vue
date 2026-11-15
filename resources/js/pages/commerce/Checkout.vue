@@ -233,7 +233,7 @@ const submit = () => {
                 <div class="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Contact</CardTitle>
+                            <CardTitle as="h2">Contact</CardTitle>
                         </CardHeader>
                         <CardContent class="space-y-5">
                             <div class="grid gap-2">
@@ -267,7 +267,7 @@ const submit = () => {
 
                     <Card v-if="props.tebex && props.identity.kind !== 'none'">
                         <CardHeader>
-                            <CardTitle>Who is it for?</CardTitle>
+                            <CardTitle as="h2">Who is it for?</CardTitle>
                         </CardHeader>
                         <CardContent class="space-y-2">
                             <template v-if="props.identity.kind === 'username'">
@@ -287,7 +287,7 @@ const submit = () => {
 
                     <Card v-if="props.needsShipping">
                         <CardHeader>
-                            <CardTitle>Shipping address</CardTitle>
+                            <CardTitle as="h2">Shipping address</CardTitle>
                         </CardHeader>
                         <CardContent class="space-y-5">
                             <fieldset v-if="props.addresses.length" class="space-y-2">
@@ -342,7 +342,7 @@ const submit = () => {
 
                     <Card v-if="props.needsShipping">
                         <CardHeader>
-                            <CardTitle>Shipping method</CardTitle>
+                            <CardTitle as="h2">Shipping method</CardTitle>
                         </CardHeader>
                         <CardContent class="space-y-3">
                             <p
@@ -385,7 +385,7 @@ const submit = () => {
 
                     <Card v-if="props.needsShipping || props.billingRequired">
                         <CardHeader>
-                            <CardTitle>Billing address</CardTitle>
+                            <CardTitle as="h2">Billing address</CardTitle>
                         </CardHeader>
                         <CardContent class="space-y-5">
                             <div v-if="props.needsShipping" class="flex items-center gap-2">
@@ -478,7 +478,7 @@ const submit = () => {
 
                 <Card class="h-fit lg:sticky lg:top-24">
                     <CardHeader>
-                        <CardTitle>Order summary</CardTitle>
+                        <CardTitle as="h2">Order summary</CardTitle>
                     </CardHeader>
                     <CardContent class="space-y-4">
                         <ul class="space-y-3 text-sm">

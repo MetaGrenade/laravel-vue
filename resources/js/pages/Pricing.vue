@@ -341,7 +341,7 @@ onBeforeUnmount(() => {
                             ]"
                         >
                             <CardHeader>
-                                <CardTitle class="text-base">{{ plan.name }}</CardTitle>
+                                <CardTitle as="h2" class="text-base">{{ plan.name }}</CardTitle>
                                 <p class="mt-2">
                                     <span class="text-3xl font-semibold tracking-tight tabular-nums">{{
                                         formatCurrency(plan.price, plan.currency)
@@ -394,7 +394,7 @@ onBeforeUnmount(() => {
                 <div>
                     <Card class="lg:sticky lg:top-20">
                         <CardHeader>
-                            <CardTitle class="text-lg">Checkout</CardTitle>
+                            <CardTitle as="h2" class="text-lg">Checkout</CardTitle>
                             <CardDescription>Enter your email and payment details to activate your subscription.</CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4">

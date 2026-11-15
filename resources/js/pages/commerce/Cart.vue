@@ -54,7 +54,7 @@ const removeItem = (itemId: number) => {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Items</CardTitle>
+                    <CardTitle as="h2">Items</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <ul v-if="props.cart && props.cart.items.length" class="divide-y">
