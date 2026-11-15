@@ -83,7 +83,9 @@ Route::middleware(['auth', 'translations:settings'])->group(function () {
     });
 
     Route::get('settings/billing', [SubscriptionController::class, 'index'])->name('settings.billing.index');
-    Route::post('settings/billing/setup-intent', [SubscriptionController::class, 'setupIntent'])->name('settings.billing.intent');
+    Route::post('settings/billing/setup-intent', [SubscriptionController::class, 'setupIntent'])
+        ->middleware('throttle:card-setup')
+        ->name('settings.billing.intent');
     Route::post('settings/billing/promotion-code', [SubscriptionController::class, 'promotionCode'])
         ->middleware('throttle:promotion-codes')
         ->name('settings.billing.promotion-code');
@@ -98,8 +100,12 @@ Route::middleware(['auth', 'translations:settings'])->group(function () {
     Route::post('settings/billing/portal', [SubscriptionController::class, 'portal'])
         ->middleware('throttle:billing')
         ->name('settings.billing.portal');
-    Route::post('settings/billing/cancel', [SubscriptionController::class, 'cancel'])->name('settings.billing.cancel');
-    Route::post('settings/billing/resume', [SubscriptionController::class, 'resume'])->name('settings.billing.resume');
+    Route::post('settings/billing/cancel', [SubscriptionController::class, 'cancel'])
+        ->middleware('throttle:billing')
+        ->name('settings.billing.cancel');
+    Route::post('settings/billing/resume', [SubscriptionController::class, 'resume'])
+        ->middleware('throttle:billing')
+        ->name('settings.billing.resume');
 
     Route::get('settings/billing/invoices', [SubscriptionController::class, 'invoices'])->name('settings.billing.invoices.index');
     Route::get('settings/billing/invoices/{invoice}/download', [SubscriptionController::class, 'downloadInvoice'])
@@ -108,10 +114,13 @@ Route::middleware(['auth', 'translations:settings'])->group(function () {
     Route::get('settings/billing/payment-methods', [SubscriptionController::class, 'paymentMethods'])
         ->name('settings.billing.payment-methods.index');
     Route::post('settings/billing/payment-methods', [SubscriptionController::class, 'storePaymentMethod'])
+        ->middleware('throttle:card-setup')
         ->name('settings.billing.payment-methods.store');
     Route::put('settings/billing/payment-methods/{paymentMethod}/default', [SubscriptionController::class, 'setDefaultPaymentMethod'])
+        ->middleware('throttle:billing')
         ->name('settings.billing.payment-methods.default');
     Route::delete('settings/billing/payment-methods/{paymentMethod}', [SubscriptionController::class, 'removePaymentMethod'])
+        ->middleware('throttle:billing')
         ->name('settings.billing.payment-methods.destroy');
 
     Route::post('settings/privacy/exports', [DataExportController::class, 'store'])

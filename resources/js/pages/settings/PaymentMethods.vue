@@ -153,7 +153,7 @@ const fetchSetupIntent = async () => {
         });
 
         if (!response.ok) {
-            throw new Error('Unable to create setup intent');
+            throw new Error(response.status === 429 ? 'Too many tries. Please wait a while and try again.' : 'Unable to create setup intent');
         }
 
         const data = await response.json();
@@ -222,7 +222,10 @@ const addPaymentMethod = async () => {
         if (!response.ok) {
             const payload = await response.json().catch(() => ({}));
             const firstError = payload?.errors ? Object.values(payload.errors as Record<string, string[]>)[0]?.[0] : null;
-            errorMessage.value = payload?.message ?? firstError ?? 'Unable to save the payment method.';
+            errorMessage.value =
+                response.status === 429
+                    ? 'Too many tries. Please wait a while and try again.'
+                    : (payload?.message ?? firstError ?? 'Unable to save the payment method.');
             return;
         }
 

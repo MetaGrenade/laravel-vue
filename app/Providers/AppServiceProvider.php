@@ -272,7 +272,18 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('search', fn (Request $request) => Limit::perMinute(60)->by('search:'.$byUserOrIp($request)));
 
+        // Each of these is a call to Stripe: starting or changing a subscription, opening the portal, cancelling or resuming one, and
+        // choosing or removing a card.
         RateLimiter::for('billing', fn (Request $request) => Limit::perMinute(10)->by('billing:'.$byUserOrIp($request)));
+
+        // Adding a card: each setup intent is a chance to find out whether a card number is good ("card testing"), and a run of them is
+        // what makes Stripe look hard at the account that made them. A person adding a card needs one or two, and the pages ask for one
+        // when they open, so ten a minute and sixty an hour leave room for browsing around the settings. The intent and the saving of
+        // the card share it.
+        RateLimiter::for('card-setup', fn (Request $request) => [
+            Limit::perMinute(10)->by('card-setup:'.$byUserOrIp($request)),
+            Limit::perHour(60)->by('card-setup-hourly:'.$byUserOrIp($request)),
+        ]);
 
         // Making API keys: each one is a new credential, so a stolen session cannot be used to mint them by the hundred. A person
         // signed in is counted as themselves; one signing in over the API, as that address from that place (guessing passwords

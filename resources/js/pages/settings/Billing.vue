@@ -239,7 +239,7 @@ const fetchSetupIntent = async () => {
         });
 
         if (!response.ok) {
-            throw new Error('Unable to create setup intent');
+            throw new Error(response.status === 429 ? 'Too many tries. Please wait a while and try again.' : 'Unable to create setup intent');
         }
 
         const data = await response.json();
