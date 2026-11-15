@@ -131,3 +131,86 @@ export async function expectNoProblems(page: Page, name: string, options: { menu
     expect(problemsIn(dark), `${name} (dark theme)\n${report(problemsIn(dark))}`).toEqual([]);
     expectMeasured(dark, `${name} (dark theme)`);
 }
+
+/**
+ * The narrowest screen a page is made for. WCAG's reflow rule (1.4.10) asks that a page can be read without scrolling sideways at 320 CSS pixels,
+ * which is a phone from 2013 and the width the page is zoomed to at 400% on a 1280 pixel screen. Not an emulated phone: that would stretch the
+ * page to fit what overflows instead of showing it.
+ */
+export const PHONE = { width: 320, height: 800 };
+
+/** Runs in the page: how far it scrolls sideways, and the elements that stick out of the screen (the innermost ones, not the boxes around them). */
+function whatSticksOut(): { scrollWidth: number; clientWidth: number; elements: string[] } {
+    const clientWidth = document.documentElement.clientWidth;
+    const scrollWidth = document.documentElement.scrollWidth;
+
+    if (scrollWidth <= clientWidth) return { scrollWidth, clientWidth, elements: [] };
+
+    const out: Element[] = [];
+
+    for (const el of Array.from(document.querySelectorAll('body *'))) {
+        const box = el.getBoundingClientRect();
+
+        if (box.width === 0 || box.height === 0 || (box.right <= clientWidth + 1 && box.left >= -1)) continue;
+        if (getComputedStyle(el).visibility === 'hidden') continue;
+
+        // Something inside a box that scrolls or clips it, and that box is on the screen, does not make the page wider.
+        let held = false;
+
+        for (let parent = el.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+            const around = parent.getBoundingClientRect();
+
+            if (/(auto|scroll|hidden|clip)/.test(getComputedStyle(parent).overflowX) && around.right <= clientWidth + 1 && around.left >= -1) {
+                held = true;
+                break;
+            }
+        }
+
+        if (!held) out.push(el);
+    }
+
+    const innermost = out.filter((el) => !out.some((other) => other !== el && el.contains(other)));
+
+    return {
+        scrollWidth,
+        clientWidth,
+        elements: innermost
+            .sort((a, b) => b.getBoundingClientRect().right - a.getBoundingClientRect().right)
+            .slice(0, 5)
+            .map((el) => {
+                const classes = (el.getAttribute('class') ?? '').split(/\s+/).filter(Boolean).slice(0, 4).join('.');
+                const text = (el.textContent ?? '').trim().slice(0, 40);
+
+                return `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ''}${classes ? `.${classes}` : ''} to ${Math.round(el.getBoundingClientRect().right)} px "${text}"`;
+            }),
+    };
+}
+
+/**
+ * The page at PHONE width: it does not scroll sideways, and axe finds nothing it marks critical, serious or moderate (the same rules as
+ * everywhere else, with `target-size`: a control smaller than 24 by 24 pixels, WCAG 2.2). Colours are not measured again: they are the same
+ * at every width, and the desktop run has them in both themes.
+ */
+export async function expectFitsAPhone(page: Page, name: string, options: { menuOpen?: boolean } = {}): Promise<void> {
+    await page.locator('#main-content, main').first().waitFor();
+
+    expect(page.viewportSize(), `${name}: the browser is not ${PHONE.width} wide`).toEqual(PHONE);
+
+    await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; animation: none !important; }' });
+    await page.emulateMedia({ colorScheme: 'light' });
+
+    const sideways = await page.evaluate(whatSticksOut);
+
+    expect(
+        sideways.scrollWidth,
+        `${name}: the page is ${sideways.scrollWidth} px wide on a ${sideways.clientWidth} px screen, so it scrolls sideways\n  ${sideways.elements.join('\n  ')}`,
+    ).toBeLessThanOrEqual(sideways.clientWidth);
+
+    // Everything goes in the one `rules` object: AxeBuilder#disableRules replaces it, which would drop what the options say about the rules.
+    const base = options.menuOpen ? WHILE_A_MENU_IS_OPEN : RUN_OPTIONS;
+    const results = await new AxeBuilder({ page })
+        .options({ ...base, rules: { ...base.rules, 'target-size': { enabled: true }, 'color-contrast': { enabled: false } } })
+        .analyze();
+
+    expect(problemsIn(results), `${name} (${PHONE.width} px)\n${report(problemsIn(results))}`).toEqual([]);
+}

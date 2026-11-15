@@ -1663,9 +1663,10 @@ const submitReply = () => {
                         <Lock class="h-8 w-8" />
                         Locked
                     </Button>
-                    <a href="#post_reply">
-                        <Button variant="secondary" class="cursor-pointer" :disabled="!props.thread.permissions.canReply"> Post Reply </Button>
-                    </a>
+                    <Button v-if="props.thread.permissions.canReply" variant="secondary" class="cursor-pointer" as-child>
+                        <a href="#post_reply">Post Reply</a>
+                    </Button>
+                    <Button v-else variant="secondary" disabled>Post Reply</Button>
                     <Button
                         v-if="authUser"
                         :variant="props.thread.is_subscribed ? 'default' : 'outline'"
@@ -2066,9 +2067,9 @@ const submitReply = () => {
                     </div>
                 </Pagination>
                 <div class="flex w-full max-w-md justify-end">
-                    <a href="#thread_title">
-                        <Button variant="secondary" class="cursor-pointer"> Go To Top </Button>
-                    </a>
+                    <Button variant="secondary" class="cursor-pointer" as-child>
+                        <a href="#thread_title">Go To Top</a>
+                    </Button>
                 </div>
             </header>
 

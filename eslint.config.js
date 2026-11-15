@@ -39,6 +39,13 @@ export default defineConfigWithVueTs(
                         "VElement[name=/^(switch|checkbox)$/] > VStartTag > VAttribute[directive=true][key.name.name='bind'][key.argument.name='checked']",
                     message: 'A Checkbox or a Switch takes :model-value, not :checked: Reka UI has no `checked` prop (docs/upgrading.md).',
                 },
+                // A link around a button is a button inside a link: two stops for the keyboard and a nesting HTML does not allow, which a
+                // screen reader reads as a link that contains a button. axe does not report it. The button is the link: <Button as-child>.
+                {
+                    selector: 'VElement[name=/^(link|a)$/] > VElement[name=/^button$/]',
+                    message:
+                        'A button inside a link is interactive content inside interactive content. Make the button the link: <Button as-child><Link :href="...">Text</Link></Button> (docs/accessibility.md).',
+                },
             ],
         },
     },
