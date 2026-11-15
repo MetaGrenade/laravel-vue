@@ -659,9 +659,9 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || cle
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuGroup>
-                                                    <Link v-if="editUsers" :href="route('acp.users.edit', { user: user.id })">
-                                                        <DropdownMenuItem> <Pencil class="mr-2" /> Edit </DropdownMenuItem>
-                                                    </Link>
+                                                    <DropdownMenuItem v-if="editUsers" as-child>
+                                                        <Link :href="route('acp.users.edit', { user: user.id })"> <Pencil class="mr-2" /> Edit </Link>
+                                                    </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         v-if="verifyUsers && !user.email_verified_at"
                                                         class="text-success"
@@ -669,9 +669,11 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || cle
                                                     >
                                                         <MailCheck class="mr-2" /> Verify
                                                     </DropdownMenuItem>
-                                                    <Link v-if="moderateUsers" :href="route('acp.users.moderation.show', { user: user.id })">
-                                                        <DropdownMenuItem> <UserX class="mr-2" /> Moderate </DropdownMenuItem>
-                                                    </Link>
+                                                    <DropdownMenuItem v-if="moderateUsers" as-child>
+                                                        <Link :href="route('acp.users.moderation.show', { user: user.id })">
+                                                            <UserX class="mr-2" /> Moderate
+                                                        </Link>
+                                                    </DropdownMenuItem>
                                                     <DropdownMenuSeparator v-if="deleteUsers" />
                                                     <DropdownMenuItem
                                                         v-if="deleteUsers"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Link, usePage } from '@inertiajs/vue3';
 import { useDebounceFn, useVModel } from '@vueuse/core';
@@ -244,6 +244,8 @@ onBeforeUnmount(() => {
 <template>
     <Dialog v-model:open="open">
         <DialogContent class="max-w-5xl gap-0 overflow-hidden p-0">
+            <DialogTitle class="sr-only">Search</DialogTitle>
+            <DialogDescription class="sr-only">Search blogs, forum threads and FAQs.</DialogDescription>
             <div class="border-b border-border/70 bg-muted/40 px-4 py-3">
                 <label class="sr-only" for="global-command-palette">Search</label>
                 <div class="flex items-center gap-3">
