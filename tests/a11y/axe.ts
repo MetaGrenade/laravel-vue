@@ -27,6 +27,14 @@ function report(violations: Result[]): string {
 const FAILING_IMPACTS: string[] = ['critical', 'serious', 'moderate'];
 
 /**
+ * The browser is tall enough for the whole of a page: axe cannot measure text that is below the bottom of the screen, or that is partly under
+ * the sticky header it was scrolled up to (665 of the 874 pieces of text it could not measure in the dark theme were only that).
+ * The configuration sets it (playwright.config.ts); a test checks that it is there, because a viewport set in the wrong place is replaced
+ * by the device's own without a word.
+ */
+export const VIEWPORT = { width: 1280, height: 3000 };
+
+/**
  * axe's own settings for the colour check, with one change: `ignorePseudo`.
  *
  * Every page has a backdrop (`bg-page::before`: two faint glows and a dot grid, 30rem tall) that is an absolutely positioned pseudo-element,
@@ -59,7 +67,7 @@ const RUN_OPTIONS = {
  * The share of the text on a page whose colours axe has to be able to measure. The rest is text it cannot (on a photograph, on a gradient,
  * partly under something else), which is not checked. The check once measured none of it; this is what stops that being unnoticed again.
  */
-const MEASURED_AT_LEAST = 0.5;
+const MEASURED_AT_LEAST = 0.6;
 
 function expectMeasured(results: AxeResults, name: string): void {
     const count = (rules: Result[]) => rules.filter((rule) => rule.id === 'color-contrast').reduce((sum, rule) => sum + rule.nodes.length, 0);
@@ -79,6 +87,11 @@ function problemsIn(results: AxeResults): Result[] {
 /** Runs axe on the page on screen, in the light theme and then in the dark one, and fails with the elements it names (docs/accessibility.md). */
 export async function expectNoProblems(page: Page, name: string): Promise<void> {
     await page.locator('#main-content, main').first().waitFor();
+
+    expect(
+        page.viewportSize(),
+        `${name}: the browser is not ${VIEWPORT.width} by ${VIEWPORT.height}, so axe cannot reach the text below the screen`,
+    ).toEqual(VIEWPORT);
 
     // A colour that is part of the way through a transition, or a card that is part of the way through fading in, is measured as what it is at that moment (a tint
     // that was 3.5:1 for a few hundred milliseconds failed a page now and then).

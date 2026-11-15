@@ -1,5 +1,6 @@
 import { defineConfig } from '@playwright/test';
 import { appFor } from '../e2e/server';
+import { VIEWPORT } from './axe';
 
 const app = appFor({ database: 'a11y.sqlite', seeder: 'AccessibilitySignedInFlowSeeder', port: 8000, baseUrlVariable: 'A11Y_BASE_URL' });
 
@@ -16,10 +17,10 @@ export default defineConfig({
     use: {
         baseURL: app.baseURL,
         ignoreHTTPSErrors: true,
-        // Tall enough for the whole of a page: axe cannot measure text that is partly under the sticky header it was scrolled up to, or that is below the screen.
-        viewport: { width: 1280, height: 3000 },
         trace: 'off',
     },
-    projects: app.projects,
+    // The viewport is set on the project, after its device: the project from appFor() spreads `devices['Desktop Chrome']` (1280 by 720) into its own
+    // `use`, which wins over a viewport in the top-level one. tests/a11y/axe.ts fails a page if the browser is not this size.
+    projects: app.projects.map((project) => ({ ...project, use: { ...project.use, viewport: VIEWPORT } })),
     webServer: app.webServer,
 });
