@@ -157,14 +157,20 @@ export async function waitForSite(base, { timeout = 180_000, interval = 500, req
 
         if (reason) throw new Error(reason);
 
+        const allowed = Math.max(1, Math.min(requestTimeout, end - Date.now()));
+
         try {
-            const status = await warm(base, { timeout: Math.max(1, Math.min(requestTimeout, end - Date.now())) });
+            const status = await warm(base, { timeout: allowed });
 
             if (status === 200) return;
 
             last = `answered ${status}`;
         } catch (error) {
-            last = error.message;
+            // A request that only the deadline of the wait cut short (the last one, with a millisecond or ten left) says that the time was up,
+            // not what the site did: what an earlier, whole request saw is more to the point, so it is kept. Anything else is the newest news.
+            const cutByTheDeadline = allowed < requestTimeout && timedOut(error);
+
+            if (!(cutByTheDeadline && last !== 'no answer')) last = error.message;
         }
 
         await new Promise((resolve) => setTimeout(resolve, interval));

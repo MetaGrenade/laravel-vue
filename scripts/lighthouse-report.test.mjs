@@ -319,6 +319,53 @@ describe('waiting for the site', () => {
         assert.ok(Date.now() - started < 5000, `it waited ${Date.now() - started} ms`);
     });
 
+    // The last request of a wait is started with whatever is left of the wait, a millisecond or ten, and so is cut short by the deadline
+    // whatever the site does. Its message (`no complete answer within 0.001 s`) must not wipe out what an earlier, whole request saw:
+    // that was the failure of "says what it last saw" on CI, which only happens when the last request starts a moment before the end.
+    test('a last request that only the deadline cut short does not replace what the site answered before', async () => {
+        let asked = 0;
+        const base = await site((request, response) => {
+            if (++asked > 1) return;
+
+            response.statusCode = 503;
+            response.end('not yet');
+        });
+
+        await assert.rejects(waitForSite(base, { timeout: 300, interval: 20 }), /did not answer 200 within 0\.3 s \(answered 503\)/);
+    });
+
+    test('a request that was given its whole time and stalled is what the site did, and is said', async () => {
+        let asked = 0;
+        const base = await site((request, response) => {
+            if (++asked > 1) return;
+
+            response.statusCode = 503;
+            response.end('not yet');
+        });
+
+        await assert.rejects(
+            waitForSite(base, { timeout: 400, interval: 10, requestTimeout: 100 }),
+            /did not answer 200 within 0\.4 s \(no complete answer within 0\.1 s\)/,
+        );
+    });
+
+    test('a request that fails for another reason is the newest news, even after an answer', async () => {
+        let asked = 0;
+        const base = await site((request, response) => {
+            if (++asked > 1) return request.socket.destroy();
+
+            response.statusCode = 503;
+            response.end('not yet');
+        });
+
+        await assert.rejects(waitForSite(base, { timeout: 300, interval: 20 }), (error) => {
+            assert.match(error.message, /did not answer 200 within 0\.3 s \(/);
+            assert.doesNotMatch(error.message, /answered 503/);
+
+            return true;
+        });
+    });
+
     test('a request that stalls is given up on and asked again, inside the wait', async () => {
         let asked = 0;
         const base = await site((request, response) => {
