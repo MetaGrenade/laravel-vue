@@ -68,11 +68,11 @@ function formatStructuredData(data: Record<string, unknown> | unknown[] | null):
             <div class="container mx-auto space-y-8 p-4">
                 <!-- Back Button & Page Heading -->
                 <div class="flex items-center space-x-4">
-                    <Link :href="route('acp.tokens.index')">
-                        <Button variant="outline" size="icon">
+                    <Button as-child variant="outline" size="icon">
+                        <Link :href="route('acp.tokens.index')" aria-label="Back to the tokens">
                             <ArrowLeft class="h-5 w-5" />
-                        </Button>
-                    </Link>
+                        </Link>
+                    </Button>
                     <h1 class="text-3xl font-bold">Token Log Detail</h1>
                 </div>
 

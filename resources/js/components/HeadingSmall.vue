@@ -9,7 +9,8 @@ defineProps<Props>();
 
 <template>
     <header class="space-y-1 border-b pb-4">
-        <h3 class="text-base font-semibold">{{ title }}</h3>
+        <!-- Under the page's h1 (the settings and admin layouts carry it), so an h2: an h3 here would skip a level. -->
+        <h2 class="text-base font-semibold">{{ title }}</h2>
         <p v-if="description" class="text-sm text-muted-foreground">
             {{ description }}
         </p>

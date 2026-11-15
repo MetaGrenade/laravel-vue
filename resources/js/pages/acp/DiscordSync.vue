@@ -298,6 +298,7 @@ onMounted(load);
                                     <TableRow>
                                         <TableHead class="w-10">
                                             <Checkbox
+                                                aria-label="Select all failures on this page"
                                                 :model-value="allVisibleFailuresSelected"
                                                 :disabled="failuresFilter === 'resolved'"
                                                 @update:model-value="(value) => toggleSelectAllVisible(value === true)"
@@ -316,6 +317,7 @@ onMounted(load);
                                     <TableRow v-for="failure in displayedFailures" :key="failure.id">
                                         <TableCell>
                                             <Checkbox
+                                                :aria-label="`Select failure ${failure.id}`"
                                                 :model-value="selectedFailureIds.includes(failure.id)"
                                                 :disabled="failure.resolved_at !== null"
                                                 @update:model-value="(value) => toggleFailureSelection(failure, value === true)"

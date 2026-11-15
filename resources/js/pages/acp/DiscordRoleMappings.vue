@@ -174,12 +174,14 @@ onMounted(loadData);
                                     <TableCell class="font-mono text-xs">{{ mapping.discord_role_id }}</TableCell>
                                     <TableCell>
                                         <Switch
+                                            :aria-label="`Sync ${mapping.spatie_role_name} to Discord`"
                                             :model-value="mapping.sync_to_discord"
                                             @update:model-value="(value: boolean) => updateMapping(mapping, { sync_to_discord: value })"
                                         />
                                     </TableCell>
                                     <TableCell>
                                         <Switch
+                                            :aria-label="`Sync ${mapping.spatie_role_name} from Discord`"
                                             :model-value="mapping.sync_from_discord"
                                             @update:model-value="(value: boolean) => updateMapping(mapping, { sync_from_discord: value })"
                                         />

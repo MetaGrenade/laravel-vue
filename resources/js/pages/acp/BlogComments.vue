@@ -415,6 +415,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <TableRow>
                                 <TableHead class="w-12 text-center">
                                     <Checkbox
+                                        aria-label="Select all comments on this page"
                                         :model-value="selectedCommentIds.length === props.reports.data.length && props.reports.data.length > 0"
                                         :indeterminate="selectedCommentIds.length > 0 && selectedCommentIds.length < props.reports.data.length"
                                         @update:model-value="toggleAllReports"
@@ -431,6 +432,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                             <TableRow v-for="report in props.reports.data" :key="report.id">
                                 <TableCell class="text-center">
                                     <Checkbox
+                                        :aria-label="`Select comment ${report.id}`"
                                         :model-value="selectedCommentIds.includes(report.id)"
                                         @update:model-value="(checked) => toggleReportSelection(report.id, checked)"
                                     />

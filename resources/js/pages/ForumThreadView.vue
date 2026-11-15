@@ -1410,6 +1410,7 @@ const submitReply = () => {
                         <Label for="post_edit_body">Post content</Label>
                         <LazyRichTextEditor
                             id="post_edit_body"
+                            label="Post content"
                             v-model="postEditForm.body"
                             :placeholder="'Share your updated thoughts...'"
                             :autofocus="true"
@@ -1680,7 +1681,7 @@ const submitReply = () => {
                     </Button>
                     <DropdownMenu v-if="threadPermissions.canReport || threadPermissions.canModerate || threadPermissions.canEdit">
                         <DropdownMenuTrigger as-child>
-                            <Button variant="outline" size="icon">
+                            <Button variant="outline" size="icon" aria-label="Thread actions">
                                 <Ellipsis class="h-8 w-8" />
                             </Button>
                         </DropdownMenuTrigger>
@@ -1896,7 +1897,12 @@ const submitReply = () => {
                                         "
                                     >
                                         <DropdownMenuTrigger as-child>
-                                            <Button variant="ghost" size="icon" class="h-8 w-8">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                class="h-8 w-8"
+                                                :aria-label="`Actions for the post by ${post.author?.nickname ?? 'a former member'}`"
+                                            >
                                                 <Ellipsis class="h-5 w-5" />
                                             </Button>
                                         </DropdownMenuTrigger>
@@ -2083,6 +2089,7 @@ const submitReply = () => {
                 <form class="flex flex-col gap-4" @submit.prevent="submitReply">
                     <LazyRichTextEditor
                         id="thread_reply_body"
+                        label="Your reply"
                         v-model="replyForm.body"
                         :placeholder="'Write your reply here...'"
                         :storage-key="replyDraftStorageKey"

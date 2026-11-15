@@ -313,7 +313,7 @@ const filteredPermissions = computed(() => {
                                             <TableHead>Name</TableHead>
                                             <TableHead class="text-center">Guard Name</TableHead>
                                             <TableHead class="text-center">Created At</TableHead>
-                                            <TableHead class="text-center"></TableHead>
+                                            <TableHead class="text-center"><span class="sr-only">Actions</span></TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -328,7 +328,7 @@ const filteredPermissions = computed(() => {
                                                 <template v-if="canEdit || canDelete">
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger as-child>
-                                                            <Button variant="outline" size="icon">
+                                                            <Button variant="outline" size="icon" :aria-label="`Actions for role ${role.name}`">
                                                                 <Ellipsis class="h-8 w-8" />
                                                             </Button>
                                                         </DropdownMenuTrigger>
@@ -420,7 +420,7 @@ const filteredPermissions = computed(() => {
                                             <TableHead>Name</TableHead>
                                             <TableHead class="text-center">Guard Name</TableHead>
                                             <TableHead class="text-center">Created At</TableHead>
-                                            <TableHead class="text-center"></TableHead>
+                                            <TableHead class="text-center"><span class="sr-only">Actions</span></TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -435,7 +435,11 @@ const filteredPermissions = computed(() => {
                                                 <template v-if="canEdit || canDelete">
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger as-child>
-                                                            <Button variant="outline" size="icon">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="icon"
+                                                                :aria-label="`Actions for permission ${permission.name}`"
+                                                            >
                                                                 <Ellipsis class="h-8 w-8" />
                                                             </Button>
                                                         </DropdownMenuTrigger>

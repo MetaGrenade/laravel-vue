@@ -86,10 +86,10 @@ const saveSettings = () => {
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <!-- Maintenance Mode -->
                     <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
-                        <h3 class="mb-2 text-lg font-semibold">Maintenance Mode</h3>
+                        <h2 class="mb-2 text-lg font-semibold">Maintenance Mode</h2>
                         <p class="mb-4 text-sm text-muted-foreground">Toggle maintenance mode to temporarily disable access for users.</p>
                         <div class="flex items-center">
-                            <Switch v-model="form.maintenance_mode" :disabled="!canEditSystemSettings" />
+                            <Switch v-model="form.maintenance_mode" aria-label="Maintenance mode" :disabled="!canEditSystemSettings" />
                             <span class="ml-2 text-sm">
                                 {{ form.maintenance_mode ? 'Enabled' : 'Disabled' }}
                             </span>
@@ -98,10 +98,14 @@ const saveSettings = () => {
 
                     <!-- Email Verification -->
                     <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
-                        <h3 class="mb-2 text-lg font-semibold">Email Verification</h3>
+                        <h2 class="mb-2 text-lg font-semibold">Email Verification</h2>
                         <p class="mb-4 text-sm text-muted-foreground">Require users to verify their email address upon registration.</p>
                         <div class="flex items-center">
-                            <Switch v-model="form.email_verification_required" :disabled="!canEditSystemSettings" />
+                            <Switch
+                                v-model="form.email_verification_required"
+                                aria-label="Email verification required"
+                                :disabled="!canEditSystemSettings"
+                            />
                             <span class="ml-2 text-sm">
                                 {{ form.email_verification_required ? 'Required' : 'Not Required' }}
                             </span>
@@ -110,7 +114,7 @@ const saveSettings = () => {
 
                     <!-- Website Sections -->
                     <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
-                        <h3 class="mb-2 text-lg font-semibold">Website Sections</h3>
+                        <h2 class="mb-2 text-lg font-semibold">Website Sections</h2>
                         <p class="mb-4 text-sm text-muted-foreground">Enable or disable different sections of the website.</p>
                         <div class="space-y-3">
                             <div class="flex items-center justify-between">
@@ -119,7 +123,7 @@ const saveSettings = () => {
                                     <p class="text-xs text-muted-foreground">Control access to public blog content.</p>
                                 </div>
                                 <div class="flex items-center">
-                                    <Switch v-model="form.website_sections.blog" :disabled="!canEditSystemSettings" />
+                                    <Switch v-model="form.website_sections.blog" aria-label="Blog section" :disabled="!canEditSystemSettings" />
                                     <span class="ml-2 text-sm">
                                         {{ form.website_sections.blog ? 'Enabled' : 'Disabled' }}
                                     </span>
@@ -131,7 +135,7 @@ const saveSettings = () => {
                                     <p class="text-xs text-muted-foreground">Toggle the community forum for discussions.</p>
                                 </div>
                                 <div class="flex items-center">
-                                    <Switch v-model="form.website_sections.forum" :disabled="!canEditSystemSettings" />
+                                    <Switch v-model="form.website_sections.forum" aria-label="Forum section" :disabled="!canEditSystemSettings" />
                                     <span class="ml-2 text-sm">
                                         {{ form.website_sections.forum ? 'Enabled' : 'Disabled' }}
                                     </span>
@@ -143,7 +147,7 @@ const saveSettings = () => {
                                     <p class="text-xs text-muted-foreground">Expose FAQs and ticket submission tools.</p>
                                 </div>
                                 <div class="flex items-center">
-                                    <Switch v-model="form.website_sections.support" :disabled="!canEditSystemSettings" />
+                                    <Switch v-model="form.website_sections.support" aria-label="Support section" :disabled="!canEditSystemSettings" />
                                     <span class="ml-2 text-sm">
                                         {{ form.website_sections.support ? 'Enabled' : 'Disabled' }}
                                     </span>
@@ -155,7 +159,11 @@ const saveSettings = () => {
                                     <p class="text-xs text-muted-foreground">Control access to the shop, cart, and orders.</p>
                                 </div>
                                 <div class="flex items-center">
-                                    <Switch v-model="form.website_sections.commerce" :disabled="!canEditSystemSettings" />
+                                    <Switch
+                                        v-model="form.website_sections.commerce"
+                                        aria-label="Commerce section"
+                                        :disabled="!canEditSystemSettings"
+                                    />
                                     <span class="ml-2 text-sm">
                                         {{ form.website_sections.commerce ? 'Enabled' : 'Disabled' }}
                                     </span>
@@ -166,7 +174,7 @@ const saveSettings = () => {
 
                     <!-- Payment Provider -->
                     <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
-                        <h3 class="mb-2 text-lg font-semibold">Payment Provider</h3>
+                        <h2 class="mb-2 text-lg font-semibold">Payment Provider</h2>
                         <p class="mb-4 text-sm text-muted-foreground">
                             Choose how the shop takes payment. Orders already placed are always settled with the provider they were placed with.
                         </p>
@@ -197,7 +205,7 @@ const saveSettings = () => {
 
                     <!-- OAuth Providers -->
                     <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
-                        <h3 class="mb-2 text-lg font-semibold">OAuth Providers</h3>
+                        <h2 class="mb-2 text-lg font-semibold">OAuth Providers</h2>
                         <p class="mb-4 text-sm text-muted-foreground">
                             Control which social authentication providers are available for login and account linking. A provider gets its button only
                             when it is switched on here and its credentials are in <code>.env</code>.
@@ -218,7 +226,11 @@ const saveSettings = () => {
                                     </p>
                                 </div>
                                 <div class="flex items-center">
-                                    <Switch v-model="form.oauth_providers[provider.key]" :disabled="!canEditSystemSettings" />
+                                    <Switch
+                                        v-model="form.oauth_providers[provider.key]"
+                                        :aria-label="`${provider.label} sign-in`"
+                                        :disabled="!canEditSystemSettings"
+                                    />
                                     <span class="ml-2 text-sm">
                                         {{ form.oauth_providers[provider.key] ? 'Enabled' : 'Disabled' }}
                                     </span>
@@ -233,7 +245,7 @@ const saveSettings = () => {
 
                 <!-- System Information Section -->
                 <div class="rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
-                    <h3 class="mb-2 text-lg font-semibold">System Information</h3>
+                    <h2 class="mb-2 text-lg font-semibold">System Information</h2>
                     <ul class="space-y-2 text-sm">
                         <li>
                             <span class="font-medium text-muted-foreground">PHP Version: </span>

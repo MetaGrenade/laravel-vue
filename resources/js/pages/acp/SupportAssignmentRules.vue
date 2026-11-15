@@ -397,7 +397,7 @@ watch(
                                         <Label>Active</Label>
                                         <p class="text-sm text-muted-foreground">Inactive rules are skipped during auto-assignment.</p>
                                     </div>
-                                    <Switch v-model="createForm.active" :disabled="createForm.processing" />
+                                    <Switch v-model="createForm.active" aria-label="Active" :disabled="createForm.processing" />
                                 </div>
 
                                 <div class="flex justify-end">
@@ -453,6 +453,7 @@ watch(
                                                         variant="ghost"
                                                         size="icon"
                                                         class="h-8 w-8"
+                                                        :aria-label="`Move rule ${rule.position} up`"
                                                         :disabled="reorderingRuleId === rule.id"
                                                         @click="reorderRule(rule, 'up')"
                                                     >
@@ -464,6 +465,7 @@ watch(
                                                         variant="ghost"
                                                         size="icon"
                                                         class="h-8 w-8"
+                                                        :aria-label="`Move rule ${rule.position} down`"
                                                         :disabled="reorderingRuleId === rule.id"
                                                         @click="reorderRule(rule, 'down')"
                                                     >
@@ -618,7 +620,7 @@ watch(
                             <Label>Active</Label>
                             <p class="text-sm text-muted-foreground">Inactive rules are skipped during auto-assignment.</p>
                         </div>
-                        <Switch v-model="editForm.active" :disabled="editForm.processing" />
+                        <Switch v-model="editForm.active" aria-label="Active" :disabled="editForm.processing" />
                     </div>
 
                     <div class="flex justify-end gap-2">

@@ -107,7 +107,7 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                     <Card>
                         <CardHeader>
                             <CardDescription>Products</CardDescription>
-                            <CardTitle class="text-3xl">{{ metrics.products.total }}</CardTitle>
+                            <CardTitle as="div" class="text-3xl">{{ metrics.products.total }}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <p class="text-sm text-muted-foreground">
@@ -119,7 +119,7 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                     <Card>
                         <CardHeader>
                             <CardDescription>Pricing</CardDescription>
-                            <CardTitle class="text-3xl">{{ metrics.pricing.total_prices }}</CardTitle>
+                            <CardTitle as="div" class="text-3xl">{{ metrics.pricing.total_prices }}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <p class="text-sm text-muted-foreground">{{ metrics.pricing.active_prices }} in use</p>
@@ -128,7 +128,7 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                     <Card>
                         <CardHeader>
                             <CardDescription>Stock</CardDescription>
-                            <CardTitle class="text-3xl">{{ metrics.inventory.on_hand }}</CardTitle>
+                            <CardTitle as="div" class="text-3xl">{{ metrics.inventory.on_hand }}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <p class="text-sm text-muted-foreground">
@@ -139,7 +139,7 @@ const formatStatus = (status: string) => statusLabels[status] ?? status;
                     <Card>
                         <CardHeader>
                             <CardDescription>Orders</CardDescription>
-                            <CardTitle class="text-3xl">{{ metrics.orders.total }}</CardTitle>
+                            <CardTitle as="div" class="text-3xl">{{ metrics.orders.total }}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <p class="text-sm text-muted-foreground">

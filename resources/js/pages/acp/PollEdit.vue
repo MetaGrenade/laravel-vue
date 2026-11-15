@@ -163,7 +163,7 @@ const handleSubmit = () => {
                                 <p class="text-sm font-medium">Allow multiple selections</p>
                                 <p class="text-xs text-muted-foreground">Enable voters to choose more than one option.</p>
                             </div>
-                            <Switch v-model="form.allow_multiple" />
+                            <Switch v-model="form.allow_multiple" aria-label="Allow multiple selections" />
                         </div>
 
                         <div class="grid gap-4 sm:grid-cols-2">

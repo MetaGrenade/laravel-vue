@@ -127,7 +127,9 @@ const selectClass =
                 <legend class="mb-1 text-sm font-medium">Categories</legend>
                 <p v-if="!categories.length" class="text-sm text-muted-foreground">
                     No categories yet. Add some under
-                    <Link :href="route('acp.commerce.taxonomy.index')" class="text-primary hover:underline">brands, categories and tags</Link>.
+                    <Link :href="route('acp.commerce.taxonomy.index')" class="text-primary underline underline-offset-4"
+                        >brands, categories and tags</Link
+                    >.
                 </p>
                 <label v-for="category in categories" :key="category.id" class="flex items-center gap-2 text-sm">
                     <Checkbox

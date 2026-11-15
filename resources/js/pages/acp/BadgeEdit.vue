@@ -109,7 +109,7 @@ const handleSubmit = () => {
                                 <div class="font-medium">Active badge</div>
                                 <p class="text-sm text-muted-foreground">Inactive badges remain hidden but keep existing award history intact.</p>
                             </div>
-                            <Switch v-model="form.is_active" />
+                            <Switch v-model="form.is_active" aria-label="Active badge" />
                         </div>
                         <InputError :message="form.errors.is_active" />
                     </CardContent>

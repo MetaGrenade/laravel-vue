@@ -192,11 +192,11 @@ const requestRestore = (revisionId: number) => {
             <div class="container mx-auto space-y-8 p-4">
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div class="flex items-center gap-3">
-                        <Link :href="backUrl">
-                            <Button variant="outline" size="icon">
+                        <Button as-child variant="outline" size="icon">
+                            <Link :href="backUrl" aria-label="Back to the post">
                                 <ArrowLeft class="h-5 w-5" />
-                            </Button>
-                        </Link>
+                            </Link>
+                        </Button>
                         <div>
                             <h1 class="text-3xl font-bold">Blog revision history</h1>
                             <p class="text-sm text-muted-foreground">{{ blog.title }} · Status: {{ blog.status }}</p>

@@ -135,11 +135,11 @@ const requestRestore = (revisionId: number) => {
             <div class="container mx-auto space-y-8 p-4">
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div class="flex items-center gap-3">
-                        <Link :href="threadUrl">
-                            <Button variant="outline" size="icon">
+                        <Button as-child variant="outline" size="icon">
+                            <Link :href="threadUrl" aria-label="Back to the thread">
                                 <ArrowLeft class="h-5 w-5" />
-                            </Button>
-                        </Link>
+                            </Link>
+                        </Button>
                         <div>
                             <h1 class="text-3xl font-bold">Post Revision History</h1>
                             <p class="text-sm text-muted-foreground">Thread: {{ thread.title }} · Board: {{ board.title }}</p>

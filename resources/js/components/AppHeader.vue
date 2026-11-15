@@ -748,14 +748,16 @@ const viewNotification = (notification: NotificationItem) => {
 
                 <DropdownMenu v-if="user">
                     <DropdownMenuTrigger as-child>
-                        <Button variant="ghost" class="ml-1 h-9 gap-2 rounded-full px-1.5 sm:pr-2.5" :aria-label="t('ui.nav.account_menu')">
-                            <Avatar class="size-7">
-                                <AvatarImage v-if="user?.avatar_url" :src="user.avatar_url" :alt="user?.nickname ?? ''" />
+                        <!-- Named by what it shows (the nickname, where there is room for it) and "Account menu": an aria-label that left the nickname out would not say what "click Avery" means, and the picture or the initials only repeat it. -->
+                        <Button variant="ghost" class="ml-1 h-9 gap-2 rounded-full px-1.5 sm:pr-2.5">
+                            <Avatar class="size-7" aria-hidden="true">
+                                <AvatarImage v-if="user?.avatar_url" :src="user.avatar_url" alt="" />
                                 <AvatarFallback class="bg-primary text-[0.65rem] font-semibold text-primary-foreground">
                                     {{ getInitials(user?.nickname ?? '') }}
                                 </AvatarFallback>
                             </Avatar>
                             <span class="hidden max-w-32 truncate text-sm font-medium text-foreground lg:inline">{{ user?.nickname }}</span>
+                            <span class="sr-only">{{ t('ui.nav.account_menu') }}</span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" class="w-60">

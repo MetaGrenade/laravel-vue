@@ -830,7 +830,7 @@ const markBoardAsRead = () => {
                                 <template v-if="thread.permissions.canReport || props.permissions.canModerate">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger as-child>
-                                            <Button variant="outline" size="icon">
+                                            <Button variant="outline" size="icon" :aria-label="`Actions for ${thread.title}`">
                                                 <Ellipsis class="h-8 w-8" />
                                             </Button>
                                         </DropdownMenuTrigger>

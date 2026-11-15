@@ -21,7 +21,13 @@ const signedIn = computed(() => Boolean(page.props.auth?.user));
 
 const busy = ref(false);
 
-const label = computed(() => (props.wishlisted ? `Remove ${props.productName} from your wishlist` : `Save ${props.productName} to your wishlist`));
+// A button with words has to be named with those words ("Saved"), or "click Saved" finds nothing (WCAG 2.5.3); the picture's round button
+// has no words, so its name says what a press does.
+const label = computed(() => {
+    if (props.display === 'button') return `${props.wishlisted ? 'Saved' : 'Save'} ${props.productName} to your wishlist`;
+
+    return props.wishlisted ? `Remove ${props.productName} from your wishlist` : `Save ${props.productName} to your wishlist`;
+});
 
 const toggle = () => {
     const options = {

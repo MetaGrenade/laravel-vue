@@ -112,7 +112,7 @@ const canReview = (order: CustomerOrder) => ['paid', 'partially_refunded'].inclu
                                         <a
                                             v-if="item.product_url && canReview(order)"
                                             :href="`${item.product_url}#reviews`"
-                                            class="ml-1 text-primary hover:underline"
+                                            class="ml-1 text-primary underline underline-offset-4"
                                             >Write a review</a
                                         >
                                     </span>

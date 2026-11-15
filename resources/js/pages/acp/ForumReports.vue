@@ -700,7 +700,7 @@ const hasReports = computed(() => (props.reports.data?.length ?? 0) > 0);
                                             <TableCell class="text-right">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger as-child>
-                                                        <Button size="icon" variant="outline">
+                                                        <Button size="icon" variant="outline" :aria-label="`Actions for report ${report.id}`">
                                                             <Ellipsis class="h-4 w-4" />
                                                         </Button>
                                                     </DropdownMenuTrigger>
