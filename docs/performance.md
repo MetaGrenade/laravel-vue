@@ -214,6 +214,16 @@ Not changed, on purpose: **an order the provider cannot answer about is still ne
 
 Each figure is now one grouped statement over the rated tickets under the list's filters (`SupportController::index()`; the month is `Sql::yearMonth()`, the same `YYYY-MM` on every driver), and the time and memory no longer depend on how many tickets are rated. The +14 MB that is left is the rest of the page. The numbers are the same as before, tested on a desk made to have every edge: a rated ticket that was never resolved (in no month, in the average), two months either side of a year end, and each filter (`SupportSatisfactionNumbersTest`). Not done: the boxes that pick who a ticket is assigned to are still given every member (`assignableAgents`, in three places in the controller), which is the same fault as the Tokens page had; it needs a decision about who may be assigned first.
 
+**The six-month chart on a member's dashboard is counted by the database.** The chart (forum replies and support tickets in each of the last six months) read every reply and every ticket the member made in those months as a model, to count them by month in PHP, on every visit to the dashboard. Measured with one member who made the same number of replies and of tickets, spread over the six months (the same in-memory database, the median of three requests):
+
+| Replies, and tickets | Before | After |
+|----------------------|--------|-------|
+| 500 each | 64 ms, +1.0 MB | 22 ms, +0.6 MB |
+| 5,000 each | 409 ms, +8.2 MB | 32 ms, +0.6 MB |
+| 20,000 each | 1,514 ms, +32.1 MB | 61 ms, +0.6 MB |
+
+Each series is now one grouped count (`DashboardController::countsByMonth()`, the month made by `Sql::yearMonth()` as in the admin dashboard's chart), the number of queries of the page is the same (36), and the time and memory of the chart no longer depend on how much the member has written. The bars are the same as before, tested at the edges (`DashboardActivityChartTest`): the first and the last second of the window, a member's rows and nobody else's, a window that crosses a new year, and a row that was made long ago but changed this month.
+
 ## Stripe calls that do not come back
 
 The Stripe library waits 80 seconds for an answer and 30 to make the connection, and the application used to leave that as it was. It is longer than a queue worker lets a job run (60 seconds, [redis.md](redis.md#the-queue)) and than most web servers wait for a page, so **one call that never came back cost the whole job or the whole request that made it**: the worker stopped the job, or the visitor was shown the web server's gateway timeout.
