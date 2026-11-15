@@ -37,7 +37,12 @@ class AccessibilitySignedInFlowSeeder extends Seeder
         $member = User::where('email', 'avery@example.com')->firstOrFail();
         $product = Product::where('slug', 'hoodie')->firstOrFail();
 
-        SupportTicket::factory()->count(2)->create(['user_id' => $member->id]);
+        // The factory picks a priority at random, and so a page showed a different colour of badge each time the database was made. One ticket for
+        // each colour of a status and of a priority (ticket 1, 2 and 3), so that every one of them is on a page that is checked.
+        foreach ([['pending', 'high'], ['open', 'medium'], ['closed', 'low']] as [$status, $priority]) {
+            SupportTicket::factory()->create(['user_id' => $member->id, 'status' => $status, 'priority' => $priority]);
+        }
+
         Order::factory()->forUser($member)->paid()->count(2)->create();
         WishlistItem::factory()->create(['user_id' => $member->id, 'product_id' => $product->id]);
         BlogComment::factory()->count(3)->create(['blog_id' => Blog::firstOrFail()->id]);

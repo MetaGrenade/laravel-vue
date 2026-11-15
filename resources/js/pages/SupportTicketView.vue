@@ -345,7 +345,7 @@ const formatFileSize = (bytes: number) => {
                                             </li>
                                         </ul>
                                     </div>
-                                    <p class="text-xs font-medium opacity-75">
+                                    <p class="text-xs font-medium opacity-90">
                                         {{ resolveAuthorLabel(message) }} · {{ messageTimestamp(message.created_at) }}
                                     </p>
                                 </div>

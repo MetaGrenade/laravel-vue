@@ -256,7 +256,7 @@ const submitMembership = () => {
                             <div v-if="props.can.create" class="hidden sm:flex">
                                 <Button
                                     variant="secondary"
-                                    class="flex items-center gap-2 text-white"
+                                    class="flex items-center gap-2"
                                     type="submit"
                                     form="support-team-create"
                                     :disabled="createForm.processing"

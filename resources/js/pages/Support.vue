@@ -1227,7 +1227,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                                                     :variant="faq.user_feedback === 'not_helpful' ? 'default' : 'outline'"
                                                                     :class="[
                                                                         faq.user_feedback === 'not_helpful'
-                                                                            ? 'border-destructive bg-destructive text-white hover:bg-destructive/90'
+                                                                            ? 'border-destructive bg-destructive text-white hover:bg-destructive/90 dark:bg-destructive/60'
                                                                             : 'hover:border-destructive hover:text-destructive',
                                                                         'transition-colors',
                                                                     ]"

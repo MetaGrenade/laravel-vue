@@ -213,7 +213,7 @@ const cancelDeleteTemplate = () => {
                             <div v-if="props.can.create" class="hidden sm:flex">
                                 <Button
                                     variant="secondary"
-                                    class="flex items-center gap-2 text-white"
+                                    class="flex items-center gap-2"
                                     type="submit"
                                     form="support-template-create"
                                     :disabled="createForm.processing"

@@ -102,7 +102,7 @@ const linkClass = (href: string) =>
             <aside class="hidden lg:block">
                 <nav class="sticky top-20 space-y-5" :aria-label="t('settings.sections')">
                     <div v-for="group in navGroups" :key="group.title">
-                        <p class="mb-1.5 px-2.5 text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground/80 uppercase">
+                        <p class="mb-1.5 px-2.5 text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
                             {{ t(group.title) }}
                         </p>
                         <ul class="space-y-0.5">

@@ -97,19 +97,21 @@
         --muted-foreground: 223 13% 42%;
         --accent: 230 40% 94%;
         --accent-foreground: 225 29% 14%;
-        --destructive: 0 72% 51%;
+        /* White text on this red is about 6.5:1, and the red itself is small text on a tint of itself at 4.5:1 or more. */
+        --destructive: 0 72% 42%;
         --destructive-foreground: 0 0% 100%;
         /* The gold diamond. Use it for fills, rules and badges, not for text on white. */
         --highlight: 40 91% 56%;
         --highlight-foreground: 225 29% 11%;
-        --success: 152 64% 32%;
         --glow-primary: 0.16;
         --glow-highlight: 0.14;
         --grid-alpha: 0.05;
+        /* Used as text on a tint of itself (a badge, an alert) as well as a fill: 4.5:1 or more on both. */
+        --success: 152 64% 25%;
         --success-foreground: 0 0% 100%;
-        --warning: 30 92% 36%;
+        --warning: 30 92% 30%;
         --warning-foreground: 0 0% 100%;
-        --info: 201 90% 36%;
+        --info: 201 90% 31%;
         --info-foreground: 0 0% 100%;
         --border: 223 35% 90%;
         --input: 223 28% 86%;
@@ -165,7 +167,8 @@
         --muted-foreground: 222 16% 72%;
         --accent: 224 28% 16%;
         --accent-foreground: 220 40% 96%;
-        --destructive: 0 72% 58%;
+        /* Small text on a card, or on a tint of itself (4.5:1 on both). A fill of it is --destructive at 60% (the button and the badge), which white text clears. */
+        --destructive: 0 72% 68%;
         --destructive-foreground: 0 0% 100%;
         --highlight: 40 92% 58%;
         --highlight-foreground: 224 52% 8%;
@@ -263,6 +266,14 @@
 .text-primary\/80,
 .hover\:text-primary\/80:hover {
     color: color-mix(in oklab, hsl(var(--primary-text)) 80%, transparent);
+}
+
+/*
+ * A chart's legend sets its label colour on itself (#6c778c, 3.8:1 on a dark card) and cannot be given another by a variable from outside.
+ * Its class name carries a hash, so it is matched by what it ends in; `:root` makes this win over it.
+ */
+:root [class*='legendItemLabel'] {
+    color: hsl(var(--muted-foreground));
 }
 
 /* Centred, padded page container shared by the app shell and pages. */
