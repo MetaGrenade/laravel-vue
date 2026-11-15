@@ -3,6 +3,7 @@
 namespace App\Support\Members;
 
 use App\Models\User;
+use App\Support\Search\LikePattern;
 
 /**
  * Finding a member from a few typed letters, for the pickers in the admin area (who a ticket is for, whose account a token is made on).
@@ -28,15 +29,14 @@ class StaffUserSearch
             return [];
         }
 
-        // What is typed is letters, not a pattern: `_` and `%` are escaped with `!` and the statement says so. A backslash would not do on SQLite,
-        // which has no escape character unless the statement names one, and the lookup should find "john_d" the same on every database.
-        $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($term)).'%';
+        // What is typed is letters, not a pattern (see LikePattern): the lookup should find "john_d" the same on every database.
+        $like = LikePattern::contains($term);
 
         return User::query()
             ->where(function ($query) use ($like) {
                 $query
-                    ->whereRaw("lower(nickname) like ? escape '!'", [$like])
-                    ->orWhereRaw("lower(email) like ? escape '!'", [$like]);
+                    ->whereRaw(LikePattern::clause('nickname'), [$like])
+                    ->orWhereRaw(LikePattern::clause('email'), [$like]);
             })
             ->orderBy('nickname')
             ->limit(self::LIMIT)
