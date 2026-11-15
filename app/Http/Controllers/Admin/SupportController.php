@@ -30,6 +30,7 @@ use App\Notifications\SupportTicketAgentReply;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
 use App\Notifications\TicketStatusUpdated;
+use App\Support\Database\Sql;
 use App\Support\Database\Transaction;
 use App\Support\Localization\DateFormatter;
 use App\Support\Members\StaffUserSearch;
@@ -486,14 +487,21 @@ class SupportController extends Controller
             ->values()
             ->all();
 
+        // The ratings under the list's filters, worked out by the database: a desk with years of tickets must not read every rated one
+        // into PHP on each visit. `toBase()` leaves out the list's eager loads (the member, assignee, resolver, category and team), which
+        // would otherwise be asked for again, with nothing to look for, every time one of these is read.
         $satisfactionRatings = (clone $ticketQuery)
+            ->toBase()
             ->whereNotNull('customer_satisfaction_rating');
 
+        $satisfactionTotals = (clone $satisfactionRatings)
+            ->selectRaw('AVG(customer_satisfaction_rating) as avg_rating')
+            ->selectRaw('COUNT(customer_satisfaction_rating) as rating_count')
+            ->first();
+
         $satisfactionSummary = [
-            'avg_rating' => (clone $satisfactionRatings)
-                ->get(['customer_satisfaction_rating'])
-                ->avg('customer_satisfaction_rating'),
-            'rating_count' => (clone $satisfactionRatings)->count(),
+            'avg_rating' => $satisfactionTotals->avg_rating,
+            'rating_count' => $satisfactionTotals->rating_count,
         ];
 
         $satisfactionByStatus = (clone $satisfactionRatings)
@@ -509,22 +517,20 @@ class SupportController extends Controller
                 ]];
             });
 
+        // By the month a ticket was resolved, oldest first; a rated ticket that was never resolved is in no month.
         $satisfactionByMonth = (clone $satisfactionRatings)
             ->whereNotNull('resolved_at')
-            ->get(['customer_satisfaction_rating', 'resolved_at'])
-            ->groupBy(function (SupportTicket $ticket) {
-                return $ticket->resolved_at->format('Y-m');
-            })
-            ->sortKeys()
-            ->map(function ($group, $month) {
-                $average = $group->avg('customer_satisfaction_rating');
-
-                return [
-                    'month' => $month,
-                    'average' => $average !== null ? round((float) $average, 2) + 0.0 : null,
-                    'count' => $group->count(),
-                ];
-            })
+            ->select(Sql::yearMonth('resolved_at', 'month'))
+            ->selectRaw('AVG(customer_satisfaction_rating) as average')
+            ->selectRaw('COUNT(*) as total')
+            ->groupBy(Sql::yearMonth('resolved_at'))
+            ->orderBy('month')
+            ->get()
+            ->map(fn ($row) => [
+                'month' => (string) $row->month,
+                'average' => $row->average !== null ? round((float) $row->average, 2) + 0.0 : null,
+                'count' => (int) $row->total,
+            ])
             ->values()
             ->all();
 

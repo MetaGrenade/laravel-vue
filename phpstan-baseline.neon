@@ -373,18 +373,6 @@ parameters:
 			path: app/Http/Controllers/Admin/SupportAssignmentRuleController.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\SupportTicket\:\:\$avg_rating\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Admin/SupportController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\SupportTicket\:\:\$rating_count\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Admin/SupportController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
 			identifier: property.notFound
 			count: 8
@@ -409,12 +397,6 @@ parameters:
 			path: app/Http/Controllers/Admin/SupportController.php
 
 		-
-			message: '#^Called ''avg'' on Laravel collection, but could have been retrieved as a query\.$#'
-			identifier: larastan.noUnnecessaryCollectionCall
-			count: 1
-			path: app/Http/Controllers/Admin/SupportController.php
-
-		-
 			message: '#^Expression on left side of \?\? is not nullable\.$#'
 			identifier: nullCoalesce.expr
 			count: 1
@@ -423,12 +405,6 @@ parameters:
 		-
 			message: '#^Method App\\Http\\Controllers\\Admin\\SupportController\:\:resolveAuditUser\(\) never returns null so it can be removed from the return type\.$#'
 			identifier: return.unusedType
-			count: 1
-			path: app/Http/Controllers/Admin/SupportController.php
-
-		-
-			message: '#^Offset ''rating_count'' on array\{avg_rating\: float\|int\|null, rating_count\: int\<0, max\>\} on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
 			count: 1
 			path: app/Http/Controllers/Admin/SupportController.php
 
