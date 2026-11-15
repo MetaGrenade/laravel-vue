@@ -23,6 +23,7 @@ use App\Support\Commerce\Digital\LicenceKeys;
 use App\Support\Commerce\OrderLifecycle;
 use App\Support\Commerce\OrderRefunder;
 use App\Support\Commerce\ProviderSubscriptions;
+use App\Support\Search\LikePattern;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -57,10 +58,12 @@ class CommerceOrderController extends Controller
         $paginator = Order::query()
             ->withCount('items')
             ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($inner) use ($search) {
-                    $inner->whereLike('number', "%{$search}%")
-                        ->orWhereLike('customer_email', "%{$search}%")
-                        ->orWhereLike('customer_name', "%{$search}%");
+                $like = LikePattern::contains($search);
+
+                $query->where(function ($inner) use ($like) {
+                    $inner->whereRaw(LikePattern::clause('number'), [$like])
+                        ->orWhereRaw(LikePattern::clause('customer_email'), [$like])
+                        ->orWhereRaw(LikePattern::clause('customer_name'), [$like]);
                 });
             })
             ->when($status !== null, fn ($query) => $query->where('status', $status?->value))

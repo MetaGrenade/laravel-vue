@@ -7,6 +7,7 @@ use App\Models\BillingWebhookCall;
 use App\Payments\Providers\TebexProvider;
 use App\Payments\Tebex\TebexEvent;
 use App\Support\Billing\BillingWebhookProcessor;
+use App\Support\Search\LikePattern;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -31,10 +32,12 @@ class BillingWebhookCallController extends Controller
 
         $search = trim((string) $request->query('search', ''));
         if ($search !== '') {
-            $query->where(function ($innerQuery) use ($search) {
-                $innerQuery->whereLike('stripe_id', "%{$search}%")
-                    ->orWhereLike('external_id', "%{$search}%")
-                    ->orWhereLike('type', "%{$search}%");
+            $like = LikePattern::contains($search);
+
+            $query->where(function ($innerQuery) use ($like) {
+                $innerQuery->whereRaw(LikePattern::clause('stripe_id'), [$like])
+                    ->orWhereRaw(LikePattern::clause('external_id'), [$like])
+                    ->orWhereRaw(LikePattern::clause('type'), [$like]);
             });
         }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BillingInvoice;
+use App\Support\Search\LikePattern;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -89,15 +90,17 @@ class BillingController extends Controller
         return BillingInvoice::query()
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->when($filters['search'] ?? null, function ($query, $search) {
-                $query->where(function ($subQuery) use ($search) {
+                $like = LikePattern::contains($search);
+
+                $query->where(function ($subQuery) use ($like) {
                     $subQuery
-                        ->whereLike('stripe_id', "%{$search}%")
-                        ->orWhereHas('user', function ($userQuery) use ($search) {
-                            $userQuery->whereLike('nickname', "%{$search}%")
-                                ->orWhereLike('email', "%{$search}%");
+                        ->whereRaw(LikePattern::clause('stripe_id'), [$like])
+                        ->orWhereHas('user', function ($userQuery) use ($like) {
+                            $userQuery->whereRaw(LikePattern::clause('nickname'), [$like])
+                                ->orWhereRaw(LikePattern::clause('email'), [$like]);
                         })
-                        ->orWhereHas('plan', function ($planQuery) use ($search) {
-                            $planQuery->whereLike('name', "%{$search}%");
+                        ->orWhereHas('plan', function ($planQuery) use ($like) {
+                            $planQuery->whereRaw(LikePattern::clause('name'), [$like]);
                         });
                 });
             })

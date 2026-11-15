@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\UpdateDataExportRequest;
 use App\Models\DataErasureRequest;
 use App\Models\DataExport;
 use App\Support\Localization\DateFormatter;
+use App\Support\Search\LikePattern;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -58,11 +59,13 @@ class TrustSafetyController extends Controller
         }
 
         if ($search !== null) {
-            $exportQuery->where(function ($query) use ($search) {
-                $query->whereHas('user', function ($query) use ($search) {
+            $like = LikePattern::contains($search);
+
+            $exportQuery->where(function ($query) use ($search, $like) {
+                $query->whereHas('user', function ($query) use ($like) {
                     $query
-                        ->whereLike('email', "%{$search}%")
-                        ->orWhereLike('nickname', "%{$search}%");
+                        ->whereRaw(LikePattern::clause('email'), [$like])
+                        ->orWhereRaw(LikePattern::clause('nickname'), [$like]);
                 })
                     ->orWhere('id', $search);
             });
@@ -104,11 +107,13 @@ class TrustSafetyController extends Controller
         }
 
         if ($search !== null) {
-            $erasureQuery->where(function ($query) use ($search) {
-                $query->whereHas('user', function ($query) use ($search) {
+            $like = LikePattern::contains($search);
+
+            $erasureQuery->where(function ($query) use ($search, $like) {
+                $query->whereHas('user', function ($query) use ($like) {
                     $query
-                        ->whereLike('email', "%{$search}%")
-                        ->orWhereLike('nickname', "%{$search}%");
+                        ->whereRaw(LikePattern::clause('email'), [$like])
+                        ->orWhereRaw(LikePattern::clause('nickname'), [$like]);
                 })
                     ->orWhere('id', $search);
             });

@@ -12,6 +12,7 @@ use App\Support\Commerce\GiftCards\GiftCardCode;
 use App\Support\Commerce\GiftCards\GiftCardException;
 use App\Support\Commerce\GiftCards\GiftCards;
 use App\Support\Commerce\Money;
+use App\Support\Search\LikePattern;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,7 +52,7 @@ class GiftCardController extends Controller
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
                 $code = GiftCardCode::normalise($search);
 
-                $query->whereLike('note', "%{$search}%")->orWhere('last_four', $code);
+                $query->whereRaw(LikePattern::clause('note'), [LikePattern::contains($search)])->orWhere('last_four', $code);
 
                 // A whole code finds its card, without the code being kept anywhere.
                 if (GiftCardCode::isWellFormed($code)) {

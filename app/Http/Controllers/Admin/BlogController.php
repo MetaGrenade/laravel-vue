@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Support\Blog\BlogCovers;
 use App\Support\Commerce\Catalogue\ImageRejected;
 use App\Support\Localization\DateFormatter;
+use App\Support\Search\LikePattern;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -83,16 +84,16 @@ class BlogController extends Controller
 
         if ($search !== '') {
             $filteredQuery->where(function ($query) use ($search) {
-                $like = "%{$search}%";
+                $like = LikePattern::contains($search);
 
                 $query
-                    ->whereLike('title', $like)
-                    ->orWhereLike('slug', $like)
-                    ->orWhereLike('status', $like)
+                    ->whereRaw(LikePattern::clause('title'), [$like])
+                    ->orWhereRaw(LikePattern::clause('slug'), [$like])
+                    ->orWhereRaw(LikePattern::clause('status'), [$like])
                     ->orWhereHas('user', function ($userQuery) use ($like) {
                         $userQuery
-                            ->whereLike('nickname', $like)
-                            ->orWhereLike('email', $like);
+                            ->whereRaw(LikePattern::clause('nickname'), [$like])
+                            ->orWhereRaw(LikePattern::clause('email'), [$like]);
                     });
             });
         }

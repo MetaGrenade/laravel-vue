@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\User;
 use App\Support\Audit\Audit;
 use App\Support\Localization\DateFormatter;
+use App\Support\Search\LikePattern;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -38,11 +39,13 @@ class AuditLogController extends Controller
         $query = AuditLog::query();
 
         if ($search !== '') {
-            $query->where(function ($inner) use ($search) {
-                $inner->whereLike('actor_label', "%{$search}%")
-                    ->orWhereLike('subject_label', "%{$search}%")
-                    ->orWhereLike('event', "%{$search}%")
-                    ->orWhereLike('ip_address', "%{$search}%");
+            $like = LikePattern::contains($search);
+
+            $query->where(function ($inner) use ($like) {
+                $inner->whereRaw(LikePattern::clause('actor_label'), [$like])
+                    ->orWhereRaw(LikePattern::clause('subject_label'), [$like])
+                    ->orWhereRaw(LikePattern::clause('event'), [$like])
+                    ->orWhereRaw(LikePattern::clause('ip_address'), [$like]);
             });
         }
 

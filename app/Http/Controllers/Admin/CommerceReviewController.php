@@ -6,6 +6,7 @@ use App\Enums\ReviewStatus;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Models\ProductReview;
+use App\Support\Search\LikePattern;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -39,10 +40,12 @@ class CommerceReviewController extends Controller
             ->when($status !== self::ALL, fn ($query) => $query->where('status', $status))
             ->when($rating !== null, fn ($query) => $query->where('rating', $rating))
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
-                $query->whereLike('title', "%{$search}%")
-                    ->orWhereLike('body', "%{$search}%")
-                    ->orWhereHas('product', fn ($product) => $product->whereLike('name', "%{$search}%"))
-                    ->orWhereHas('user', fn ($author) => $author->whereLike('nickname', "%{$search}%")->orWhereLike('email', "%{$search}%"));
+                $like = LikePattern::contains($search);
+
+                $query->whereRaw(LikePattern::clause('title'), [$like])
+                    ->orWhereRaw(LikePattern::clause('body'), [$like])
+                    ->orWhereHas('product', fn ($product) => $product->whereRaw(LikePattern::clause('name'), [$like]))
+                    ->orWhereHas('user', fn ($author) => $author->whereRaw(LikePattern::clause('nickname'), [$like])->orWhereRaw(LikePattern::clause('email'), [$like]));
             }))
             ->latest('id')
             ->paginate(20)

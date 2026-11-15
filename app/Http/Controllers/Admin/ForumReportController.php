@@ -8,6 +8,7 @@ use App\Models\ForumBoard;
 use App\Models\ForumPostReport;
 use App\Models\ForumThreadReport;
 use App\Support\Localization\DateFormatter;
+use App\Support\Search\LikePattern;
 use App\Support\Text\PlainText;
 use Closure;
 use Illuminate\Database\Eloquent\Collection;
@@ -303,7 +304,7 @@ class ForumReportController extends Controller
             }
 
             if ($search !== null) {
-                $threads->whereHas('thread', fn ($query) => $query->whereLike('title', "%{$search}%"));
+                $threads->whereHas('thread', fn ($query) => $query->whereRaw(LikePattern::clause('title'), [LikePattern::contains($search)]));
             }
 
             $sources[] = $threads->toBase()->select('id', 'created_at')->selectRaw("'thread' as kind");
@@ -325,7 +326,7 @@ class ForumReportController extends Controller
             }
 
             if ($search !== null) {
-                $posts->whereHas('post.thread', fn ($query) => $query->whereLike('title', "%{$search}%"));
+                $posts->whereHas('post.thread', fn ($query) => $query->whereRaw(LikePattern::clause('title'), [LikePattern::contains($search)]));
             }
 
             $sources[] = $posts->toBase()->select('id', 'created_at')->selectRaw("'post' as kind");

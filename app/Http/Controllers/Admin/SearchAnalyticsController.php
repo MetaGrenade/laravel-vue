@@ -9,6 +9,7 @@ use App\Models\SearchQueryAggregate;
 use App\Support\Csv\CsvCell;
 use App\Support\Csv\CsvRow;
 use App\Support\Localization\DateFormatter;
+use App\Support\Search\LikePattern;
 use Generator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -256,7 +257,7 @@ class SearchAnalyticsController extends Controller
         $query = SearchQuery::query();
 
         if ($term = $filters['term'] ?? null) {
-            $query->whereLike('term', '%'.$term.'%');
+            $query->whereRaw(LikePattern::clause('term'), [LikePattern::contains((string) $term)]);
         }
 
         if (! empty($filters['date_from'])) {

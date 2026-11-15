@@ -18,6 +18,7 @@ use App\Support\Moderation\MemberContent;
 use App\Support\Moderation\Moderation;
 use App\Support\Moderation\ModerationRefused;
 use App\Support\OAuth\OAuthProviders;
+use App\Support\Search\LikePattern;
 use App\Support\Security\SignInMethods;
 use App\Support\Security\TwoFactorReset;
 use Carbon\Carbon;
@@ -53,13 +54,13 @@ class UsersController extends Controller
 
         if ($search !== '') {
             $filteredQuery->where(function ($query) use ($search) {
-                $like = "%{$search}%";
+                $like = LikePattern::contains($search);
 
                 $query
-                    ->whereLike('nickname', $like)
-                    ->orWhereLike('email', $like)
+                    ->whereRaw(LikePattern::clause('nickname'), [$like])
+                    ->orWhereRaw(LikePattern::clause('email'), [$like])
                     ->orWhereHas('roles', function ($roleQuery) use ($like) {
-                        $roleQuery->whereLike('name', $like);
+                        $roleQuery->whereRaw(LikePattern::clause('name'), [$like]);
                     });
             });
         }
