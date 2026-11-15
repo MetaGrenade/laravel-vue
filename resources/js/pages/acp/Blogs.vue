@@ -731,7 +731,7 @@ const confirmDeletePost = (post: BlogRow) => {
                                     <TableCell class="text-center">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger as-child>
-                                                <Button variant="outline" size="icon">
+                                                <Button variant="outline" size="icon" :aria-label="`Actions for ${post.title}`">
                                                     <Ellipsis class="h-8 w-8" />
                                                 </Button>
                                             </DropdownMenuTrigger>

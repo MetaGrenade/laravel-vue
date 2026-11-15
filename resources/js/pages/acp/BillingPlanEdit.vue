@@ -265,7 +265,7 @@ const handleSubmit = () => {
                                 <div class="font-medium">Active plan</div>
                                 <p class="text-sm text-muted-foreground">Toggle off to hide the plan from member-facing billing screens.</p>
                             </div>
-                            <Switch v-model="form.is_active" />
+                            <Switch v-model="form.is_active" aria-label="Active plan" />
                         </div>
                         <InputError :message="form.errors.is_active" />
                     </CardContent>

@@ -225,7 +225,7 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                             </div>
                             <DropdownMenu>
                                 <DropdownMenuTrigger as-child>
-                                    <Button variant="outline" size="icon">
+                                    <Button variant="outline" size="icon" :aria-label="`Actions for category ${category.title}`">
                                         <Ellipsis class="h-8 w-8" />
                                     </Button>
                                 </DropdownMenuTrigger>
@@ -328,7 +328,7 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                                 <div class="flex w-full items-center justify-between md:w-48 md:justify-end">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger as-child>
-                                            <Button variant="outline" size="icon">
+                                            <Button variant="outline" size="icon" :aria-label="`Actions for board ${board.title}`">
                                                 <Ellipsis class="h-8 w-8" />
                                             </Button>
                                         </DropdownMenuTrigger>
@@ -376,7 +376,7 @@ const requestDeleteBoard = (board: ForumBoardSummary) => {
                             <button
                                 v-if="createForums"
                                 type="button"
-                                class="ml-1 font-medium text-primary hover:underline"
+                                class="ml-1 font-medium text-primary underline underline-offset-4"
                                 @click="openBoardCreate(category.id)"
                             >
                                 Add a board now.

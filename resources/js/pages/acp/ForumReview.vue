@@ -163,7 +163,7 @@ function bulk(action: 'approve' | 'reject') {
                                     <TableHead>What was posted</TableHead>
                                     <TableHead>Who</TableHead>
                                     <TableHead>Why it was held</TableHead>
-                                    <TableHead class="w-48" />
+                                    <TableHead class="w-48"><span class="sr-only">Actions</span></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>

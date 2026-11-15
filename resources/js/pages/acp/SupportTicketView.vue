@@ -596,6 +596,7 @@ const auditContextEntries = (audit: TicketAudit) => {
                                             <Input
                                                 ref="attachmentInput"
                                                 id="attachments"
+                                                aria-label="Attachments"
                                                 type="file"
                                                 multiple
                                                 :disabled="replyForm.processing"

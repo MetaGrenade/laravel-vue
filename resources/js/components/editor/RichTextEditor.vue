@@ -31,12 +31,15 @@ const props = withDefaults(
         id?: string;
         modelValue: string;
         placeholder?: string;
+        /** What the writing box is called for a screen reader (it is a `textbox` with no label of its own, and the id is on the wrapper). */
+        label?: string;
         class?: HTMLAttributes['class'];
         storageKey?: string | null;
         autofocus?: boolean;
     }>(),
     {
         placeholder: '',
+        label: 'Message',
         storageKey: null,
         autofocus: false,
     },
@@ -330,6 +333,7 @@ const createEditor = (initialContent: string) => {
         editorProps: {
             attributes: {
                 class: 'max-w-none focus:outline-hidden px-3 py-2 min-h-64',
+                'aria-label': props.label,
             },
         },
         onUpdate: ({ editor: current }) => {
@@ -526,6 +530,7 @@ onBeforeUnmount(() => {
                         type="button"
                         class="shrink-0"
                         :class="toolbarButtonClass(isPreviewing)"
+                        aria-label="Preview"
                         :aria-pressed="isPreviewing"
                         @mousedown.prevent
                         @click.prevent="togglePreview"

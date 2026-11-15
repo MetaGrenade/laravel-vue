@@ -1089,7 +1089,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                     <div class="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:gap-2">
                                         <Input v-model="ticketSearchQuery" placeholder="Search tickets..." class="w-full md:w-60 lg:w-72" />
                                         <div class="flex w-full flex-wrap items-center gap-2">
-                                            <select v-model="statusFilter" :class="[selectFilterClass, 'md:w-40']">
+                                            <select v-model="statusFilter" aria-label="Filter by status" :class="[selectFilterClass, 'md:w-40']">
                                                 <option
                                                     v-for="option in ticketStatusOptions"
                                                     :key="option.value === '' ? 'status-all' : option.value"
@@ -1098,7 +1098,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                                     {{ option.label }}
                                                 </option>
                                             </select>
-                                            <select v-model="priorityFilter" :class="[selectFilterClass, 'md:w-40']">
+                                            <select v-model="priorityFilter" aria-label="Filter by priority" :class="[selectFilterClass, 'md:w-40']">
                                                 <option
                                                     v-for="option in ticketPriorityOptions"
                                                     :key="option.value === '' ? 'priority-all' : option.value"
@@ -1107,7 +1107,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                                     {{ option.label }}
                                                 </option>
                                             </select>
-                                            <select v-model="assigneeFilter" :class="[selectFilterClass, 'md:w-48']">
+                                            <select v-model="assigneeFilter" aria-label="Filter by assignee" :class="[selectFilterClass, 'md:w-48']">
                                                 <option
                                                     v-for="option in assigneeOptions"
                                                     :key="option.value === '' ? 'assignee-all' : option.value"
@@ -1116,8 +1116,8 @@ const unpublishFaq = (faq: FaqItem) => {
                                                     {{ option.label }}
                                                 </option>
                                             </select>
-                                            <Input v-model="dateFromFilter" type="date" class="w-full md:w-40" />
-                                            <Input v-model="dateToFilter" type="date" class="w-full md:w-40" />
+                                            <Input v-model="dateFromFilter" type="date" aria-label="Created from" class="w-full md:w-40" />
+                                            <Input v-model="dateToFilter" type="date" aria-label="Created until" class="w-full md:w-40" />
                                         </div>
                                     </div>
                                     <div v-if="hasTicketFilters" class="flex flex-wrap items-center gap-2">
@@ -1291,7 +1291,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                             <TableCell class="text-center">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger as-child>
-                                                        <Button variant="outline" size="icon">
+                                                        <Button variant="outline" size="icon" :aria-label="`Actions for ticket ${t.subject}`">
                                                             <Ellipsis />
                                                         </Button>
                                                     </DropdownMenuTrigger>
@@ -1450,7 +1450,7 @@ const unpublishFaq = (faq: FaqItem) => {
                                             <TableCell class="text-center">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger as-child>
-                                                        <Button variant="outline" size="icon">
+                                                        <Button variant="outline" size="icon" :aria-label="`Actions for FAQ ${f.question}`">
                                                             <Ellipsis />
                                                         </Button>
                                                     </DropdownMenuTrigger>

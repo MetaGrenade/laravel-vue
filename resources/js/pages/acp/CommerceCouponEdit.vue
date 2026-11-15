@@ -75,7 +75,7 @@ const remove = () => {
                     <Card>
                         <CardHeader>
                             <CardDescription>Orders using this code</CardDescription>
-                            <CardTitle class="text-3xl tabular-nums">{{ usage.orders }}</CardTitle>
+                            <CardTitle as="div" class="text-3xl tabular-nums">{{ usage.orders }}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <p class="text-sm text-muted-foreground">
@@ -87,8 +87,10 @@ const remove = () => {
                     <Card>
                         <CardHeader>
                             <CardDescription>Taken off those orders</CardDescription>
-                            <CardTitle v-if="usage.discounted.length === 0" class="text-3xl tabular-nums">{{ formatMoney('0', currency) }}</CardTitle>
-                            <CardTitle v-else class="space-y-1 text-3xl tabular-nums">
+                            <CardTitle v-if="usage.discounted.length === 0" as="div" class="text-3xl tabular-nums">{{
+                                formatMoney('0', currency)
+                            }}</CardTitle>
+                            <CardTitle v-else as="div" class="space-y-1 text-3xl tabular-nums">
                                 <span v-for="total in usage.discounted" :key="total.currency" class="block">{{
                                     formatMoney(total.amount, total.currency)
                                 }}</span>

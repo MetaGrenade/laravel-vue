@@ -298,7 +298,7 @@ const cancelDeleteTemplate = () => {
                                         Toggle off to hide this template from agent reply pickers without deleting it.
                                     </p>
                                 </div>
-                                <Switch v-model="createForm.is_active" :disabled="createForm.processing" />
+                                <Switch v-model="createForm.is_active" aria-label="Template active" :disabled="createForm.processing" />
                             </div>
 
                             <CardFooter class="justify-end px-0 pb-0">
@@ -449,7 +449,7 @@ const cancelDeleteTemplate = () => {
                                     <span class="text-sm font-medium">Template active</span>
                                     <p class="text-xs text-muted-foreground">Hidden templates remain saved but disappear from the reply picker.</p>
                                 </div>
-                                <Switch v-model="editForm.is_active" :disabled="editForm.processing" />
+                                <Switch v-model="editForm.is_active" aria-label="Template active" :disabled="editForm.processing" />
                             </div>
                             <CardFooter class="justify-end gap-2 px-0 pb-0">
                                 <Button type="button" variant="outline" :disabled="editForm.processing" @click="closeEditDialog"> Cancel </Button>

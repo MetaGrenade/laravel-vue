@@ -9,7 +9,7 @@ There are two browser suites. They share the server script and the browser, and 
 | Suite | Config | Database | Asks |
 |---|---|---|---|
 | Smoke (`npm run e2e`) | `tests/e2e/playwright.config.ts` | `database/smoke.sqlite`, from `SmokeFlowSeeder` | Does it work? |
-| Accessibility (`npm run a11y`, [accessibility.md](accessibility.md)) | `tests/a11y/playwright.config.ts` | `database/a11y.sqlite`, from `AccessibilityFlowSeeder` | Can everybody use it? |
+| Accessibility (`npm run a11y`, [accessibility.md](accessibility.md)) | `tests/a11y/playwright.config.ts` | `database/a11y.sqlite`, from `AccessibilitySignedInFlowSeeder` | Can everybody use it? |
 
 ## What the smoke suite does
 

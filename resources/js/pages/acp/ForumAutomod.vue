@@ -246,7 +246,7 @@ function remove(rule: AutomodRule) {
                                     <TableHead>For</TableHead>
                                     <TableHead>Does</TableHead>
                                     <TableHead class="text-right">Caught</TableHead>
-                                    <TableHead class="w-24" />
+                                    <TableHead class="w-24"><span class="sr-only">Actions</span></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>

@@ -955,7 +955,7 @@ const submitReport = async () => {
                         </div>
 
                         <div v-if="editingCommentId === comment.id" class="space-y-3">
-                            <Textarea v-model="editingContent" rows="4" class="w-full" />
+                            <Textarea v-model="editingContent" rows="4" aria-label="Edit your comment" class="w-full" />
                             <InputError :message="editError" />
                         </div>
                         <p v-else class="text-sm whitespace-pre-line text-foreground">

@@ -926,7 +926,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                         <TableCell class="text-center">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger as-child @click.stop>
-                                                    <Button variant="outline" size="icon">
+                                                    <Button variant="outline" size="icon" :aria-label="`Actions for ticket ${ticket.subject}`">
                                                         <Ellipsis class="h-8 w-8" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
@@ -1061,6 +1061,7 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
                                     <Input
                                         ref="attachmentInput"
                                         id="attachments"
+                                        aria-label="Attachments"
                                         type="file"
                                         multiple
                                         :disabled="form.processing"

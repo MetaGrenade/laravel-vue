@@ -500,15 +500,15 @@ const providerAccount = (provider: string) => linkedAccounts.value.find((account
                                 <CardContent class="space-y-4">
                                     <div v-if="hasPendingSecret" class="space-y-3">
                                         <div class="space-y-1">
-                                            <Label>Authenticator secret</Label>
-                                            <Input :model-value="pendingSecret ?? ''" readonly />
+                                            <Label for="authenticator-secret">Authenticator secret</Label>
+                                            <Input id="authenticator-secret" :model-value="pendingSecret ?? ''" readonly />
                                             <p class="text-xs text-muted-foreground">
                                                 Manually add this key to your authenticator app if you cannot scan a QR code.
                                             </p>
                                         </div>
                                         <div v-if="qrCodeUrl" class="space-y-1">
-                                            <Label>otpauth URL</Label>
-                                            <Input :model-value="qrCodeUrl" readonly />
+                                            <Label for="authenticator-url">otpauth URL</Label>
+                                            <Input id="authenticator-url" :model-value="qrCodeUrl" readonly />
                                             <p class="text-xs text-muted-foreground">
                                                 Use this URL with any QR code generator to produce a scannable code for your authenticator.
                                             </p>

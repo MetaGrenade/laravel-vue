@@ -1001,7 +1001,7 @@ const lastUsedDisplay = (value?: string | null) => {
                                             <TableCell class="text-center">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger as-child>
-                                                        <Button variant="outline" size="icon">
+                                                        <Button variant="outline" size="icon" :aria-label="`Actions for ${token.name}`">
                                                             <Ellipsis class="h-8 w-8" />
                                                         </Button>
                                                     </DropdownMenuTrigger>

@@ -183,7 +183,7 @@ const selectClass = 'rounded-md border border-input bg-background px-3 py-2 text
                     <Card>
                         <CardHeader>
                             <CardDescription>Balance</CardDescription>
-                            <CardTitle class="text-3xl tabular-nums">{{ money(card.balance) }}</CardTitle>
+                            <CardTitle as="div" class="text-3xl tabular-nums">{{ money(card.balance) }}</CardTitle>
                         </CardHeader>
                         <CardContent class="text-sm text-muted-foreground">Of {{ money(card.initial_amount) }} when it was made</CardContent>
                     </Card>

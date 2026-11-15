@@ -185,7 +185,7 @@ const selectClass =
                             <Link
                                 v-if="movement.order"
                                 :href="route('acp.commerce.orders.show', movement.order.public_id)"
-                                class="ml-1 text-primary hover:underline"
+                                class="ml-1 text-primary underline underline-offset-4"
                                 >{{ movement.order.number }}</Link
                             >
                         </div>
