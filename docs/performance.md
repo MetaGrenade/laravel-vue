@@ -205,6 +205,15 @@ The first row is the same work: before, each run was stopped at 200 calls; now t
 
 Not changed, on purpose: **an order the provider cannot answer about is still never cancelled**, however long that is, because cancelling an order that was paid is worse than holding its stock; it only waits 30 minutes between tries. A call to Stripe that hangs is cut off after 15 seconds, and not the library's 80 ([below](#stripe-calls-that-do-not-come-back)), so one order that cannot be answered about costs its job 15 seconds and not the rest of its 25 orders. A job in which every call hangs is still stopped by the worker at 60 seconds, after about four of them; each of those four got its 30 minute wait, so the job's next try and the next run of the schedule go on to the orders after them. A site on the `sync` queue runs it all inside the scheduler, as before.
 
+**The satisfaction numbers of the support desk are worked out by the database.** The three figures at the top of Admin → Support (the average rating, the average and the count by status, the average by the month a ticket was resolved) follow the filters of the list, and two of them read every rated ticket into PHP as a model to work out an average: the overall one with `->get()->avg()`, the months with `->get()->groupBy()`. The list's eager loads came along, so reading a set of tickets also asked for their members, assignees, resolvers, categories and teams. Measured with 20,000 rated tickets resolved over three years (the same in-memory database), one request for the page:
+
+| Rated tickets | Before | After |
+|---------------|--------|-------|
+| 2,000 | 326 ms, 24 queries, +16 MB | 194 ms, 23 queries, +14 MB |
+| 20,000 | 1,623 ms, 24 queries, +48 MB | 212 ms, 23 queries, +14 MB |
+
+Each figure is now one grouped statement over the rated tickets under the list's filters (`SupportController::index()`; the month is `Sql::yearMonth()`, the same `YYYY-MM` on every driver), and the time and memory no longer depend on how many tickets are rated. The +14 MB that is left is the rest of the page. The numbers are the same as before, tested on a desk made to have every edge: a rated ticket that was never resolved (in no month, in the average), two months either side of a year end, and each filter (`SupportSatisfactionNumbersTest`). Not done: the boxes that pick who a ticket is assigned to are still given every member (`assignableAgents`, in three places in the controller), which is the same fault as the Tokens page had; it needs a decision about who may be assigned first.
+
 ## Stripe calls that do not come back
 
 The Stripe library waits 80 seconds for an answer and 30 to make the connection, and the application used to leave that as it was. It is longer than a queue worker lets a job run (60 seconds, [redis.md](redis.md#the-queue)) and than most web servers wait for a page, so **one call that never came back cost the whole job or the whole request that made it**: the worker stopped the job, or the visitor was shown the web server's gateway timeout.
