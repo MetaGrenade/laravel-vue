@@ -67,7 +67,9 @@ class TrustSafetyController extends Controller
                         ->whereRaw(LikePattern::clause('email'), [$like])
                         ->orWhereRaw(LikePattern::clause('nickname'), [$like]);
                 })
-                    ->orWhere('id', $search);
+                    // The number of the request, if what was typed is one: PostgreSQL refuses to compare a number with `a_b`, and MySQL
+                    // reads `12abc` as 12.
+                    ->when(ctype_digit($search), fn ($query) => $query->orWhere('id', (int) $search));
             });
         }
 
@@ -115,7 +117,7 @@ class TrustSafetyController extends Controller
                         ->whereRaw(LikePattern::clause('email'), [$like])
                         ->orWhereRaw(LikePattern::clause('nickname'), [$like]);
                 })
-                    ->orWhere('id', $search);
+                    ->when(ctype_digit($search), fn ($query) => $query->orWhere('id', (int) $search));
             });
         }
 

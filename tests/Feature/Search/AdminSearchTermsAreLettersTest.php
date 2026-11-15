@@ -109,6 +109,22 @@ class AdminSearchTermsAreLettersTest extends TestCase
     }
 
     #[Test]
+    public function the_trust_and_safety_lists_find_a_request_by_its_number_and_only_by_a_whole_number(): void
+    {
+        // No digit in what the members are called, so that only the number can be what is found.
+        $export = DataExport::factory()->for(User::factory()->create(['nickname' => 'Plain', 'email' => 'plain@example.test']))->create();
+        $erasure = DataErasureRequest::factory()->for(User::factory()->create(['nickname' => 'Other', 'email' => 'other@example.test']))->create();
+
+        $this->assertSame([$export->id], $this->listed(route('acp.trust-safety.index', ['search' => (string) $export->id]), 'exports.data'));
+        $this->assertSame([$erasure->id], $this->listed(route('acp.trust-safety.index', ['search' => (string) $erasure->id]), 'erasureRequests.data'));
+
+        // PostgreSQL refuses to compare a number with text that is not one (a 500 for any search), and MySQL reads `7abc` as 7.
+        $this->assertSame([], $this->listed(route('acp.trust-safety.index', ['search' => $export->id.'abc']), 'exports.data'));
+        $this->assertSame([], $this->listed(route('acp.trust-safety.index', ['search' => $erasure->id.'abc']), 'erasureRequests.data'));
+        $this->assertSame([], $this->listed(route('acp.trust-safety.index', ['search' => 'abc']), 'exports.data'));
+    }
+
+    #[Test]
     public function the_token_log_is_searched_by_the_letters_typed(): void
     {
         $owner = User::factory()->create();
