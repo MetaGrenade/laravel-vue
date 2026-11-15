@@ -54,6 +54,8 @@ function report(more = {}) {
             'image-size-responsive': { score: 1, scoreDisplayMode: 'binary' },
             'unsized-images': { score: 1, scoreDisplayMode: 'metricSavings' },
             'http-status-code': { score: 1, scoreDisplayMode: 'binary' },
+            'heading-order': { score: 1, scoreDisplayMode: 'binary' },
+            'label-content-name-mismatch': { score: 1, scoreDisplayMode: 'binary' },
             'document-latency-insight': { score: 1, scoreDisplayMode: 'metricSavings', details: { items: { usesCompression: { value: true } } } },
         },
         ...more,
@@ -71,6 +73,8 @@ function with_(id, audit) {
 const uncompressed = () =>
     with_('document-latency-insight', { score: 0.5, scoreDisplayMode: 'metricSavings', details: { items: { usesCompression: { value: false } } } });
 const failedImage = (id, urls) => with_(id, { score: 0, scoreDisplayMode: 'binary', details: { items: urls.map((url) => ({ url, node: {} })) } });
+const failedElement = (id, selectors) =>
+    with_(id, { score: 0, scoreDisplayMode: 'binary', details: { items: selectors.map((selector) => ({ node: { selector, snippet: '<x>' } })) } });
 
 describe('the numbers taken from a report', () => {
     test('scores are whole numbers out of a hundred, and the timings are as Lighthouse measured them', () => {
@@ -116,6 +120,18 @@ describe('what fails a run', () => {
         assert.match(stableProblems(failedImage('unsized-images', ['http://x/b.png']))[0], /without a width and a height.*: \/b\.png\./);
     });
 
+    test('a skipped heading level and a link whose name leaves out its words fail, and name the element', () => {
+        const heading = stableProblems(failedElement('heading-order', ['main > div > h3.line-clamp-2', 'main > div > h3.line-clamp-2']));
+
+        assert.equal(heading.length, 1);
+        assert.match(heading[0], /skips a heading level.*: main > div > h3\.line-clamp-2\.$/);
+
+        const link = stableProblems(failedElement('label-content-name-mismatch', ['a.group', 'button.save']));
+
+        assert.equal(link.length, 1);
+        assert.match(link[0], /name leaves out the words shown on it.*: a\.group, button\.save\.$/);
+    });
+
     test('a page that answers with an error fails', () => {
         assert.match(stableProblems(with_('http-status-code', { score: 0, scoreDisplayMode: 'binary' }))[0], /error status/);
     });
@@ -151,7 +167,7 @@ describe('what fails a run', () => {
     test('the audits that can fail are binary ones about the page itself', () => {
         assert.deepEqual(
             STABLE_AUDITS.map((one) => one.id),
-            ['image-aspect-ratio', 'image-size-responsive', 'unsized-images', 'http-status-code'],
+            ['image-aspect-ratio', 'image-size-responsive', 'unsized-images', 'http-status-code', 'heading-order', 'label-content-name-mismatch'],
         );
     });
 });

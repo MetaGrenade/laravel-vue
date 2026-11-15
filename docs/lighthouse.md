@@ -46,6 +46,8 @@ What does fail a run is what the page decides for itself, and answers the same e
 | `image-size-responsive` | an image is shown larger than its file, so it is enlarged and blurred |
 | `unsized-images` | an image has no `width` and `height`, so the page moves when it loads |
 | `http-status-code` | the page answers with an error status |
+| `heading-order` | a heading skips a level (an `h3` under an `h1` with no `h2` between), so a screen reader's list of headings has a step missing; the message names the element |
+| `label-content-name-mismatch` | a link or button has a name that leaves out the words shown on it, so "click *A first post*" does not find it; the message names the element |
 | the run itself | Lighthouse could not load the page |
 | compression (`--site` only) | the page is sent without compression |
 
@@ -68,6 +70,8 @@ Image oversize (`image-delivery-insight`, "the file is larger than it needs to b
 | shop | 99 | 99 | 100 | 100 | 1.1 s | 1.1 s | 53 ms | 0 |
 | product | 99 | 100 | 100 | 100 | 1.1 s | 1.1 s | 54 ms | 0 |
 
+Accessibility was 99 on the blog and the shop; after the two fixes under [what the first run found](#what-the-first-run-found) (2026-11-15, same laptop, Lighthouse 13.6.0) it is 100 on all six pages, and no accessibility audit fails on any of them. The other columns did not move beyond the run-to-run noise (performance 99 or 100, LCP 1.1 s on every page).
+
 The roadmap's target is a Largest Contentful Paint under 2.5 s on 4G for the home page, a blog post and a product page; on this setup it is 1.1 s for all three. Read it with [what it does not show](#what-it-does-not-show): a site with a few records and no compression is not a site with a thousand.
 
 ## What the first run found
@@ -76,8 +80,8 @@ It found four things, on pages nobody had looked at this way.
 
 1. **The logo was declared as a different shape from its file** (fixed). `AppLogo.vue` and the sign-in layout gave the image `width="280" height="56"` (5:1), and the file is 1024 x 341 (3:1). The CSS shows it at the right shape, but a browser reserves the room from the attributes before the file has arrived, so the header was laid out for a logo 67 % wider than the one that then appeared. The attributes now match the file. Best practices went from 96 to 100 on every page.
 2. **The logo is sent at 1024 px and shown at 96 to 192 px** (open). It is 57 to 63 kB for each colour scheme, and it is in every page. `image-delivery-insight` puts the saving at 54 to 68 KiB on a first visit. It is not fixed here because the same files are the banner in the README, which wants the large size on a screen with a high pixel ratio; the choice is between a second, smaller file for the site and a smaller one for both.
-3. **Heading order on the blog and the shop** (open). The titles of the cards on the blog list and on the shop are `h3`, directly under the page's `h1`, with no `h2` between. A screen reader's list of headings has a step missing.
-4. **A link whose name does not hold its text** (open). The featured post on the blog list is a link with `aria-label="Read featured blog: A first post"`, and Lighthouse's `label-content-name-mismatch` says the visible text is not part of that name, which a person who speaks to their computer ("click A first post") needs. The axe audit ([accessibility.md](accessibility.md)) fails only on critical problems, so it does not report these.
+3. **Heading order on the blog and the shop** (fixed). On the blog list the titles of the cards were `h3`, directly under the page's `h1`, with no `h2` between; on the shop it was the "Find something" card above the products (the product cards were already `h2`). A screen reader's list of headings had a step missing. The blog cards are `h2` now, and `CardTitle` takes an `as` prop (`h2`, `h3` or `h4`, `h3` unless told otherwise) that the shop's filter card sets to `h2`. The other pages that use a card title were not part of the six audited, so their levels are as they were.
+4. **A link whose name does not hold its text** (fixed). The featured post on the blog list was a link with `aria-label="Read featured blog: A first post"`, and Lighthouse's `label-content-name-mismatch` says the visible text is not part of that name, which a person who speaks to their computer ("click A first post") needs. The card is now a box with one link laid over it, named by the post's title (`aria-labelledby` the heading), so the name is the words on the card, and the cover, which only repeated "Featured blog cover", is decoration. The axe audit ([accessibility.md](accessibility.md)) fails only on critical problems, so it did not report these two; this audit is how they were found.
 
 ## A real site
 

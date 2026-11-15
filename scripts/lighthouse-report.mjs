@@ -40,6 +40,17 @@ export const STABLE_AUDITS = [
     { id: 'image-size-responsive', problem: 'shows images larger than their file, so they are enlarged and blurred' },
     { id: 'unsized-images', problem: 'has images without a width and a height, so the page moves when they load' },
     { id: 'http-status-code', problem: 'answers with an error status' },
+    // These two are about the markup, so they answer the same for the same page. They name the element, not a file.
+    {
+        id: 'heading-order',
+        problem: "skips a heading level (an h3 under an h1 with no h2 between), so a screen reader's list of headings has a step missing",
+        element: true,
+    },
+    {
+        id: 'label-content-name-mismatch',
+        problem: 'has a link or button whose name leaves out the words shown on it, so "click <the words>" does not find it',
+        element: true,
+    },
 ];
 
 const number = (n) => n.toLocaleString('en-US');
@@ -195,19 +206,14 @@ export function stableProblems(lhr, { server = false } = {}) {
 
     const problems = [];
 
-    for (const { id, problem } of STABLE_AUDITS) {
+    for (const { id, problem, element = false } of STABLE_AUDITS) {
         const audit = lhr.audits?.[id];
 
         if (!audit || audit.score === null || audit.score >= 1 || ['notApplicable', 'manual', 'informative'].includes(audit.scoreDisplayMode))
             continue;
 
         const named = [
-            ...new Set(
-                (audit.details?.items ?? [])
-                    .map((item) => item.url)
-                    .filter(Boolean)
-                    .map(pathOf),
-            ),
+            ...new Set((audit.details?.items ?? []).map((item) => (element ? item.node?.selector : item.url && pathOf(item.url))).filter(Boolean)),
         ];
 
         problems.push(`The page ${problem}${named.length > 0 ? `: ${named.join(', ')}` : ''}.`);
