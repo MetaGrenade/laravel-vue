@@ -97,7 +97,7 @@ const selectClass = 'w-full rounded-md border border-input bg-background px-3 py
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Find something</CardTitle>
+                    <CardTitle as="h2">Find something</CardTitle>
                 </CardHeader>
                 <CardContent class="space-y-4">
                     <div class="grid gap-4 md:grid-cols-3">

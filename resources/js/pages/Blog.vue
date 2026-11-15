@@ -227,16 +227,24 @@ const {
         <div class="space-y-6 p-4">
             <!-- Featured Post Section -->
             <section v-if="featuredBlog">
-                <Link
-                    :href="route('blogs.view', { slug: featuredBlog.slug })"
-                    :aria-label="`Read featured blog: ${featuredBlog.title}`"
-                    class="group relative block h-64 overflow-hidden rounded-xl border bg-card shadow-sm focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:h-72"
+                <!--
+                    The whole card opens the post, through one link laid over it. The link's name is the post's title (what
+                    a person sees and would say), not a made-up "Read featured blog: ..." that leaves the visible words
+                    out. The picture is decoration: the title is right next to it.
+                -->
+                <div
+                    class="group relative h-64 overflow-hidden rounded-xl border bg-card shadow-sm has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring has-[a:focus-visible]:ring-offset-2 has-[a:focus-visible]:ring-offset-background sm:h-72"
                 >
+                    <Link
+                        :href="route('blogs.view', { slug: featuredBlog.slug })"
+                        aria-labelledby="featured-blog-title"
+                        class="absolute inset-0 z-10 rounded-xl focus:outline-hidden"
+                    />
                     <CoverImage
                         :src="featuredBlog.cover_image"
                         :srcset="featuredBlog.cover_srcset"
                         :sizes="fixedHeightSizes(featuredBlog.cover_aspect, FEATURED_BOX)"
-                        alt="Featured blog cover"
+                        alt=""
                         fetchpriority="high"
                         decoding="async"
                         class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
@@ -261,7 +269,7 @@ const {
                                 #{{ tag.name }}
                             </span>
                         </div>
-                        <h2 class="text-xl font-semibold tracking-tight text-white sm:text-2xl">{{ featuredBlog.title }}</h2>
+                        <h2 id="featured-blog-title" class="text-xl font-semibold tracking-tight text-white sm:text-2xl">{{ featuredBlog.title }}</h2>
                         <p v-if="featuredBlog.excerpt" class="mt-1 line-clamp-2 max-w-3xl text-sm text-white/90">
                             {{ featuredBlog.excerpt }}
                         </p>
@@ -271,9 +279,8 @@ const {
                                 • Last read {{ formatLastViewed(featuredBlog.last_viewed_at) }}
                             </span>
                         </p>
-                        <span class="sr-only">Read more about {{ featuredBlog.title }}</span>
                     </div>
-                </Link>
+                </div>
             </section>
 
             <!-- Filters -->
@@ -432,7 +439,7 @@ const {
                         </Link>
                         <div class="flex flex-1 flex-col gap-2 p-4">
                             <Link :href="route('blogs.view', { slug: blog.slug })" class="block">
-                                <h3 class="line-clamp-2 text-lg leading-snug font-semibold group-hover:text-primary">{{ blog.title }}</h3>
+                                <h2 class="line-clamp-2 text-lg leading-snug font-semibold group-hover:text-primary">{{ blog.title }}</h2>
                             </Link>
                             <p v-if="blog.excerpt" class="line-clamp-3 flex-1 text-sm text-muted-foreground">
                                 {{ blog.excerpt }}
