@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BlogComment;
 use App\Models\BlogCommentReport;
 use App\Support\Localization\DateFormatter;
+use App\Support\Search\LikePattern;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -73,7 +74,7 @@ class BlogCommentController extends Controller
             });
 
         if ($search !== null) {
-            $commentsQuery->whereLike('body', "%{$search}%");
+            $commentsQuery->whereRaw(LikePattern::clause('body'), [LikePattern::contains($search)]);
         }
 
         $commentsQuery->when($sort === 'most_reported', function ($query) {

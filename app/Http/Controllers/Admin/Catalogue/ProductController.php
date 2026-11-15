@@ -24,6 +24,7 @@ use App\Support\Commerce\Catalogue\VariantGenerator;
 use App\Support\Commerce\Digital\LicenceKeys;
 use App\Support\Commerce\Money;
 use App\Support\Commerce\PriceResolver;
+use App\Support\Search\LikePattern;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -60,10 +61,12 @@ class ProductController extends Controller
             ->with(['brand:id,name', 'prices', 'variants.prices', 'inventoryItems', 'primaryImage'])
             ->withCount('variants')
             ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($inner) use ($search) {
-                    $inner->whereLike('name', "%{$search}%")
-                        ->orWhereLike('slug', "%{$search}%")
-                        ->orWhereHas('variants', fn ($variants) => $variants->whereLike('sku', "%{$search}%"));
+                $like = LikePattern::contains($search);
+
+                $query->where(function ($inner) use ($like) {
+                    $inner->whereRaw(LikePattern::clause('name'), [$like])
+                        ->orWhereRaw(LikePattern::clause('slug'), [$like])
+                        ->orWhereHas('variants', fn ($variants) => $variants->whereRaw(LikePattern::clause('sku'), [$like]));
                 });
             })
             ->when($status === 'active', fn ($query) => $query->where('is_active', true))

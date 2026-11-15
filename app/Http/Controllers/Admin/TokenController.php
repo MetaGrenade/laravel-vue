@@ -15,6 +15,7 @@ use App\Support\Api\Scope;
 use App\Support\Api\Scopes;
 use App\Support\Localization\DateFormatter;
 use App\Support\Members\StaffUserSearch;
+use App\Support\Search\LikePattern;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -101,10 +102,12 @@ class TokenController extends Controller
 
         $tokenFilter = trim((string) $request->query('token', ''));
         if ($tokenFilter !== '') {
-            $tokenLogQuery->where(function ($query) use ($tokenFilter) {
-                $query->whereLike('token_name', "%{$tokenFilter}%")
-                    ->orWhereHas('token', function ($innerQuery) use ($tokenFilter) {
-                        $innerQuery->whereLike('name', "%{$tokenFilter}%");
+            $like = LikePattern::contains($tokenFilter);
+
+            $tokenLogQuery->where(function ($query) use ($like) {
+                $query->whereRaw(LikePattern::clause('token_name'), [$like])
+                    ->orWhereHas('token', function ($innerQuery) use ($like) {
+                        $innerQuery->whereRaw(LikePattern::clause('name'), [$like]);
                     });
             });
         }

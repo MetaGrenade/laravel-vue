@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Support\Commerce\Discounts\CouponRedemptions;
+use App\Support\Search\LikePattern;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,7 +36,10 @@ class CouponController extends Controller
         $paginator = Coupon::query()
             ->withCount(['products', 'categories'])
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
-                $query->whereLike('code', '%'.strtoupper($search).'%')->orWhereLike('description', "%{$search}%");
+                // Case does not matter to either column, so the code is not upper-cased first.
+                $like = LikePattern::contains($search);
+
+                $query->whereRaw(LikePattern::clause('code'), [$like])->orWhereRaw(LikePattern::clause('description'), [$like]);
             }))
             ->latest('id')
             ->paginate(25)
@@ -148,7 +152,7 @@ class CouponController extends Controller
         $search = trim((string) $request->query('search', ''));
 
         $products = Product::query()
-            ->when($search !== '', fn ($query) => $query->whereLike('name', "%{$search}%"))
+            ->when($search !== '', fn ($query) => $query->whereRaw(LikePattern::clause('name'), [LikePattern::contains($search)]))
             ->orderBy('name')
             ->limit(15)
             ->get(['id', 'name']);

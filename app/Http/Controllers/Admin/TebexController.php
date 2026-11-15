@@ -19,6 +19,7 @@ use App\Payments\Tebex\TebexException;
 use App\Payments\Tebex\TebexSelling;
 use App\Payments\Tebex\TebexStoreProfile;
 use App\Payments\Tebex\TebexWebhookVerifier;
+use App\Support\Search\LikePattern;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -60,9 +61,11 @@ class TebexController extends Controller
             ->when($status === 'removed', fn ($query) => $query->whereNotNull('removed_at'))
             ->when($category !== null, fn ($query) => $query->where('tebex_category_id', $category))
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
-                $query->whereLike('name', "%{$search}%")
-                    ->orWhereLike('ident', "%{$search}%")
-                    ->orWhereLike('slug', "%{$search}%");
+                $like = LikePattern::contains($search);
+
+                $query->whereRaw(LikePattern::clause('name'), [$like])
+                    ->orWhereRaw(LikePattern::clause('ident'), [$like])
+                    ->orWhereRaw(LikePattern::clause('slug'), [$like]);
             }))
             ->orderBy('tebex_category_id')
             ->orderBy('sort_order')
