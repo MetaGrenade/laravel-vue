@@ -139,6 +139,13 @@ export async function expectNoProblems(page: Page, name: string, options: { menu
  */
 export const PHONE = { width: 320, height: 800 };
 
+/**
+ * Text is set a little wider than the browser sets it. Text does not measure the same on every machine: the "Frequently Asked Questions" tab
+ * on /support fitted a 320 pixel screen on Windows and was 6 pixels too wide (about 2%) in Chrome on Linux, where CI runs, and only CI said so.
+ * 0.015em of letter-spacing is about 3% on a line of text. A page that fits only by the width of the text on one machine does not pass.
+ */
+const WIDER_TEXT = 'body, body * { letter-spacing: 0.015em !important; }';
+
 /** Runs in the page: how far it scrolls sideways, and the elements that stick out of the screen (the innermost ones, not the boxes around them). */
 function whatSticksOut(): { scrollWidth: number; clientWidth: number; elements: string[] } {
     const clientWidth = document.documentElement.clientWidth;
@@ -197,6 +204,7 @@ export async function expectFitsAPhone(page: Page, name: string, options: { menu
     expect(page.viewportSize(), `${name}: the browser is not ${PHONE.width} wide`).toEqual(PHONE);
 
     await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; animation: none !important; }' });
+    await page.addStyleTag({ content: WIDER_TEXT });
     await page.emulateMedia({ colorScheme: 'light' });
 
     const sideways = await page.evaluate(whatSticksOut);
