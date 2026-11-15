@@ -16,6 +16,8 @@ export default defineConfig({
     use: {
         baseURL: app.baseURL,
         ignoreHTTPSErrors: true,
+        // Tall enough for the whole of a page: axe cannot measure text that is partly under the sticky header it was scrolled up to, or that is below the screen.
+        viewport: { width: 1280, height: 3000 },
         trace: 'off',
     },
     projects: app.projects,
