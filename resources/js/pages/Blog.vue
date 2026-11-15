@@ -386,6 +386,7 @@ const {
                     {{ blogsRangeLabel }}
                 </div>
                 <Pagination
+                    aria-label="Pagination, top"
                     v-if="hasBlogs || blogsMeta.total > 0"
                     v-slot="{ page, pageCount }"
                     v-model:page="paginationPage"
@@ -479,6 +480,7 @@ const {
                     {{ blogsRangeLabel }}
                 </div>
                 <Pagination
+                    aria-label="Pagination, bottom"
                     v-if="hasBlogs || blogsMeta.total > 0"
                     v-slot="{ page, pageCount }"
                     v-model:page="paginationPage"

@@ -77,7 +77,6 @@ const submit = () => {
                         type="email"
                         required
                         autofocus
-                        :tabindex="1"
                         autocomplete="email"
                         v-model="form.email"
                         :placeholder="t('auth.common.email_placeholder')"
@@ -88,7 +87,7 @@ const submit = () => {
                 <div class="grid gap-2">
                     <div class="flex items-center justify-between">
                         <Label for="password">{{ t('auth.common.password') }}</Label>
-                        <TextLink v-if="canResetPassword" :href="route('password.request')" class="text-sm" :tabindex="5">
+                        <TextLink v-if="canResetPassword" :href="route('password.request')" class="text-sm">
                             {{ t('auth.login.forgot_password') }}
                         </TextLink>
                     </div>
@@ -96,7 +95,6 @@ const submit = () => {
                         id="password"
                         type="password"
                         required
-                        :tabindex="2"
                         autocomplete="current-password"
                         v-model="form.password"
                         :placeholder="t('auth.common.password')"
@@ -104,14 +102,14 @@ const submit = () => {
                     <InputError :message="form.errors.password" />
                 </div>
 
-                <div class="flex items-center justify-between" :tabindex="3">
+                <div class="flex items-center justify-between">
                     <Label for="remember" class="flex items-center space-x-3">
-                        <Checkbox id="remember" v-model="form.remember" :tabindex="4" />
+                        <Checkbox id="remember" v-model="form.remember" />
                         <span>{{ t('auth.login.remember_me') }}</span>
                     </Label>
                 </div>
 
-                <Button type="submit" class="mt-4 w-full" :tabindex="4" :disabled="form.processing">
+                <Button type="submit" class="mt-4 w-full" :disabled="form.processing">
                     <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
                     {{ t('auth.login.submit') }}
                 </Button>
@@ -119,7 +117,7 @@ const submit = () => {
 
             <div class="text-center text-sm text-muted-foreground">
                 {{ t('auth.login.no_account') }}
-                <TextLink :href="route('register')" :tabindex="5">{{ t('auth.login.sign_up') }}</TextLink>
+                <TextLink :href="route('register')">{{ t('auth.login.sign_up') }}</TextLink>
             </div>
         </form>
     </AuthBase>

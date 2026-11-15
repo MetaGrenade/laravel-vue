@@ -38,13 +38,17 @@ function report(violations: Result[]): string {
         .join('\n\n');
 }
 
-async function expectNoCriticalProblems(page: Page, name: string): Promise<void> {
+/** What fails a page: everything axe reports except what it marks minor. */
+const FAILING_IMPACTS: string[] = ['critical', 'serious', 'moderate'];
+
+async function expectNoProblems(page: Page, name: string): Promise<void> {
     await page.locator('#main-content, main').first().waitFor();
 
-    const results = await new AxeBuilder({ page }).analyze();
-    const critical = results.violations.filter((violation) => violation.impact === 'critical');
+    // `label-content-name-mismatch` is a rule axe keeps off unless it is asked for: a link or button whose name leaves out the words shown on it.
+    const results = await new AxeBuilder({ page }).options({ rules: { 'label-content-name-mismatch': { enabled: true } } }).analyze();
+    const problems = results.violations.filter((violation) => FAILING_IMPACTS.includes(violation.impact ?? ''));
 
-    expect(critical, `${name}\n${report(critical)}`).toEqual([]);
+    expect(problems, `${name}\n${report(problems)}`).toEqual([]);
 }
 
 test.describe('main flows', () => {
@@ -53,7 +57,7 @@ test.describe('main flows', () => {
             const response = await page.goto(entry.path);
 
             expect(response?.ok(), `${entry.name} returned ${response?.status()}`).toBe(true);
-            await expectNoCriticalProblems(page, entry.name);
+            await expectNoProblems(page, entry.name);
         });
     }
 
@@ -71,6 +75,6 @@ test.describe('main flows', () => {
 
         expect(response?.ok(), `checkout returned ${response?.status()}`).toBe(true);
         await expect(page).toHaveURL(/\/checkout$/);
-        await expectNoCriticalProblems(page, 'checkout');
+        await expectNoProblems(page, 'checkout');
     });
 });

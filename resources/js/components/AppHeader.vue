@@ -603,11 +603,12 @@ const viewNotification = (notification: NotificationItem) => {
                             variant="ghost"
                             size="icon"
                             class="relative text-muted-foreground hover:text-foreground"
-                            :aria-label="t('ui.cart.open')"
+                            :aria-label="cartItemCount > 0 ? tc('ui.cart.open_count', cartItemCount) : t('ui.cart.open')"
                         >
                             <ShoppingCart class="size-[1.15rem]" />
                             <span
                                 v-if="cartItemCount > 0"
+                                aria-hidden="true"
                                 class="absolute top-0.5 right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-highlight px-1 text-[0.65rem] font-semibold text-highlight-foreground"
                             >
                                 {{ cartItemCount > 9 ? '9+' : cartItemCount }}

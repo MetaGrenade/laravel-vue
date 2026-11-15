@@ -77,7 +77,6 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
                             <Link
                                 :href="member.url"
                                 class="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-xs transition-colors hover:border-primary/40"
-                                :aria-label="t('members.leaderboard.open_profile', { name: member.nickname })"
                             >
                                 <span
                                     class="w-8 shrink-0 text-center text-lg font-semibold tabular-nums"
@@ -86,7 +85,7 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
                                     {{ member.rank }}
                                 </span>
                                 <Avatar class="size-11 shrink-0">
-                                    <AvatarImage v-if="member.avatar_url" :src="member.avatar_url" :alt="member.nickname" />
+                                    <AvatarImage v-if="member.avatar_url" :src="member.avatar_url" alt="" />
                                     <AvatarFallback class="text-sm font-semibold uppercase">{{ getInitials(member.nickname) }}</AvatarFallback>
                                 </Avatar>
                                 <span class="min-w-0 flex-1">

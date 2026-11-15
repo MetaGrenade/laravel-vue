@@ -751,6 +751,7 @@ const markBoardAsRead = () => {
                     {{ threadsRangeLabel }}
                 </div>
                 <Pagination
+                    aria-label="Pagination, top"
                     v-slot="{ page, pageCount }"
                     v-model:page="paginationPage"
                     :items-per-page="Math.max(threadsMeta.per_page, 1)"
@@ -935,6 +936,7 @@ const markBoardAsRead = () => {
                     {{ threadsRangeLabel }}
                 </div>
                 <Pagination
+                    aria-label="Pagination, bottom"
                     v-slot="{ page, pageCount }"
                     v-model:page="paginationPage"
                     :items-per-page="Math.max(threadsMeta.per_page, 1)"
