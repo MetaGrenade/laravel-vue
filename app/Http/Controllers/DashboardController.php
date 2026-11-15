@@ -11,12 +11,16 @@ use App\Models\SupportTicket;
 use App\Models\User;
 use App\Support\Commerce\CustomerOrders;
 use App\Support\Commerce\Money;
+use App\Support\Database\Sql;
 use App\Support\Localization\DateFormatter;
 use App\Support\Onboarding\Onboarding;
 use App\Support\WebsiteSections;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -191,21 +195,8 @@ class DashboardController extends Controller
     {
         $start = now()->startOfMonth()->subMonths(5);
 
-        $forumPostsByMonth = ForumPost::query()
-            ->where('user_id', $user->id)
-            ->where('created_at', '>=', $start)
-            ->get(['created_at'])
-            ->filter(fn (ForumPost $post) => $post->created_at)
-            ->groupBy(fn (ForumPost $post) => $post->created_at->format('Y-m'))
-            ->map->count();
-
-        $supportTicketsByMonth = SupportTicket::query()
-            ->where('user_id', $user->id)
-            ->where('created_at', '>=', $start)
-            ->get(['created_at'])
-            ->filter(fn (SupportTicket $ticket) => $ticket->created_at)
-            ->groupBy(fn (SupportTicket $ticket) => $ticket->created_at->format('Y-m'))
-            ->map->count();
+        $forumPostsByMonth = $this->countsByMonth(ForumPost::query()->where('user_id', $user->id), $start);
+        $supportTicketsByMonth = $this->countsByMonth(SupportTicket::query()->where('user_id', $user->id), $start);
 
         return collect(range(0, 5))
             ->map(fn (int $offset) => $start->copy()->addMonths($offset))
@@ -219,6 +210,25 @@ class DashboardController extends Controller
                 ];
             })
             ->toArray();
+    }
+
+    /**
+     * How many of the rows made since `$start` there are in each month (`YYYY-MM` => count; a month with none is not in it). The database
+     * counts them: reading every row as a model to count it in PHP costs a member with thousands of replies a page-load's worth of
+     * memory and time on every visit to the dashboard.
+     *
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $rows  What the member made, as a query on a table with `created_at`.
+     * @return Collection<array-key, mixed>
+     */
+    protected function countsByMonth(Builder $rows, Carbon $start): Collection
+    {
+        return $rows
+            ->where('created_at', '>=', $start)
+            ->select([Sql::yearMonth('created_at', 'month'), DB::raw('COUNT(*) as total')])
+            ->groupBy(Sql::yearMonth('created_at'))
+            ->pluck('total', 'month');
     }
 
     /**

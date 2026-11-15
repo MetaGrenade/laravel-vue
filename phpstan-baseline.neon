@@ -727,18 +727,6 @@ parameters:
 			path: app/Http/Controllers/DashboardController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,App\\Models\\ForumPost\>\:\:filter\(\) expects \(callable\(App\\Models\\ForumPost, int\)\: bool\)\|null, Closure\(App\\Models\\ForumPost\)\: \(Carbon\\Carbon\|null\) given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,App\\Models\\SupportTicket\>\:\:filter\(\) expects \(callable\(App\\Models\\SupportTicket, int\)\: bool\)\|null, Closure\(App\\Models\\SupportTicket\)\: \(Carbon\\Carbon\|null\) given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\Badge\:\:\$pivot\.$#'
 			identifier: property.notFound
 			count: 1
