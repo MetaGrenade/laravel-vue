@@ -775,12 +775,12 @@ const confirmDeletePost = (post: BlogRow) => {
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator v-if="editBlogs" />
                                                 <DropdownMenuGroup v-if="editBlogs">
-                                                    <Link :href="route('acp.blogs.edit', { blog: post.id })">
-                                                        <DropdownMenuItem>
+                                                    <DropdownMenuItem as-child>
+                                                        <Link :href="route('acp.blogs.edit', { blog: post.id })">
                                                             <Pencil class="mr-2" />
                                                             <span>Edit</span>
-                                                        </DropdownMenuItem>
-                                                    </Link>
+                                                        </Link>
+                                                    </DropdownMenuItem>
                                                 </DropdownMenuGroup>
                                                 <DropdownMenuSeparator v-if="deleteBlogs" />
                                                 <DropdownMenuItem v-if="deleteBlogs" class="text-destructive" @click="confirmDeletePost(post)">

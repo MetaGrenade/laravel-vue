@@ -6,7 +6,7 @@ const app = appFor({ database: 'a11y.sqlite', seeder: 'AccessibilitySignedInFlow
 
 export default defineConfig({
     testDir: '.',
-    testMatch: ['main-flows.spec.ts', 'signed-in-flows.spec.ts'],
+    testMatch: ['main-flows.spec.ts', 'signed-in-flows.spec.ts', 'states-flows.spec.ts'],
     fullyParallel: false,
     // One browser at a time: the pages are served by PHP's built-in server, which answers one request at a time, from one SQLite file.
     workers: 1,

@@ -1,8 +1,8 @@
 # Accessibility
 
-axe checks the public pages a visitor opens, the pages a signed-in member opens, and the admin area, each in the light theme and in the dark one. A problem it marks critical, serious or moderate fails the check, and so does a link or button whose name leaves out the words shown on it.
+axe checks the public pages a visitor opens, the pages a signed-in member opens, and the admin area, each in the light theme and in the dark one, and 28 things those pages show only after a click or a failure (a menu, a dialog, a form with its errors). A problem it marks critical, serious or moderate fails the check, and so does a link or button whose name leaves out the words shown on it.
 
-> **Status:** built: the audit, the critical problems it found on the public pages, then the serious and moderate ones, then the same for the signed-in pages and the admin area, and then colour contrast, which the check had never measured. **Not built:** see [below](#not-built).
+> **Status:** built: the audit, the critical problems it found on the public pages, then the serious and moderate ones, then the same for the signed-in pages and the admin area, then colour contrast, which the check had never measured, and then the states a page is in after a click or a failure. **Not built:** see [below](#not-built).
 
 ## What is checked
 
@@ -11,6 +11,8 @@ Home, sign in, register, forgot password, pricing, the shop, a product, the cart
 A member's own pages (32): the dashboard, the forum (a board, a thread, the form for a new thread, the pages for what the member follows), messages, orders, the wishlist, a product and the cart as a member sees them, a blog post with its comments, support and three tickets (one for each colour of a status and a priority), a profile, the confirm-password page, and every page under settings (profile, account standing, addresses, API keys, appearance, billing with its invoices and payment methods, Discord notifications, notifications, password, privacy, security).
 
 The admin area (79): every page the control panel has that is made by a request for it, with each kind of list, and the form to create and the form to edit a record where there is one (members, roles and permissions, the audit log, billing, blog posts, categories, tags and comments, the shop, forums, polls, badges, search analytics, support with its tickets, FAQs, teams, templates and rules, the system settings, tokens, trust and safety).
+
+The states after a click or a failure (28, `tests/a11y/states-flows.spec.ts`): a visitor's search dialog, colour theme menu, sign-in with a wrong password, register with a form that is wrong, and forgot password; a member's account menu, notifications, the menu of a post, the password form, the profile form and the form for a new thread each with their errors, the dialog that deletes the account, the dialog that adds an address (empty and with its errors) and the one that creates an API key; an administrator's row menu on the members, blog posts, tickets, roles and forum categories lists, the dialog that asks before a member is deleted, and the form for a new blog post, role, poll, FAQ, product, coupon and plan sent with nothing in it. Each case opens the page, does what a person does, waits for what it shows (the dialog, the menu, the message under a field) and then runs the check below with that on the screen.
 
 `AccessibilitySignedInFlowSeeder` creates the records for all of them (the smoke suite's member and administrator, the public records, and a few of each thing a table lists, so that a table has rows and the edit form is for a record that exists) in `database/a11y.sqlite`, which is rebuilt from nothing every time the check starts. The member signs in as `avery@example.com`, the administrator as `admin@example.com`, both with the factory's password; each signs in once, and the pages are opened with the cookies of that sign-in. The check fails when axe reports a critical, serious or moderate problem, or finds a link or button whose name leaves out the words shown on it (`label-content-name-mismatch`, a rule axe keeps off unless it is asked for). What axe marks minor does not fail it.
 
@@ -64,11 +66,22 @@ What it still does not measure: text on a photograph (a blog cover, 92 pieces ov
 
 The glows are left out of the measurement. At the very top corner of the page they move the background by about a fifth of its luminance, and the muted text colour is 5.2:1 on the surface; the glows fade within a few hundred pixels.
 
+## What a page shows after a click or a failure
+
+Every page above was opened and read as it loads. A menu that is closed, a dialog that has not been asked for and a form that has not been sent are not on it, and a person meets them all. The 28 cases of `states-flows.spec.ts` open them (2026-11-15), and axe found two kinds of fault, both fixed:
+
+- **The search dialog had no name** (serious, `aria-dialog-name`): the palette that `Ctrl+K` opens, on every page, was a dialog that a screen reader announced as "dialog". It has a title, "Search", and a description, both for a screen reader only.
+- **Six row menus whose items were not items** (critical, `aria-required-children` and `aria-required-parent`): on the members, blog posts and support lists, a menu entry that goes to a page was a `Link` around the `DropdownMenuItem`, so the `menu` held a link and the `menuitem` sat in a link, and a screen reader read neither as a menu. It is the item that is the link now (`<DropdownMenuItem as-child><Link …>`): Edit and Moderate on a member, Edit on a blog post, View conversation and Edit on a ticket, and Edit on a FAQ.
+
+The error states needed one thing of the test. The browser stops a form that has a required field empty before it is sent, so the case turns that off (`noValidate`) and the server's own messages are what is on the screen, and it waits for one (`p.text-destructive` with text in it) before it checks.
+
+A menu that is open is modal: reka-ui sets `aria-hidden` on everything behind it, which is the whole page, so axe also reports that the page has no `main`, no heading and content outside a landmark, and focusable elements in a hidden region. They are what an open menu does to the page behind it, not faults in it, and the rules that say so (`aria-hidden-focus`, `landmark-one-main`, `page-has-heading-one`, `region`) are turned off in the six cases that have a menu open (`menuOpen`), and in no other. The menu itself is still checked by every other rule.
+
 ## Not built
 
 - Minor problems: the check does not fail on what axe marks minor.
 - Text over a photograph or a gradient, and text in the very top corners of the page, where the glow behind it is strongest: colour contrast there is not measured.
-- What a page shows only after a click or a failure: dialogs, the editor's menus, a form with its errors, an empty list, a page for a role that is not an administrator (an editor or a moderator sees fewer of the admin pages).
+- The states beyond the 28: the editor's own menus (the toolbar, the mention list), the other dialogs and confirmations of the admin area, the errors of the other forms, and the list of notifications with something in it (the member's has none). An empty list, and a page for a role that is not an administrator (an editor or a moderator sees fewer of the admin pages).
 - The admin page of a single order (it is found by an identifier that is different in every database).
 - CAPTCHA.
 
@@ -76,4 +89,4 @@ The paths people take through the site, as opposed to the pages they open, are t
 
 ## Testing
 
-`tests/a11y/main-flows.spec.ts` (the public pages) and `tests/a11y/signed-in-flows.spec.ts` (the member and the administrator); both use `tests/a11y/axe.ts`. The run takes about five minutes, 128 pages (each in both themes), one browser at a time: PHP's built-in server answers one request at a time, from one SQLite file.
+`tests/a11y/main-flows.spec.ts` (the public pages), `tests/a11y/signed-in-flows.spec.ts` (the member and the administrator) and `tests/a11y/states-flows.spec.ts` (what they show after a click or a failure); all three use `tests/a11y/axe.ts`, and the two that sign in use `tests/a11y/session.ts`. The run takes about six minutes, 128 pages and 28 states (each in both themes), one browser at a time: PHP's built-in server answers one request at a time, from one SQLite file.

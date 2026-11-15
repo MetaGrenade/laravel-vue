@@ -64,6 +64,22 @@ const RUN_OPTIONS = {
 };
 
 /**
+ * A menu that is open hides the page behind it from a screen reader (reka-ui sets aria-hidden on it) and keeps the keyboard inside the menu. axe cannot
+ * tell, and reports the page as focusable content inside aria-hidden, and as having no main landmark, no heading and content outside any landmark.
+ * Those four are not asked of that state. The page behind the menu is checked as every other page is, with the menu closed.
+ */
+const WHILE_A_MENU_IS_OPEN = {
+    ...RUN_OPTIONS,
+    rules: {
+        ...RUN_OPTIONS.rules,
+        'aria-hidden-focus': { enabled: false },
+        'landmark-one-main': { enabled: false },
+        'page-has-heading-one': { enabled: false },
+        region: { enabled: false },
+    },
+};
+
+/**
  * The share of the text on a page whose colours axe has to be able to measure. The rest is text it cannot (on a photograph, on a gradient,
  * partly under something else), which is not checked. The check once measured none of it; this is what stops that being unnoticed again.
  */
@@ -85,7 +101,7 @@ function problemsIn(results: AxeResults): Result[] {
 }
 
 /** Runs axe on the page on screen, in the light theme and then in the dark one, and fails with the elements it names (docs/accessibility.md). */
-export async function expectNoProblems(page: Page, name: string): Promise<void> {
+export async function expectNoProblems(page: Page, name: string, options: { menuOpen?: boolean } = {}): Promise<void> {
     await page.locator('#main-content, main').first().waitFor();
 
     expect(
@@ -101,7 +117,7 @@ export async function expectNoProblems(page: Page, name: string): Promise<void> 
     await page.emulateMedia({ colorScheme: 'light' });
     await expect(page.locator('html'), `${name}: the page is dark in the light theme`).not.toHaveClass(/\bdark\b/);
 
-    const light = await new AxeBuilder({ page }).options(RUN_OPTIONS).analyze();
+    const light = await new AxeBuilder({ page }).options(options.menuOpen ? WHILE_A_MENU_IS_OPEN : RUN_OPTIONS).analyze();
 
     expect(problemsIn(light), `${name} (light theme)\n${report(problemsIn(light))}`).toEqual([]);
     expectMeasured(light, `${name} (light theme)`);

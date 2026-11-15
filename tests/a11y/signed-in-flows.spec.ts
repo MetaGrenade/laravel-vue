@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
-import fs from 'node:fs';
-import path from 'node:path';
-import { root } from '../e2e/server';
 import { expectNoProblems } from './axe';
+import { signInAndKeep, stateFile } from './session';
 
 /**
  * The pages a signed-in person opens (docs/accessibility.md): a member's own pages, and the admin area for an administrator. The records
@@ -11,8 +9,6 @@ import { expectNoProblems } from './axe';
  *
  * Every page is run through the same check as the public ones (tests/a11y/axe.ts), after it has finished loading what it asks for.
  */
-const password = 'password';
-
 const memberPages = [
     '/dashboard',
     '/forum',
@@ -130,33 +126,11 @@ const adminPages = [
     '/acp/trust-safety',
 ];
 
-/** Where the browser's cookies are kept once someone has signed in, so that a page does not start with the sign-in form. */
-const stateFile = (who: string) => path.join(root, 'test-results', `a11y-${who.replace(/\W+/g, '-')}.json`);
-
 function signedInAs(who: string, email: string, paths: string[]): void {
     test.describe(`signed in as ${who}`, () => {
         test.use({ storageState: stateFile(who) });
 
-        test.beforeAll(async ({ browser, baseURL }) => {
-            // A browser of its own, signed out: it would otherwise be given the state this block saves from it, which is not there yet.
-            const context = await browser.newContext({ baseURL, ignoreHTTPSErrors: true, storageState: { cookies: [], origins: [] } });
-            const page = await context.newPage();
-
-            await page.goto('/login');
-            await page.getByLabel('Email address').fill(email);
-            await page.getByLabel('Password', { exact: true }).fill(password);
-            await page.getByRole('button', { name: 'Log in' }).click();
-            await expect(page).toHaveURL(/\/dashboard$/);
-
-            // The cookie notice is a part of every page until it is answered; the visitor's pages are checked with it answered.
-            const banner = page.getByRole('button', { name: 'Necessary only' });
-
-            if (await banner.isVisible()) await banner.click();
-
-            fs.mkdirSync(path.dirname(stateFile(who)), { recursive: true });
-            await context.storageState({ path: stateFile(who) });
-            await context.close();
-        });
+        test.beforeAll(async ({ browser, baseURL }) => signInAndKeep(browser, baseURL, who, email));
 
         for (const url of paths) {
             test(url, async ({ page }) => {

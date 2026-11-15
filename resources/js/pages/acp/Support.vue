@@ -1298,9 +1298,11 @@ const unpublishFaq = (faq: FaqItem) => {
                                                     <DropdownMenuContent>
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                         <DropdownMenuGroup v-if="viewSupport">
-                                                            <Link :href="route('acp.support.tickets.show', { ticket: t.id })">
-                                                                <DropdownMenuItem> <Eye class="mr-2" /> View conversation </DropdownMenuItem>
-                                                            </Link>
+                                                            <DropdownMenuItem as-child>
+                                                                <Link :href="route('acp.support.tickets.show', { ticket: t.id })">
+                                                                    <Eye class="mr-2" /> View conversation
+                                                                </Link>
+                                                            </DropdownMenuItem>
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator
                                                             v-if="
@@ -1321,9 +1323,11 @@ const unpublishFaq = (faq: FaqItem) => {
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator v-if="editSupport" />
                                                         <DropdownMenuGroup v-if="editSupport">
-                                                            <Link :href="route('acp.support.tickets.edit', { ticket: t.id })">
-                                                                <DropdownMenuItem> <Pencil class="mr-2" /> Edit </DropdownMenuItem>
-                                                            </Link>
+                                                            <DropdownMenuItem as-child>
+                                                                <Link :href="route('acp.support.tickets.edit', { ticket: t.id })">
+                                                                    <Pencil class="mr-2" /> Edit
+                                                                </Link>
+                                                            </DropdownMenuItem>
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator v-if="statusSupport" />
                                                         <DropdownMenuGroup v-if="statusSupport">
@@ -1475,9 +1479,11 @@ const unpublishFaq = (faq: FaqItem) => {
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator v-if="editSupport || deleteSupport" />
                                                         <DropdownMenuGroup v-if="editSupport || deleteSupport">
-                                                            <Link v-if="editSupport" :href="route('acp.support.faqs.edit', { faq: f.id })">
-                                                                <DropdownMenuItem> <Pencil class="mr-2" /> Edit </DropdownMenuItem>
-                                                            </Link>
+                                                            <DropdownMenuItem v-if="editSupport" as-child>
+                                                                <Link :href="route('acp.support.faqs.edit', { faq: f.id })">
+                                                                    <Pencil class="mr-2" /> Edit
+                                                                </Link>
+                                                            </DropdownMenuItem>
                                                             <DropdownMenuItem v-if="deleteSupport" @select="confirmDeleteFaq(f.id)">
                                                                 <Trash2 class="mr-2" /> Delete
                                                             </DropdownMenuItem>
