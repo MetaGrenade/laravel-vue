@@ -299,9 +299,9 @@ const filteredPermissions = computed(() => {
                                 <h2 class="mb-2 text-lg font-semibold md:mb-0">Role Management</h2>
                                 <div class="relative flex justify-end space-x-2">
                                     <Input v-model="roleSearchQuery" type="text" placeholder="Search Roles..." class="w-full max-w-sm pr-10" />
-                                    <Link v-if="canCreate" :href="route('acp.acl.roles.create')">
-                                        <Button class="text-sm"> Create Role </Button>
-                                    </Link>
+                                    <Button v-if="canCreate" class="text-sm" as-child>
+                                        <Link :href="route('acp.acl.roles.create')">Create Role</Link>
+                                    </Button>
                                 </div>
                             </div>
                             <!-- Roles Table using Table Components -->
@@ -406,9 +406,9 @@ const filteredPermissions = computed(() => {
                                 <h2 class="mb-2 text-lg font-semibold md:mb-0">Permission Management</h2>
                                 <div class="relative flex justify-end space-x-2">
                                     <Input v-model="permissionSearchQuery" placeholder="Search Permissions..." class="w-full max-w-sm rounded-md" />
-                                    <Link v-if="canCreate" :href="route('acp.acl.permissions.create')">
-                                        <Button class="text-sm"> Create Permission </Button>
-                                    </Link>
+                                    <Button v-if="canCreate" class="text-sm" as-child>
+                                        <Link :href="route('acp.acl.permissions.create')">Create Permission</Link>
+                                    </Button>
                                 </div>
                             </div>
                             <!-- Permissions Table using Table Components -->

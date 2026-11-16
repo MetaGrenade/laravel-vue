@@ -77,7 +77,7 @@ const handleSubmit = () => {
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+                <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <div class="flex flex-col gap-6">
                         <Card>
                             <CardHeader class="relative overflow-hidden">
@@ -125,8 +125,8 @@ const handleSubmit = () => {
                                             :model-value="form.permissions.includes(permission.name)"
                                             @update:model-value="(value) => togglePermission(permission.name, value)"
                                         />
-                                        <div class="grid gap-1">
-                                            <Label :for="`permission-${permission.id}`" class="leading-none font-medium">
+                                        <div class="grid min-w-0 grid-cols-1 gap-1">
+                                            <Label :for="`permission-${permission.id}`" class="leading-snug font-medium break-words sm:leading-none">
                                                 {{ permission.name }}
                                             </Label>
                                             <p class="text-xs text-muted-foreground">Guard: {{ permission.guard_name }}</p>

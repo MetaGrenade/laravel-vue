@@ -1163,9 +1163,9 @@ const lastUsedDisplay = (value?: string | null) => {
                                                 </span>
                                             </TableCell>
                                             <TableCell class="text-center">
-                                                <Link :href="route('acp.tokens.logs.show', { tokenLog: log.id })">
-                                                    <Button variant="ghost" class="text-sm text-info">View</Button>
-                                                </Link>
+                                                <Button variant="ghost" class="text-sm text-info" as-child>
+                                                    <Link :href="route('acp.tokens.logs.show', { tokenLog: log.id })">View</Link>
+                                                </Button>
                                             </TableCell>
                                         </TableRow>
                                         <TableRow v-if="tokenLogsItems.length === 0">

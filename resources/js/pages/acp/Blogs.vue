@@ -600,15 +600,15 @@ const confirmDeletePost = (post: BlogRow) => {
                         <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                             <h2 class="text-lg font-semibold">Blog Posts</h2>
                             <div class="flex flex-wrap justify-end gap-2">
-                                <Link v-if="manageCategories" :href="route('acp.blog-categories.index')">
-                                    <Button variant="outline" class="text-sm"> Manage Categories </Button>
-                                </Link>
-                                <Link v-if="manageTags" :href="route('acp.blog-tags.index')">
-                                    <Button variant="outline" class="text-sm"> Manage Tags </Button>
-                                </Link>
-                                <Link v-if="createBlogs" :href="route('acp.blogs.create')">
-                                    <Button class="text-sm"> Create New Post </Button>
-                                </Link>
+                                <Button v-if="manageCategories" variant="outline" class="text-sm" as-child>
+                                    <Link :href="route('acp.blog-categories.index')">Manage Categories</Link>
+                                </Button>
+                                <Button v-if="manageTags" variant="outline" class="text-sm" as-child>
+                                    <Link :href="route('acp.blog-tags.index')">Manage Tags</Link>
+                                </Button>
+                                <Button v-if="createBlogs" class="text-sm" as-child>
+                                    <Link :href="route('acp.blogs.create')">Create New Post</Link>
+                                </Button>
                             </div>
                         </div>
                         <div class="flex flex-col gap-2 md:flex-row md:items-center md:gap-2">

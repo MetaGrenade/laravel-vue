@@ -409,7 +409,7 @@ const viewNotification = (notification: NotificationItem) => {
     <CommandPalette v-model:open="isCommandPaletteOpen" />
 
     <header class="sticky top-0 z-40 w-full border-b border-border/70 bg-background/80 backdrop-blur-xl">
-        <div class="container-app flex h-16 items-center gap-2">
+        <div class="container-app flex h-16 items-center gap-1 sm:gap-2">
             <!-- Mobile menu -->
             <Sheet>
                 <SheetTrigger as-child>
@@ -478,7 +478,7 @@ const viewNotification = (notification: NotificationItem) => {
             <!-- Logo -->
             <Link
                 :href="route('home')"
-                class="mr-4 flex shrink-0 items-center rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                class="mr-1 flex shrink-0 items-center rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:mr-4"
                 :aria-label="t('ui.nav.home')"
             >
                 <AppLogo />
@@ -679,7 +679,7 @@ const viewNotification = (notification: NotificationItem) => {
                             </span>
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" class="w-[22rem] p-0">
+                    <DropdownMenuContent align="end" class="w-[22rem] max-w-(--reka-dropdown-menu-content-available-width) p-0">
                         <div class="flex items-center justify-between px-4 py-3">
                             <p class="text-sm font-semibold">{{ t('ui.notifications.title') }}</p>
                             <Button
@@ -749,7 +749,7 @@ const viewNotification = (notification: NotificationItem) => {
                 <DropdownMenu v-if="user">
                     <DropdownMenuTrigger as-child>
                         <!-- Named by what it shows (the nickname, where there is room for it) and "Account menu": an aria-label that left the nickname out would not say what "click Avery" means, and the picture or the initials only repeat it. -->
-                        <Button variant="ghost" class="ml-1 h-9 gap-2 rounded-full px-1.5 sm:pr-2.5">
+                        <Button variant="ghost" class="h-9 gap-2 rounded-full px-1.5 sm:ml-1 sm:pr-2.5">
                             <Avatar class="size-7" aria-hidden="true">
                                 <AvatarImage v-if="user?.avatar_url" :src="user.avatar_url" alt="" />
                                 <AvatarFallback class="bg-primary text-[0.65rem] font-semibold text-primary-foreground">

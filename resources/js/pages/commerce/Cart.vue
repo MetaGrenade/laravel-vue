@@ -153,9 +153,9 @@ const removeItem = (itemId: number) => {
             </Card>
 
             <div class="flex justify-end">
-                <Link :href="route('shop.index')">
-                    <Button variant="link">Continue shopping</Button>
-                </Link>
+                <Button variant="link" as-child>
+                    <Link :href="route('shop.index')">Continue shopping</Link>
+                </Button>
             </div>
         </div>
     </AppLayout>

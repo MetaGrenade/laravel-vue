@@ -1179,9 +1179,9 @@ const unpublishFaq = (faq: FaqItem) => {
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
-                                    <Link v-if="createSupport" :href="route('acp.support.tickets.create')">
-                                        <Button class="w-full text-sm md:w-auto"> Create Ticket </Button>
-                                    </Link>
+                                    <Button v-if="createSupport" class="w-full text-sm md:w-auto" as-child>
+                                        <Link :href="route('acp.support.tickets.create')">Create Ticket</Link>
+                                    </Button>
                                 </div>
                             </div>
 
@@ -1415,12 +1415,12 @@ const unpublishFaq = (faq: FaqItem) => {
                                 <div class="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-2">
                                     <Input v-model="faqSearchQuery" placeholder="Search FAQs..." class="w-full md:w-64" />
                                     <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-end md:gap-2">
-                                        <Link v-if="editSupport || createSupport" :href="route('acp.support.faq-categories.index')">
-                                            <Button variant="outline" class="w-full md:w-auto"> Manage categories </Button>
-                                        </Link>
-                                        <Link v-if="createSupport" :href="route('acp.support.faqs.create')">
-                                            <Button class="w-full text-sm md:w-auto"> Create FAQ </Button>
-                                        </Link>
+                                        <Button v-if="editSupport || createSupport" variant="outline" class="w-full md:w-auto" as-child>
+                                            <Link :href="route('acp.support.faq-categories.index')">Manage categories</Link>
+                                        </Button>
+                                        <Button v-if="createSupport" class="w-full text-sm md:w-auto" as-child>
+                                            <Link :href="route('acp.support.faqs.create')">Create FAQ</Link>
+                                        </Button>
                                     </div>
                                 </div>
                             </div>

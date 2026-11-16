@@ -137,7 +137,7 @@ const canExportSearchAnalytics = computed(() => hasPermission('search.acp.view')
             <div class="flex w-full flex-col gap-6 rounded-xl pb-4">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <h1 class="text-2xl font-semibold tracking-tight">Search Analytics</h1>
-                    <div v-if="canExportSearchAnalytics" class="flex gap-2">
+                    <div v-if="canExportSearchAnalytics" class="flex flex-wrap gap-2">
                         <Button as-child variant="secondary">
                             <a :href="exportLinks.aggregates">Export Aggregates</a>
                         </Button>
@@ -158,7 +158,7 @@ const canExportSearchAnalytics = computed(() => hasPermission('search.acp.view')
                     </Card>
                 </div>
 
-                <div class="grid gap-4 lg:grid-cols-2">
+                <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <Card>
                         <CardHeader>
                             <CardTitle>Top Queries</CardTitle>

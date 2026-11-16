@@ -88,7 +88,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Forum', href: '/forum' }];
                     <div>
                         <h1 class="text-2xl font-semibold tracking-tight">Community forum</h1>
                         <p class="text-sm text-muted-foreground">Ask questions, share ideas and follow the conversations that matter to you.</p>
-                        <span class="mt-1 flex flex-wrap gap-x-4">
+                        <span class="mt-1 flex flex-wrap gap-x-4 gap-y-2">
                             <a
                                 :href="route('forum.feed')"
                                 rel="alternate"

@@ -731,9 +731,11 @@ const handleFaqCategorySelect = (categoryId: number | null) => {
             </header>
 
             <Tabs default-value="tickets" class="w-full">
-                <TabsList class="mb-4">
-                    <TabsTrigger value="tickets">Support Tickets</TabsTrigger>
-                    <TabsTrigger value="faq">Frequently Asked Questions</TabsTrigger>
+                <!-- The two labels are about 290 px together: on a small phone the list is as wide as the screen and a label wraps, whatever
+                     the font makes of it (a fit on one machine was 6 px too wide on another). -->
+                <TabsList class="mb-4 h-auto w-full items-stretch sm:w-fit">
+                    <TabsTrigger value="tickets" class="h-auto whitespace-normal">Support Tickets</TabsTrigger>
+                    <TabsTrigger value="faq" class="h-auto whitespace-normal">Frequently Asked Questions</TabsTrigger>
                 </TabsList>
 
                 <!-- My Tickets Tab -->
