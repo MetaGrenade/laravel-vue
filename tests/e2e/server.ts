@@ -11,6 +11,8 @@ interface Suite {
     port: number;
     /** The environment variable that points the suite at a site that is already running, instead of starting one. */
     baseUrlVariable: string;
+    /** More for tests/e2e/serve.mjs to read (its `E2E_…` variables), for a suite that needs the site set up in a way the others do not. */
+    env?: Record<string, string>;
 }
 
 /**
@@ -43,6 +45,7 @@ export function appFor(suite: Suite): Pick<PlaywrightTestConfig, 'projects' | 'w
                           E2E_DATABASE: suite.database,
                           E2E_SEEDER: suite.seeder,
                           E2E_PORT: String(suite.port),
+                          ...suite.env,
                       },
                   }
                 : undefined,

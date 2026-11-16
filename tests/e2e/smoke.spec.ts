@@ -991,8 +991,9 @@ test.describe('staff', () => {
     });
 
     test('an administrator adds a Discord role mapping, and its switches show what was saved and save what is flipped', async ({ page }) => {
-        // The roles of the Discord server come from Discord, which a test cannot reach (the site answers 422 without a server id): the page
-        // asks the site for them, so the answer is given here. Everything else is the site's own.
+        // The roles of the Discord server come from Discord, which a test cannot reach. The test site is told it has a server and a bot
+        // (made-up, tests/e2e/playwright.config.ts), so the page asks the site for the roles, and the answer is given here instead of
+        // letting the site ask Discord. Everything else is the site's own.
         await page.route('**/discord/admin/discord-roles', (route) => route.fulfill({ json: { data: [{ id: '4242424242', name: 'Moderators' }] } }));
 
         await signIn(page, admin.email);
