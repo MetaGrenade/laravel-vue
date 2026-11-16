@@ -1,8 +1,8 @@
 # Accessibility
 
-axe checks the public pages a visitor opens, the pages a signed-in member opens, and the admin area, each in the light theme and in the dark one, and 28 things those pages show only after a click or a failure (a menu, a dialog, a form with its errors). The same pages, and the same 28 things they show after a click or a failure, are opened again at the width of a small phone, 320 pixels, where the page must not scroll sideways. A problem axe marks critical, serious or moderate fails the check, and so does a link or button whose name leaves out the words shown on it.
+axe checks the public pages a visitor opens, the pages a signed-in member opens, and the admin area, each in the light theme and in the dark one, and 28 things those pages show only after a click or a failure (a menu, a dialog, a form with its errors). The same pages, and the same 28 things they show after a click or a failure, are opened again at the width of a small phone, 320 pixels, where the page must not scroll sideways. A problem axe marks critical, serious or moderate fails the check, and so does a link or button whose name leaves out the words shown on it. The public pages and the signed-in ones are also opened with the browser's console recorded, and a page that makes it write an error or a warning, throws, or asks for something that is refused fails the check too ([what the browser says](#what-the-browser-says)).
 
-> **Status:** built: the audit, the critical problems it found on the public pages, then the serious and moderate ones, then the same for the signed-in pages and the admin area, then colour contrast, which the check had never measured, then the states a page is in after a click or a failure, and then the pages and those states at a phone's width. **Not built:** see [below](#not-built).
+> **Status:** built: the audit, the critical problems it found on the public pages, then the serious and moderate ones, then the same for the signed-in pages and the admin area, then colour contrast, which the check had never measured, then the states a page is in after a click or a failure, then the pages and those states at a phone's width, and then what the browser's console says about the pages. **Not built:** see [below](#not-built).
 
 ## What is checked
 
@@ -20,11 +20,14 @@ At a phone's width (`tests/a11y/phone-flows.spec.ts`): all the pages above excep
 
 ## Running it
 
-PHP 8.4, from the repository root, after `npm run build` and with no Vite dev server running. The check serves the app at `http://127.0.0.1:8000` on its own database and never touches the one in `.env`.
+PHP 8.4, from the repository root, after a build and with no Vite dev server running. The check serves the app at `http://127.0.0.1:8000` on its own database and never touches the one in `.env`.
 
 ```bash
+npm run build
 npm run a11y
 ```
+
+If `.env` has a Pusher key (`PUSHER_APP_KEY`), build with the key left out, as CI's build is: `VITE_PUSHER_APP_KEY= npm run build` (in PowerShell, `$env:VITE_PUSHER_APP_KEY = ''` first). A build that has the key makes every signed-in page open a connection to Pusher's servers, which the check does not allow: a page fails with "opened a connection to ws-…pusher.com, not to the site".
 
 Set `PHP_BIN` when `php` on the path is not 8.4. It starts the application the way the smoke suite does, so the other options (a browser that is already installed, a site that is already running) are in [e2e-tests.md](e2e-tests.md#running-it). CI runs the same check as the `a11y` job in `.github/workflows/tests.yml`.
 
@@ -97,6 +100,21 @@ The 28 states are opened at 320 pixels too (`states-phone.spec.ts`, 2026-11-16),
 
 The first scan asked for `target-size` in a way that did nothing: `AxeBuilder#disableRules` replaces the `rules` of the options it is given, so the rule was never on (nor was `label-content-name-mismatch`), and the four rules that `menuOpen` turns off stayed on. The sideways scrolling and the tables were found without them. Everything about the rules is now in the one `rules` object (`expectFitsAPhone` in `axe.ts`); do not add `disableRules` to a run that has `rules`.
 
+## What the browser says
+
+axe reads a page's markup. The browser also says things about a page that no rule covers: a warning from a library, a script that throws, a request that is refused, something a content security policy blocks. They go to the console, and nobody was reading it. All 127 pages above (16 public, 32 member and 79 admin) were opened with the console recorded (2026-11-16): 123 said nothing, and the other four said four lines between them, from two faults. Both are fixed:
+
+- **The three pages with a chart warned twice as they loaded** (the member's dashboard, the admin dashboard and the blog posts list): `Unovis | Crosshair: Y accessors have not been configured`. `ChartCrosshair` is given the lines' own `y` accessors now (`LineChart` passes its `categories`). Nothing on the page changed, which was checked rather than assumed: the tooltip and the dots on the lines are the same before and after, in a screenshot of the member's dashboard with the pointer on the last month. Only the warning is gone.
+- **The Discord role mappings page asked for something it knew it would be refused** (`/acp/discord/role-mappings`): on every visit it asked for the roles of the Discord server, and on a site where Discord is not set up, which is every new site, the companion package answered 422 (`DISCORD_GUILD_ID is not configured`) and the browser logged that as a console error. The page already took the refusal as an empty list. The server says whether Discord is set up now (`discordConfigured`: `DISCORD_GUILD_ID` and `DISCORD_BOT_TOKEN` are both set) and the page asks only when it is.
+
+`tests/a11y/browser-says.ts` is a fixture for the specs that open pages expecting them to work, `main-flows.spec.ts` and `signed-in-flows.spec.ts`. It listens from the first request, and when the test is over it waits for the page to go quiet and fails the test, naming the page, if the browser said any of these: a console error or warning, an exception nobody caught, a request that failed, an answer of 400 or above, a content security policy violation (Chrome writes it to the console as an error). A request that the page or the browser cancelled itself (`net::ERR_ABORTED`: the page was left, or one visit was replaced by the next) is not a failure; the checkout case has one, the cookie banner's `POST /legal/consent` replaced by the visit that adds to the cart. A page in the check also talks to the site and to nothing else, so a WebSocket to another host fails it. That is how a build with a Pusher key shows (see [running it](#running-it)): without the rule such a page failed by chance, with "WebSocket is closed before the connection is established", whenever the page was left before the connection was made, on the one page of the 128 that happened to be. There is no list of things to ignore, so a page that makes a request that is certain to be refused has to stop making it, as the Discord page did.
+
+The site sends a content security policy, so something the page may not load or connect to is both a console error and, for a request, a failed one; both lines are in the failure.
+
+Proved before it was relied on (2026-11-16), in one browser, on the real pages and on a probe page: the three chart pages and the Discord page, with the old code put back, each fail with the line the browser wrote (the blog list only after a post has been viewed, because its chart is drawn from views, and the public pages are opened first in a full run); and nine probe cases that each make a page do one thing: a console error, a console warning, an uncaught exception, a request the network refuses, an answer of 404, a content security policy violation and a WebSocket to another host each fail with their own line, while a page that does nothing and a request the page cancels itself pass. With the exemption for cancelled requests removed, the last of those fails with `GET /login (net::ERR_ABORTED)`.
+
+The states do not use it (`states-flows.spec.ts`): they provoke refusals on purpose, and a form sent with nothing in it is answered 422, which the browser logs. The two phone specs open the pages the others do, and say nothing new about the console.
+
 ## Not built
 
 - Minor problems: the check does not fail on what axe marks minor.
@@ -104,6 +122,7 @@ The first scan asked for `target-size` in a way that did nothing: `AxeBuilder#di
 - Text over a photograph or a gradient, and text in the very top corners of the page, where the glow behind it is strongest: colour contrast there is not measured.
 - The states beyond the 28: the editor's own menus (the toolbar, the mention list), the other dialogs and confirmations of the admin area, the errors of the other forms, and the list of notifications with something in it (the member's has none). An empty list, and a page for a role that is not an administrator (an editor or a moderator sees fewer of the admin pages).
 - The admin page of a single order (it is found by an identifier that is different in every database).
+- The console after a click or a failure: what a page says as it loads and settles is listened to, what it says when a person clicks or sends a form is not (the 28 states provoke refusals on purpose).
 - CAPTCHA.
 
 The paths people take through the site, as opposed to the pages they open, are the smoke suite in [e2e-tests.md](e2e-tests.md).
@@ -112,4 +131,4 @@ The paths people take through the site, as opposed to the pages they open, are t
 
 A run that passes has to have run every rule. `axe.ts` gives axe a copy of its options each time and keeps its own frozen, and a run that did not run the whole set (two rules every page has, `html-has-lang` and `document-title`) fails with "axe ran 1 rule(s)". It did not always: `AxeBuilder#options` keeps the object it is given and `withRules` changes it, and the dark theme's run did, to `runOnly: color-contrast`, on the object every run shared. From the colour slice until the fix, every run after the first in a browser process then checked colour and nothing else. A browser process is started again only after a failure, so a run in which something failed was a full check from there on and a run in which nothing did was not: the three menus and the delete-account dialog that failed when this was fixed had passed in every green run since the states were added. Give axe a copy (`{ ...RUN_OPTIONS }`), never the shared object.
 
-`tests/a11y/main-flows.spec.ts` (the public pages), `tests/a11y/signed-in-flows.spec.ts` (the member and the administrator), `tests/a11y/states-flows.spec.ts` (what they show after a click or a failure), `tests/a11y/phone-flows.spec.ts` (the pages and six menus at 320 pixels) and `tests/a11y/states-phone.spec.ts` (the same states at 320 pixels); all five use `tests/a11y/axe.ts`, the pages in `tests/a11y/pages.ts` and the states in `tests/a11y/states.ts` where they have them, and the four that sign in use `tests/a11y/session.ts`. The run takes about 13 minutes: 317 cases (128 pages and 28 states, each in both themes, and 161 at a phone's width), one browser at a time, because PHP's built-in server answers one request at a time, from one SQLite file. `npx playwright test --config=tests/a11y/playwright.config.ts states-phone` runs one spec.
+`tests/a11y/main-flows.spec.ts` (the public pages), `tests/a11y/signed-in-flows.spec.ts` (the member and the administrator), `tests/a11y/states-flows.spec.ts` (what they show after a click or a failure), `tests/a11y/phone-flows.spec.ts` (the pages and six menus at 320 pixels) and `tests/a11y/states-phone.spec.ts` (the same states at 320 pixels); all five use `tests/a11y/axe.ts`, the pages in `tests/a11y/pages.ts` and the states in `tests/a11y/states.ts` where they have them, and the four that sign in use `tests/a11y/session.ts`. The first two take `test` from `tests/a11y/browser-says.ts` instead of from Playwright, which is what makes them listen to the console. The run takes about 14 minutes: 317 cases (128 pages and 28 states, each in both themes, and 161 at a phone's width), one browser at a time, because PHP's built-in server answers one request at a time, from one SQLite file. `npx playwright test --config=tests/a11y/playwright.config.ts states-phone` runs one spec.

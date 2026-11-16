@@ -1,8 +1,8 @@
-import { expect, test } from '@playwright/test';
 import { expectNoProblems } from './axe';
+import { expect, test } from './browser-says';
 import { publicPages } from './pages';
 
-/** The public paths a visitor walks (docs/accessibility.md, the list is in pages.ts). */
+/** The public paths a visitor walks (docs/accessibility.md, the list is in pages.ts). Each is also expected to leave the browser's console empty. */
 test.describe('main flows', () => {
     for (const entry of publicPages) {
         test(entry.name, async ({ page }) => {
