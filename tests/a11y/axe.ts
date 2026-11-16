@@ -57,18 +57,25 @@ const CONTRAST_OPTIONS = {
     textStrokeEmMin: 0.03,
 };
 
-const RUN_OPTIONS = {
+/**
+ * Frozen, and handed to AxeBuilder as a copy. AxeBuilder#options keeps the object it is given and its other methods change it (withRules sets
+ * `runOnly`, disableRules replaces `rules`), so an object shared by every run was changed by the first run that used one of them, and every run after it
+ * in that worker inherited the change. The dark theme's run did (`withRules(['color-contrast'])`), and a run in which nothing failed (a worker is only
+ * started again after a failure) went on to check the colour of every page after the first, and nothing else. A frozen object makes that a TypeError,
+ * and `expectStructureChecked` fails a run that did not check the rest.
+ */
+const RUN_OPTIONS = Object.freeze({
     // `label-content-name-mismatch` is a rule axe keeps off unless it is asked for: a link or button whose name leaves out the words shown on it.
     rules: { 'label-content-name-mismatch': { enabled: true } },
     checks: { 'color-contrast': { options: CONTRAST_OPTIONS } },
-};
+});
 
 /**
  * A menu that is open hides the page behind it from a screen reader (reka-ui sets aria-hidden on it) and keeps the keyboard inside the menu. axe cannot
  * tell, and reports the page as focusable content inside aria-hidden, and as having no main landmark, no heading and content outside any landmark.
  * Those four are not asked of that state. The page behind the menu is checked as every other page is, with the menu closed.
  */
-const WHILE_A_MENU_IS_OPEN = {
+const WHILE_A_MENU_IS_OPEN = Object.freeze({
     ...RUN_OPTIONS,
     rules: {
         ...RUN_OPTIONS.rules,
@@ -77,7 +84,7 @@ const WHILE_A_MENU_IS_OPEN = {
         'page-has-heading-one': { enabled: false },
         region: { enabled: false },
     },
-};
+});
 
 /**
  * The share of the text on a page whose colours axe has to be able to measure. The rest is text it cannot (on a photograph, on a gradient,
@@ -94,6 +101,19 @@ function expectMeasured(results: AxeResults, name: string): void {
         measured / Math.max(1, measured + unmeasured),
         `${name}: axe could measure the colours of ${measured} pieces of text and not of ${unmeasured}`,
     ).toBeGreaterThanOrEqual(MEASURED_AT_LEAST);
+}
+
+/**
+ * The rules that are not about colour ran. A run that was given the wrong options (see RUN_OPTIONS) reports nothing for the rules it did not run,
+ * and a page that passes is then as good as one that was never looked at. Two rules that every page has are in what ran, or the run fails.
+ */
+function expectStructureChecked(results: AxeResults, name: string): void {
+    const ran = new Set([...results.passes, ...results.violations].map((rule) => rule.id));
+
+    expect(
+        ran.has('html-has-lang') && ran.has('document-title'),
+        `${name}: axe ran ${ran.size} rule(s) (${[...ran].join(', ')}) and not the whole set; its options were changed by an earlier run`,
+    ).toBe(true);
 }
 
 function problemsIn(results: AxeResults): Result[] {
@@ -117,8 +137,9 @@ export async function expectNoProblems(page: Page, name: string, options: { menu
     await page.emulateMedia({ colorScheme: 'light' });
     await expect(page.locator('html'), `${name}: the page is dark in the light theme`).not.toHaveClass(/\bdark\b/);
 
-    const light = await new AxeBuilder({ page }).options(options.menuOpen ? WHILE_A_MENU_IS_OPEN : RUN_OPTIONS).analyze();
+    const light = await new AxeBuilder({ page }).options({ ...(options.menuOpen ? WHILE_A_MENU_IS_OPEN : RUN_OPTIONS) }).analyze();
 
+    expectStructureChecked(light, `${name} (light theme)`);
     expect(problemsIn(light), `${name} (light theme)\n${report(problemsIn(light))}`).toEqual([]);
     expectMeasured(light, `${name} (light theme)`);
 
@@ -126,7 +147,10 @@ export async function expectNoProblems(page: Page, name: string, options: { menu
     await expect(page.locator('html'), `${name}: the page did not turn dark`).toHaveClass(/\bdark\b/);
 
     // The other rules look at the structure of the page, which the theme does not change.
-    const dark = await new AxeBuilder({ page }).options(RUN_OPTIONS).withRules(['color-contrast']).analyze();
+    const dark = await new AxeBuilder({ page })
+        .options({ ...RUN_OPTIONS })
+        .withRules(['color-contrast'])
+        .analyze();
 
     expect(problemsIn(dark), `${name} (dark theme)\n${report(problemsIn(dark))}`).toEqual([]);
     expectMeasured(dark, `${name} (dark theme)`);
@@ -220,5 +244,6 @@ export async function expectFitsAPhone(page: Page, name: string, options: { menu
         .options({ ...base, rules: { ...base.rules, 'target-size': { enabled: true }, 'color-contrast': { enabled: false } } })
         .analyze();
 
+    expectStructureChecked(results, `${name} (${PHONE.width} px)`);
     expect(problemsIn(results), `${name} (${PHONE.width} px)\n${report(problemsIn(results))}`).toEqual([]);
 }
