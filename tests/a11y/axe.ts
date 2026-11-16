@@ -170,12 +170,53 @@ export const PHONE = { width: 320, height: 800 };
  */
 const WIDER_TEXT = 'body, body * { letter-spacing: 0.015em !important; }';
 
-/** Runs in the page: how far it scrolls sideways, and the elements that stick out of the screen (the innermost ones, not the boxes around them). */
-function whatSticksOut(): { scrollWidth: number; clientWidth: number; elements: string[] } {
+/**
+ * Runs in the page: how far it scrolls sideways, and the elements that stick out of the screen (the innermost ones, not the boxes around them);
+ * and what a dialog or a menu that is open does to a screen that is narrower than it. A dialog is fixed to the screen, so one that is wider than
+ * the screen is cut off on the right and the page does not scroll sideways to it: the first half of this does not see it, and it cannot be
+ * reached by anyone (the second half does).
+ */
+function whatSticksOut(): { scrollWidth: number; clientWidth: number; elements: string[]; overlays: string[] } {
     const clientWidth = document.documentElement.clientWidth;
     const scrollWidth = document.documentElement.scrollWidth;
 
-    if (scrollWidth <= clientWidth) return { scrollWidth, clientWidth, elements: [] };
+    const describe = (el: Element): string => {
+        const classes = (el.getAttribute('class') ?? '').split(/\s+/).filter(Boolean).slice(0, 4).join('.');
+        const text = (el.textContent ?? '').trim().slice(0, 40);
+
+        return `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ''}${classes ? `.${classes}` : ''} to ${Math.round(el.getBoundingClientRect().right)} px "${text}"`;
+    };
+
+    const overlays: string[] = [];
+
+    for (const overlay of Array.from(document.querySelectorAll('[role=dialog], [role=alertdialog], [role=menu]'))) {
+        // A dialog that has a scrollbar of its own sideways is the same fault as a page that has.
+        if (overlay.scrollWidth > overlay.clientWidth + 1)
+            overlays.push(`${describe(overlay)} scrolls sideways (${overlay.scrollWidth} px in ${overlay.clientWidth})`);
+
+        for (const el of [overlay, ...Array.from(overlay.querySelectorAll('*'))]) {
+            const box = el.getBoundingClientRect();
+
+            if (box.width === 0 || box.height === 0 || (box.right <= clientWidth + 1 && box.left >= -1)) continue;
+            if (getComputedStyle(el).visibility === 'hidden') continue;
+
+            // Something inside a box that scrolls or clips it, and that box is on the screen (a table in a dialog), is not off the screen.
+            let held = false;
+
+            for (let parent = el === overlay ? null : el.parentElement; parent && parent !== overlay; parent = parent.parentElement) {
+                const around = parent.getBoundingClientRect();
+
+                if (/(auto|scroll|hidden|clip)/.test(getComputedStyle(parent).overflowX) && around.right <= clientWidth + 1 && around.left >= -1) {
+                    held = true;
+                    break;
+                }
+            }
+
+            if (!held) overlays.push(describe(el));
+        }
+    }
+
+    if (scrollWidth <= clientWidth) return { scrollWidth, clientWidth, elements: [], overlays: overlays.slice(0, 5) };
 
     const out: Element[] = [];
 
@@ -208,12 +249,8 @@ function whatSticksOut(): { scrollWidth: number; clientWidth: number; elements: 
         elements: innermost
             .sort((a, b) => b.getBoundingClientRect().right - a.getBoundingClientRect().right)
             .slice(0, 5)
-            .map((el) => {
-                const classes = (el.getAttribute('class') ?? '').split(/\s+/).filter(Boolean).slice(0, 4).join('.');
-                const text = (el.textContent ?? '').trim().slice(0, 40);
-
-                return `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ''}${classes ? `.${classes}` : ''} to ${Math.round(el.getBoundingClientRect().right)} px "${text}"`;
-            }),
+            .map(describe),
+        overlays: overlays.slice(0, 5),
     };
 }
 
@@ -237,6 +274,10 @@ export async function expectFitsAPhone(page: Page, name: string, options: { menu
         sideways.scrollWidth,
         `${name}: the page is ${sideways.scrollWidth} px wide on a ${sideways.clientWidth} px screen, so it scrolls sideways\n  ${sideways.elements.join('\n  ')}`,
     ).toBeLessThanOrEqual(sideways.clientWidth);
+    expect(
+        sideways.overlays,
+        `${name}: part of a dialog or a menu is off a ${sideways.clientWidth} px screen, where the page does not scroll to it\n  ${sideways.overlays.join('\n  ')}`,
+    ).toEqual([]);
 
     // Everything goes in the one `rules` object: AxeBuilder#disableRules replaces it, which would drop what the options say about the rules.
     const base = options.menuOpen ? WHILE_A_MENU_IS_OPEN : RUN_OPTIONS;
