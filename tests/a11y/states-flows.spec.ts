@@ -42,6 +42,7 @@ const visitorStates: State[] = [
     {
         name: 'the colour theme menu',
         path: '/',
+        menuOpen: true,
         show: async (page) => {
             await page.getByRole('button', { name: 'Change colour theme' }).filter({ visible: true }).first().click();
             await expect(page.getByRole('menu')).toBeVisible();
@@ -85,6 +86,7 @@ const memberStates: State[] = [
     {
         name: 'the account menu',
         path: '/dashboard',
+        menuOpen: true,
         show: async (page) => {
             await page.getByRole('button', { name: /Account menu/ }).click();
             await expect(page.getByRole('menu')).toBeVisible();
@@ -167,6 +169,7 @@ const memberStates: State[] = [
     {
         name: 'the menu of a post',
         path: '/forum/announcements/welcome',
+        menuOpen: true,
         show: async (page) => {
             await page
                 .getByRole('button', { name: /^Actions for the post/ })

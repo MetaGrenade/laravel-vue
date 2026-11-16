@@ -46,6 +46,13 @@ export default defineConfigWithVueTs(
                     message:
                         'A button inside a link is interactive content inside interactive content. Make the button the link: <Button as-child><Link :href="...">Text</Link></Button> (docs/accessibility.md).',
                 },
+                // <Button> renders a <button>, so a button inside it is a button inside a button (axe: nested-interactive). The Button is the
+                // button: <Button type="submit">Text</Button>.
+                {
+                    selector: 'VElement[name=/^button$/] > VElement[name=/^button$/]',
+                    message:
+                        'A button inside a button is interactive content inside interactive content. <Button> already renders a <button>: give it the type and the text (docs/accessibility.md).',
+                },
             ],
         },
     },
