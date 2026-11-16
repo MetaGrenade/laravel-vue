@@ -227,6 +227,25 @@ class InstallCommandTest extends TestCase
     }
 
     #[Test]
+    public function enter_at_the_address_takes_the_one_composer_dev_serves(): void
+    {
+        // What a person who answers nothing gets, as the docs' quick start has them do: `.env.example` says http://localhost (port 80), and
+        // the address printed to sign in at must be one that `composer dev` (port 8000) answers on.
+        $this->artisan('metaforger:install', ['--no-storage-link' => true, '--app-name' => 'Site'])
+            ->expectsOutputToContain('http://localhost:8000 for `composer dev`')
+            ->expectsQuestion('Address of the site (APP_URL)', '')
+            ->expectsQuestion('Nickname', 'chief')
+            ->expectsQuestion('Email address', 'chief@example.test')
+            ->expectsQuestion('Password', self::PASSWORD)
+            ->expectsQuestion('Password again', self::PASSWORD)
+            ->expectsConfirmation('Create the tables in this database?', 'yes')
+            ->expectsOutputToContain('http://localhost:8000/login as chief@example.test')
+            ->assertSuccessful();
+
+        $this->assertStringContainsString("APP_URL=http://localhost:8000\n", $this->env());
+    }
+
+    #[Test]
     public function it_asks_again_when_the_answers_are_no_good(): void
     {
         $this->artisan('metaforger:install', ['--no-storage-link' => true, '--app-name' => 'Site', '--app-url' => 'http://site.test'])

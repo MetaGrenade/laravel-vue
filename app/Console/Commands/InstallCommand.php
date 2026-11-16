@@ -34,6 +34,13 @@ class InstallCommand extends Command
 {
     use ConfirmableTrait;
 
+    /**
+     * The address offered for a new site, and taken when the person presses Enter: where `composer dev` (the next thing docs/install.md has
+     * them run) starts the site. `.env.example` has `http://localhost`, which is port 80: the address the command then prints to sign in at
+     * would have nothing behind it.
+     */
+    private const DEFAULT_ADDRESS = 'http://localhost:8000';
+
     protected $signature = 'metaforger:install
         {--app-name= : Name of the site (APP_NAME). Asked for when there is no .env yet}
         {--app-url= : Address the site is served from (APP_URL). Asked for when there is no .env yet}
@@ -188,8 +195,13 @@ class InstallCommand extends Command
         }
 
         if ($url === null && $fresh && $this->input->isInteractive()) {
-            $this->line('  The address you will open the site at: http://localhost:8000 for `php artisan serve`, or the .test address under Herd.');
-            $url = $this->ask('Address of the site (APP_URL)', $example->get('APP_URL') ?? 'http://localhost');
+            $this->line('  The address you will open the site at: '.self::DEFAULT_ADDRESS.' for `composer dev` or `php artisan serve`, or the .test address under Herd.');
+            $url = $this->ask('Address of the site (APP_URL)', self::DEFAULT_ADDRESS);
+
+            // Enter on its own is the address that was offered.
+            if (! is_string($url) || trim($url) === '') {
+                $url = self::DEFAULT_ADDRESS;
+            }
         }
 
         if (is_string($name) && $name !== '') {

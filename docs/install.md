@@ -12,7 +12,7 @@ npm run build
 composer dev
 ```
 
-It asks for the name and address of the site, then for the administrator's nickname, email address and password, and shows what it did. Open the address it prints and sign in.
+It asks for the name and address of the site (Enter alone takes `http://localhost:8000`, where `composer dev` serves it; under Herd or Valet type the `.test` address), then for the administrator's nickname, email address and password, shows the database it is about to create the tables in and asks you to confirm it, and shows what it did. Open the address it prints and sign in.
 
 You need PHP 8.4 with the extensions in the README's [Prerequisites](../README.md#prerequisites), Composer 2, Node.js and a database. The command checks the PHP side itself and says what is missing before it changes anything. It does not install PHP, Composer, Node or a database server, and it does not run `npm`: the front end is built by `npm run build`, here and on every deploy.
 
@@ -22,9 +22,9 @@ You need PHP 8.4 with the extensions in the README's [Prerequisites](../README.m
 | --- | --- | --- |
 | 1 | **Looks at the machine.** Writes nothing. | A list of what it found. A line marked `FAIL` stops the command; the others are advice. |
 | 2 | **Asks what it needs** and checks the answers: the address must start with `http://` or `https://`, the email must be an email, the password must pass the site's password rules. | Questions, or the options you gave. |
-| 3 | **Makes `.env`** from `.env.example` when there is none, and sets `APP_NAME` and `APP_URL`. | `Making .env from .env.example` |
+| 3 | **Makes `.env`** from `.env.example` when there is none, and sets `APP_NAME` and `APP_URL`. A `.env` that is there is kept, and then nothing is asked about the name and the address (see the note below the table). | `Making .env from .env.example` |
 | 4 | **Makes the application key** when the site has none. A key that is there is never replaced. | `Making the application key` |
-| 5 | **Creates the tables.** Makes the SQLite file when that is the database. Runs the migrations that have not run, nothing else. It reads the database the way Laravel connects to it, so a `DB_URL` counts: it can name another driver, a host or another SQLite file. | The database it will use (without its password), and how many migrations ran. |
+| 5 | **Creates the tables.** Makes the SQLite file when that is the database. Runs the migrations that have not run, nothing else. It reads the database the way Laravel connects to it, so a `DB_URL` counts: it can name another driver, a host or another SQLite file. When you are there to answer, it asks "Create the tables in this database?" first, and `n` stops it before any table is made (the `.env` and the key of the two steps before it are already written; run it again to carry on). | The database it will use (without its password), and how many migrations ran. |
 | 6 | **Links `public/storage`** to `storage/app/public`, where public uploads (product pictures, blog covers) are served from. | `linked`, or `already linked` |
 | 7 | **Adds the roles and their permissions, the support categories and the reputation badges.** | `Adding roles, support categories and badges` |
 | 8 | **Makes the administrator.** The account is verified and given the `admin` role by name, whatever its id turns out to be. | `Making the administrator` |
@@ -33,6 +33,8 @@ You need PHP 8.4 with the extensions in the README's [Prerequisites](../README.m
 | 11 | **Tells you what is left**: where to sign in, building the front end, the queue worker and the scheduler, the legal pages, mail and Stripe. | A list |
 
 Steps 1 and 2 happen before anything is written, so a missing PHP extension, a mistyped address or a missing password leaves the checkout as it was.
+
+**The name and the address are asked only when there is no `.env`.** `composer setup` makes one (and the key, and runs the migrations), so the installer run after it asks nothing about them and `APP_URL` stays `http://localhost`, which is port 80: the address it prints to sign in at would not answer when the site is started with `composer dev`. After `composer setup`, give them with the command, `php artisan metaforger:install --app-url=http://localhost:8000 --app-name="My site"`, or set `APP_URL` and `APP_NAME` in `.env` first.
 
 ### What it never does
 
@@ -50,7 +52,7 @@ Ask `php artisan metaforger:install --help` for the same list.
 | Option | |
 | --- | --- |
 | `--app-name=` | The name of the site (`APP_NAME`). Asked for when there is no `.env`; given, it is set in an existing `.env` too. |
-| `--app-url=` | The address the site is served from (`APP_URL`): `http://localhost:8000` for `php artisan serve`, or the `.test` address under Herd or Valet. Asked for when there is no `.env`. |
+| `--app-url=` | The address the site is served from (`APP_URL`): `http://localhost:8000` for `composer dev` and `php artisan serve`, or the `.test` address under Herd or Valet. Asked for when there is no `.env`, with `http://localhost:8000` offered; given, it is set in an existing `.env` too. |
 | `--admin-nickname=`, `--admin-email=`, `--admin-password=` | The first administrator. Without a person to ask (`--no-interaction`, a script, CI) all three are needed. |
 | `--skip-admin` | Do not make an administrator. |
 | `--demo` | Add the demo data (see [Demo data](#demo-data)). |
