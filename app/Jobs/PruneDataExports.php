@@ -20,7 +20,8 @@ use Illuminate\Support\Facades\Storage;
  *
  * Two passes:
  *  1. an export the window of which is over and that still names a file loses the file (the row stays, as the record that the
- *     member asked, with no file);
+ *     member asked, with no file). Only a file of the exports directory is deleted: a row saved before staff were held to that
+ *     can name any file on the private disk, and that file is not this job's to delete (DataExport::purgeExpiredFile());
  *  2. a file in the exports directory that no row names and that is older than two windows is deleted: a deleted member's, or one
  *     a job wrote and then could not record. A younger one may be a job that has just written it, so it is left.
  */

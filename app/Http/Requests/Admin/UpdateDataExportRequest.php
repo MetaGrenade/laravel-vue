@@ -19,7 +19,7 @@ class UpdateDataExportRequest extends FormRequest
             'status' => ['required', Rule::in(DataExport::STATUSES)],
             // The member downloads whatever this names, and PruneDataExports deletes it: so it has to be a file in the exports directory
             // and not another file on the private disk (a support attachment, a forum attachment, a digital product).
-            'file_path' => ['nullable', 'string', 'max:255', 'regex:#^'.preg_quote(DataExport::DIRECTORY, '#').'/[A-Za-z0-9][A-Za-z0-9._-]*$#D'],
+            'file_path' => ['nullable', 'string', 'max:255', 'regex:'.DataExport::pathPattern()],
             'failure_reason' => ['nullable', 'string'],
             'completed_at' => ['nullable', 'date'],
         ];

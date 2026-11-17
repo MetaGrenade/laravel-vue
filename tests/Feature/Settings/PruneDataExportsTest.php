@@ -11,6 +11,8 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -221,6 +223,88 @@ class PruneDataExportsTest extends TestCase
 
         $this->assertNull($export->fresh()->file_path);
         $this->assertSame([], Storage::disk('local')->files('exports'));
+    }
+
+    /**
+     * What a row can name on a site that upgraded: staff could save any string as the path, and a row made then is still there.
+     *
+     * @return array<string, array{string}>
+     */
+    public static function pathsSavedBeforeTheRule(): array
+    {
+        return [
+            'a support attachment' => ['support-attachments/ticket-1/invoice.pdf'],
+            'a forum attachment' => ['forum-attachments/12/photo.webp'],
+            'a product download' => ['products/12/game.zip'],
+            'a file in a folder of the exports directory' => ['exports/2026/user-1.zip'],
+            'a way out of the exports directory' => ['exports/../support-attachments/ticket-1/invoice.pdf'],
+            'a hidden file of the exports directory' => ['exports/.gitignore'],
+            'a file at the root' => ['stray.zip'],
+        ];
+    }
+
+    /**
+     * A row that names another file, and (where the path is a real one) that file with something in it.
+     */
+    private function legacyExport(string $path, int $secondsAgo): DataExport
+    {
+        // Where the file really is: the path may read as a way out of exports/, and the file is at the end of it.
+        $real = str_contains($path, '..') ? 'support-attachments/ticket-1/invoice.pdf' : $path;
+        $this->file($real, 5 * 86400);
+
+        return DataExport::factory()->for(User::factory()->create())->create([
+            'status' => DataExport::STATUS_COMPLETED,
+            'file_path' => $path,
+            'completed_at' => now()->subSeconds($secondsAgo),
+        ]);
+    }
+
+    #[Test]
+    #[DataProvider('pathsSavedBeforeTheRule')]
+    public function an_expired_export_that_names_another_file_forgets_it_and_the_file_is_not_deleted(string $path): void
+    {
+        $export = $this->legacyExport($path, 40 * 60);
+        $real = str_contains($path, '..') ? 'support-attachments/ticket-1/invoice.pdf' : $path;
+
+        $this->prune();
+
+        Storage::disk('local')->assertExists($real);
+        $this->assertNull($export->fresh()->file_path, 'the row no longer names it');
+    }
+
+    #[Test]
+    #[DataProvider('pathsSavedBeforeTheRule')]
+    public function the_privacy_page_does_not_delete_it_either_and_does_not_offer_it(string $path): void
+    {
+        $expired = $this->legacyExport($path, 40 * 60);
+        $open = $this->legacyExport($path, 5 * 60);
+        $real = str_contains($path, '..') ? 'support-attachments/ticket-1/invoice.pdf' : $path;
+
+        $this->assertFalse($expired->isReady());
+        $this->assertFalse($open->isReady(), 'an export inside its window is not ready when what it names is not an export');
+        Storage::disk('local')->assertExists($real);
+    }
+
+    #[Test]
+    #[DataProvider('pathsSavedBeforeTheRule')]
+    public function the_download_link_does_not_serve_a_file_that_is_not_an_export(string $path): void
+    {
+        $open = $this->legacyExport($path, 5 * 60);
+
+        $this->actingAs($open->user)
+            ->get(URL::temporarySignedRoute('privacy.exports.download', now()->addMinutes(5), ['export' => $open->id]))
+            ->assertNotFound();
+    }
+
+    #[Test]
+    public function the_pattern_is_the_one_staff_are_held_to_and_a_real_export_matches_it(): void
+    {
+        $this->assertSame(1, preg_match(DataExport::pathPattern(), 'exports/user-4-20261116_120000.zip'));
+        $this->assertSame(0, preg_match(DataExport::pathPattern(), "exports/user-4.zip\n"));
+
+        $this->assertTrue((new DataExport(['file_path' => 'exports/user-4-20261116_120000.zip']))->namesAnExportFile());
+        $this->assertFalse((new DataExport(['file_path' => null]))->namesAnExportFile());
+        $this->assertFalse((new DataExport(['file_path' => 'products/12/game.zip']))->namesAnExportFile());
     }
 
     #[Test]
