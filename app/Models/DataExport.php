@@ -33,6 +33,11 @@ class DataExport extends Model
     public const DOWNLOAD_TTL_MINUTES = 30;
 
     /**
+     * Where, on the `local` disk, the zip of an export is written. Nothing else is kept there, and PruneDataExports empties it.
+     */
+    public const DIRECTORY = 'exports';
+
+    /**
      * @var list<string>
      */
     protected $fillable = [
@@ -61,9 +66,26 @@ class DataExport extends Model
         return in_array($this->status, [self::STATUS_PENDING, self::STATUS_PROCESSING], true);
     }
 
+    /**
+     * The pattern a path has to match to be the file of an export: a file directly in the exports directory.
+     *
+     * Staff could once save any string as the path (any file on the private disk: a support attachment, a product download), and the
+     * row of such an export is still in the database of a site that upgraded. So this is asked of the path that is STORED, wherever
+     * the site opens, serves or deletes it, and not only of what staff type now (UpdateDataExportRequest).
+     */
+    public static function pathPattern(): string
+    {
+        return '#^'.preg_quote(self::DIRECTORY, '#').'/[A-Za-z0-9][A-Za-z0-9._-]*$#D';
+    }
+
+    public function namesAnExportFile(): bool
+    {
+        return is_string($this->file_path) && preg_match(self::pathPattern(), $this->file_path) === 1;
+    }
+
     public function isReady(): bool
     {
-        if ($this->status !== self::STATUS_COMPLETED || ! $this->file_path) {
+        if ($this->status !== self::STATUS_COMPLETED || ! $this->file_path || ! $this->namesAnExportFile()) {
             return false;
         }
 
@@ -100,7 +122,9 @@ class DataExport extends Model
             return;
         }
 
-        if (Storage::disk('local')->exists($this->file_path)) {
+        // Only a file of the exports directory is deleted. A path saved before staff were held to that (any private file) is forgotten by
+        // the row and its file is left alone: PruneDataExports calls this for every expired row, with nobody looking.
+        if ($this->namesAnExportFile() && Storage::disk('local')->exists($this->file_path)) {
             Storage::disk('local')->delete($this->file_path);
         }
 
