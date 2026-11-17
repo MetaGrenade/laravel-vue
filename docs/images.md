@@ -51,6 +51,8 @@ php artisan metaforger:blog:covers:upgrade
 
 Each cover is drawn again, the posts and the revisions that named the old file name the new one, and the old file is removed once nothing points at it. A cover whose file is gone, or that is not a picture the site accepts, is reported and left alone. It changes no post's *updated* time, and running it again does nothing. Run it when nobody is editing the covers; one that is replaced while it runs is noticed, and what the command had just drawn for it is removed again.
 
+The files of a cover go when its post is deleted. Those left by posts deleted before that are cleared by `php artisan metaforger:blog:covers:prune` ([blog-covers.md](blog-covers.md#files-nobody-names)).
+
 ## Using a CDN
 
 All public picture addresses come from one disk setting, so a CDN needs no change to a page:

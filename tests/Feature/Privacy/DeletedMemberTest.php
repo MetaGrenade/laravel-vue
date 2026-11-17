@@ -17,8 +17,10 @@ use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
+use RuntimeException;
 use Spatie\Permission\Models\Role;
 use Tests\Support\PopulatesAMember;
 use Tests\TestCase;
@@ -41,6 +43,7 @@ class DeletedMemberTest extends TestCase
         parent::setUp();
 
         Storage::fake('local');
+        Storage::fake('public');
 
         // Where sessions are kept in the database, a deleted member's are deleted with them (the tests run on `array`).
         config(['session.driver' => 'database']);
@@ -97,11 +100,11 @@ class DeletedMemberTest extends TestCase
             $this->assertSame($count / 2, $after[$table], "$table: only the other member's rows remain (a staff member made for the test owns none)");
         }
 
-        foreach ($mine['files'] as $path) {
-            Storage::disk('local')->assertMissing($path);
+        foreach ($mine['files'] as [$disk, $path]) {
+            Storage::disk($disk)->assertMissing($path);
         }
-        foreach ($theirs['files'] as $path) {
-            Storage::disk('local')->assertExists($path);
+        foreach ($theirs['files'] as [$disk, $path]) {
+            Storage::disk($disk)->assertExists($path);
         }
     }
 
@@ -227,11 +230,34 @@ class DeletedMemberTest extends TestCase
         $this->assertNull($member->fresh(), 'the account is gone');
         Exceptions::assertReported(InvalidArgumentException::class);
 
-        foreach ($mine['files'] as $path) {
-            Storage::disk('local')->assertMissing($path);
+        foreach ($mine['files'] as [$disk, $path]) {
+            Storage::disk($disk)->assertMissing($path);
         }
         $this->assertSame(0, DB::table('personal_access_tokens')->count());
         $this->assertSame(0, DB::table('notifications')->count());
+    }
+
+    #[Test]
+    public function a_file_the_disk_would_not_delete_is_reported_and_the_rest_carries_on(): void
+    {
+        // A disk set not to throw (the public one is) says `false` for a file it could not delete, and nothing said so.
+        Exceptions::fake();
+
+        $member = User::factory()->create();
+        $mine = $this->populate($member);
+        $stuck = collect($mine['files'])->first(fn (array $file) => $file[0] === 'public')[1];
+
+        $real = Storage::disk('public');
+        $disk = Mockery::mock($real);
+        $disk->shouldReceive('delete')->andReturnUsing(fn ($path) => $path === $stuck ? false : $real->delete($path));
+        Storage::set('public', $disk);
+
+        $member->delete();
+
+        $this->assertNull($member->fresh(), 'the account is gone');
+        Exceptions::assertReported(fn (RuntimeException $exception) => str_contains($exception->getMessage(), $stuck));
+        $this->assertSame(0, DB::table('personal_access_tokens')->count());
+        Storage::disk('local')->assertMissing($mine['files'][0][1]);
     }
 
     #[Test]

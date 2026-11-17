@@ -65,7 +65,7 @@ Changing how the site looks, what language it speaks, and what it can do.
 
 ## The blog
 
-- [Blog covers](blog-covers.md): a post's cover picture and the sizes kept.
+- [Blog covers](blog-covers.md): a post's cover picture, the sizes kept, and the files that go when a post is deleted.
 - [Blog permissions](blog-permissions.md): who may do what in the blog's admin screens.
 
 ## Members and community

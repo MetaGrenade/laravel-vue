@@ -2,11 +2,17 @@
 
 namespace App\Support\Blog;
 
+use App\Models\Blog;
+use App\Models\BlogRevision;
 use App\Support\Commerce\Catalogue\ImageProcessor;
 use App\Support\Commerce\Catalogue\ImageRejected;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RuntimeException;
+use Throwable;
 
 /**
  * A blog cover is a public picture, so it is decoded and saved again as WebP before it is stored.
@@ -26,7 +32,31 @@ class BlogCovers
     /** The other sizes, smallest first, by the name they carry and the width they are made at. */
     public const WIDTHS = ['small' => 480, 'medium' => 960];
 
+    /** Where covers are kept, on the public disk. A cover is a file directly in it. */
+    public const DIRECTORY = 'blog-covers';
+
+    /** A file that no post names is left alone until it is this old: a cover is written before the row that names it. */
+    public const STRAY_MINUTES = 60;
+
     public function __construct(private ImageProcessor $images) {}
+
+    /**
+     * What a path that is a cover looks like: a file directly in the covers directory, named by letters, digits, dots, dashes and
+     * underscores, and not starting with a dot. It is the shape of every name this class makes and of the ones the first version made
+     * (`blog-covers/{40 random characters}.jpg`).
+     *
+     * The paths are kept in the rows and nothing else says they are covers, so whatever deletes a file because a row names it asks
+     * this of the stored value: a row that names another file of the public disk (a product picture) does not make it the cover's.
+     */
+    public static function pathPattern(): string
+    {
+        return '#^'.preg_quote(self::DIRECTORY, '#').'/[A-Za-z0-9][A-Za-z0-9._-]*$#D';
+    }
+
+    public function isCoverPath(?string $path): bool
+    {
+        return is_string($path) && preg_match(self::pathPattern(), $path) === 1;
+    }
 
     /**
      * @return string The path to keep on the post: the largest size.
@@ -64,13 +94,127 @@ class BlogCovers
     }
 
     /**
-     * Remove a cover: every file it has. Nothing happens for no cover.
+     * Remove a cover: every file it has. Nothing happens for no cover, or for a path that is not a cover's (see {@see self::pathPattern()}).
+     *
+     * @return bool False when a file could not be deleted (the public disk is set not to throw, so that is how it says so).
      */
-    public function delete(?string $path): void
+    public function delete(?string $path): bool
     {
-        if (is_string($path) && $path !== '') {
-            Storage::disk('public')->delete($this->files($path));
+        if (! $this->isCoverPath($path)) {
+            return true;
         }
+
+        return Storage::disk('public')->delete($this->files((string) $path));
+    }
+
+    /**
+     * Remove covers a post was deleted with, and say so if a disk cannot be reached rather than undo a deletion that has happened.
+     *
+     * @param  list<string>  $paths  From {@see self::pathsOfPosts()}.
+     */
+    public function forget(array $paths): void
+    {
+        foreach ($paths as $path) {
+            try {
+                // The public disk does not throw (config/filesystems.php): a file it cannot delete is `false`.
+                if (! $this->delete($path)) {
+                    report(new RuntimeException("The files of the cover $path could not all be deleted."));
+                }
+            } catch (Throwable $exception) {
+                report($exception);
+            }
+        }
+    }
+
+    /**
+     * The covers of some posts, and of their revisions, as the paths the rows keep. Ask BEFORE the posts are deleted: their revisions go
+     * with them (a cascade, which runs no model event), and the rows are the only thing that says which files were theirs.
+     *
+     * A path is left out when it is not a cover's, and when a post that is not one of these, or a revision of one, names it as well.
+     *
+     * @param  EloquentBuilder<Blog>|QueryBuilder  $posts  A query that selects the `id` of the posts.
+     * @return list<string>
+     */
+    public function pathsOfPosts(EloquentBuilder|QueryBuilder $posts): array
+    {
+        $paths = Blog::query()->toBase()->whereIn('id', $posts)->whereNotNull('cover_image')->distinct()->pluck('cover_image')
+            ->merge(BlogRevision::query()->toBase()->whereIn('blog_id', $posts)->whereNotNull('cover_image')->distinct()->pluck('cover_image'))
+            ->filter(fn ($path) => $this->isCoverPath($path))
+            ->unique()
+            ->values();
+
+        $shared = [];
+
+        foreach ($paths->chunk(500) as $chunk) {
+            $names = $chunk->values()->all();
+
+            foreach (Blog::query()->toBase()->whereIn('cover_image', $names)->whereNotIn('id', $posts)->distinct()->pluck('cover_image') as $path) {
+                $shared[$path] = true;
+            }
+
+            foreach (BlogRevision::query()->toBase()->whereIn('cover_image', $names)->whereNotIn('blog_id', $posts)->distinct()->pluck('cover_image') as $path) {
+                $shared[$path] = true;
+            }
+        }
+
+        return $paths->reject(fn ($path) => isset($shared[$path]))->values()->all();
+    }
+
+    /**
+     * Every file a cover is kept in, for the ones that carry the files of somebody else's deletion (a member's posts).
+     *
+     * @return list<string>
+     */
+    public function filesOf(string $path): array
+    {
+        return $this->isCoverPath($path) ? $this->files($path) : [];
+    }
+
+    /**
+     * Files in the covers directory that no post and no revision names, and that are old enough not to be one that is being saved.
+     * A cover that was never deleted with its post, or whose save failed after the file was written, leaves them.
+     *
+     * @return list<string>
+     */
+    public function strays(): array
+    {
+        $disk = Storage::disk('public');
+        $named = [];
+
+        foreach ($this->named() as $path) {
+            foreach ($this->files($path) as $file) {
+                $named[$file] = true;
+            }
+        }
+
+        $limit = now()->subMinutes(self::STRAY_MINUTES)->getTimestamp();
+        $strays = [];
+
+        foreach ($disk->files(self::DIRECTORY) as $file) {
+            // `.gitignore` and anything else that is not named like a cover is not one, whoever put it there.
+            if (isset($named[$file]) || ! $this->isCoverPath($file)) {
+                continue;
+            }
+
+            if ($disk->lastModified($file) <= $limit) {
+                $strays[] = $file;
+            }
+        }
+
+        return $strays;
+    }
+
+    /**
+     * @return list<string> Every cover path a post or a revision keeps.
+     */
+    private function named(): array
+    {
+        return Blog::query()->toBase()->whereNotNull('cover_image')->distinct()->pluck('cover_image')
+            ->merge(BlogRevision::query()->toBase()->whereNotNull('cover_image')->distinct()->pluck('cover_image'))
+            ->filter(fn ($path) => is_string($path) && $path !== '')
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**

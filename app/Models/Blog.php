@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\SanitizedHtml;
 use App\Models\Concerns\HasSearchDocument;
+use App\Support\Blog\BlogCovers;
 use App\Support\Search\SearchText;
 use App\Support\Text\PlainText;
 use Carbon\CarbonInterface;
@@ -70,7 +71,25 @@ class Blog extends Model
                 $blog->setAttribute('body_text', PlainText::of($blog->body));
             }
         });
+
+        // The cover's files go with the post. Its revisions are deleted with it by the database, which runs no hook, and the rows are
+        // the only thing that says which files were theirs, so the files are found before the post goes and removed after.
+        static::deleting(function (Blog $blog) {
+            $blog->coverPathsToForget = app(BlogCovers::class)->pathsOfPosts(Blog::query()->whereKey($blog->getKey())->select('id'));
+        });
+
+        static::deleted(function (Blog $blog) {
+            app(BlogCovers::class)->forget($blog->coverPathsToForget);
+            $blog->coverPathsToForget = [];
+        });
     }
+
+    /**
+     * The covers this post is being deleted with, found by `deleting` and removed by `deleted`.
+     *
+     * @var list<string>
+     */
+    private array $coverPathsToForget = [];
 
     /**
      * A blog post belongs to a user (author).

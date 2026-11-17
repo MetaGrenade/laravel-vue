@@ -2,17 +2,20 @@
 
 namespace App\Support\Privacy;
 
+use App\Models\Blog;
 use App\Models\DataExport;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\SupportTicketMessageAttachment;
 use App\Models\TokenLog;
 use App\Models\User;
+use App\Support\Blog\BlogCovers;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -25,8 +28,8 @@ use Throwable;
  *    keys and the log of every request made with them (the address, the fields sent, the answers), notifications, the address book,
  *    entitlements, browser sessions, and the Discord rows of the Discord package;
  *  - files on a disk. A cascade runs inside the database and fires no model event, so the `deleting` hooks that unlink a file never
- *    run: the zip of a data export and the attachments of the member's support tickets stayed for good (the forum's attachments are
- *    handled in User::booted() already).
+ *    run: the zip of a data export, the attachments of the member's support tickets and the covers of the posts they wrote stayed for
+ *    good (the forum's attachments are handled in User::booted() already).
  *
  * `filesOf()` has to run BEFORE the account is deleted, because the cascade takes the rows that name the files with it; `forget()`
  * runs after. See docs/account-deletion.md for what is kept on purpose (orders, payments, invoices, subscriptions, the audit log and
@@ -72,6 +75,16 @@ class MemberLeftovers
             }
         }
 
+        // The covers of the posts the member wrote, which go with them (Blog::deleting() would remove them one post at a time; a
+        // cascade does not run it). They are on the public disk, at every size.
+        $covers = app(BlogCovers::class);
+
+        foreach ($covers->pathsOfPosts(Blog::query()->where('user_id', $user->getKey())->select('id')) as $path) {
+            foreach ($covers->filesOf($path) as $file) {
+                $files[] = ['disk' => 'public', 'path' => $file];
+            }
+        }
+
         return $files;
     }
 
@@ -86,7 +99,10 @@ class MemberLeftovers
     {
         foreach ($files as $file) {
             try {
-                Storage::disk($file['disk'])->delete($file['path']);
+                // A disk set not to throw (the public one is) says `false` for a file it could not delete.
+                if (! Storage::disk($file['disk'])->delete($file['path'])) {
+                    report(new RuntimeException("The file {$file['path']} on the {$file['disk']} disk could not be deleted."));
+                }
             } catch (Throwable $exception) {
                 report($exception);
             }
