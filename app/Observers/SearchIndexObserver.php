@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\ForumPost;
 use App\Models\ForumThread;
+use App\Support\Search\SearchDriver;
 
 /**
  * A reply is part of its thread's search document. Saving or deleting one
@@ -90,8 +91,6 @@ class SearchIndexObserver
 
     private function idle(): bool
     {
-        $driver = config('scout.driver');
-
-        return $driver === 'null' || $driver === null || $driver === '';
+        return ! SearchDriver::keepsAnIndex();
     }
 }

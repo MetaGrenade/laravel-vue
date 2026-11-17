@@ -11,6 +11,8 @@ use App\Support\Notifications\EmailDigest;
 use App\Support\Notifications\RecordsForDigest;
 use App\Support\Notifications\SplitDelivery;
 use App\Support\Privacy\MemberLeftovers;
+use App\Support\Search\CascadedDocuments;
+use App\Support\Search\DocumentsLeaving;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -24,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Notifications\Notification as BaseNotification;
+use Illuminate\Support\Facades\DB;
 use Laravel\Cashier\Billable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
@@ -46,6 +49,12 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
      * @var list<array{disk: string, path: string}>
      */
     private array $filesToForget = [];
+
+    /**
+     * The search documents that go with this account (its threads and its blog posts) and the threads whose document holds one of its
+     * replies, found by the `deleting` hook for the `deleted` one to ask the index about. Not an attribute: it is never saved.
+     */
+    private ?DocumentsLeaving $documentsLeaving = null;
 
     /**
      * The language of what is sent to this person, an email or a notice in the site, whoever caused it and whatever language that
@@ -93,6 +102,21 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
 
             // The same for the zip of an export and the attachments of their tickets, which are unlinked once the account is gone.
             $user->filesToForget = app(MemberLeftovers::class)->filesOf($user);
+
+            // And the search index, which is not told of a row the database removes: the threads and the blog posts they wrote go from it,
+            // and a thread of somebody else that has one of their visible replies in its document is made again without it.
+            $user->documentsLeaving = app(CascadedDocuments::class)->before(
+                [
+                    ForumThread::class => DB::table('forum_threads')->where('user_id', $user->id),
+                    Blog::class => DB::table('blogs')->where('user_id', $user->id),
+                ],
+                fn (): array => ForumPost::query()
+                    ->where('user_id', $user->id)
+                    ->distinct()
+                    ->pluck('forum_thread_id')
+                    ->map(fn (mixed $id): int => (int) $id)
+                    ->all(),
+            );
         });
         static::saved(fn () => SupportAssignmentRule::flushCache());
         static::deleted(function (User $user): void {
@@ -101,6 +125,9 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
             // The rows the database cannot cascade (they have no foreign key to the user) and the files found above.
             app(MemberLeftovers::class)->forget($user, $user->filesToForget);
             $user->filesToForget = [];
+
+            app(CascadedDocuments::class)->after($user->documentsLeaving);
+            $user->documentsLeaving = null;
         });
         static::registerModelEvent('forceDeleted', fn () => SupportAssignmentRule::flushCache());
     }
