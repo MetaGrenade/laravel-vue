@@ -106,6 +106,7 @@ Then point `.env` at them. Unless `DB_DATABASE` and `DB_PASSWORD` are set in `.e
 | `php artisan support:attachments:privatize [--dry-run]` | Move support attachments from the public disk to the private one. |
 | `php artisan metaforger:blog:covers:upgrade` | Draw blog covers again at every size ([Pictures](images.md)). |
 | `php artisan metaforger:blog:covers:prune [--dry-run]` | Delete the files in `blog-covers/` that no post names ([Blog covers](blog-covers.md#files-nobody-names)). |
+| `php artisan metaforger:forum:attachments:prune [--dry-run]` | Delete the forum attachment files that no attachment names ([Pictures and files](forum-attachments.md#files-nobody-names)). |
 | `php artisan metaforger:members:forget-leftovers [--dry-run]` | Delete what accounts deleted by an earlier version left behind ([Deleting an account](account-deletion.md)). |
 
 Checking your work (`vendor/bin/pint`, `composer analyse`, `php artisan test`, `npm run lint:check`, `npm run types:check`, `npm run format:check` and the rest) is in [CONTRIBUTING.md](../CONTRIBUTING.md#checks). Tests use an in-memory SQLite database whatever `.env` says, so they never touch your data.

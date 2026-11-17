@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 /**
  * A picture or file kept with a forum post (docs/forum-attachments.md).
@@ -33,10 +34,24 @@ class ForumAttachment extends Model
     protected static function booted(): void
     {
         static::deleting(function (ForumAttachment $attachment): void {
-            if ($attachment->path) {
-                Storage::disk((string) $attachment->disk)->delete($attachment->path);
-            }
+            $attachment->deleteFile();
         });
+    }
+
+    /**
+     * Delete the file this row names. The disks are set not to throw, so a file the disk refuses to delete comes back as `false`
+     * and nothing said so: it is reported here, with its name, so that it can be deleted by hand. A disk the site has no
+     * configuration for still throws.
+     */
+    public function deleteFile(): void
+    {
+        if (! $this->path) {
+            return;
+        }
+
+        if (! Storage::disk((string) $this->disk)->delete($this->path)) {
+            report(new RuntimeException("The file {$this->path} of the forum attachment {$this->getKey()} could not be deleted."));
+        }
     }
 
     /**
