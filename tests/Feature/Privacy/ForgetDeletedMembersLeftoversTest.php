@@ -30,6 +30,7 @@ class ForgetDeletedMembersLeftoversTest extends TestCase
         parent::setUp();
 
         Storage::fake('local');
+        Storage::fake('public');
 
         config(['session.driver' => 'database']);
     }

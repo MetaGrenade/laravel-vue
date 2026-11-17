@@ -27,6 +27,7 @@ Both end the member's Stripe subscriptions first. If Stripe cannot be reached no
 | **The Discord package's rows** (`discord_user_sync_states`, `discord_notification_preferences`, `discord_sync_failures`) | The package's tables have no foreign key | Deleted, if the tables exist |
 | **The zip of a data export** | The row cascades; the file does not, because a cascade runs inside the database and fires no model event, so the `deleting` hook that unlinks a file never runs | Unlinked. Only a file inside `exports/` is taken: a row that names any other path is not the member's to delete (see [private-uploads.md](private-uploads.md#data-export-files)) |
 | **The attachments of the member's own tickets** | The same | Unlinked. What a member of staff attached to somebody else's ticket stays with that ticket |
+| **The covers of the posts the member wrote** | The posts cascade; their covers are files on the public disk | Every size of each cover, and every cover their revisions name, is unlinked, unless another post names the same file ([blog-covers.md](blog-covers.md#deleting-a-post)) |
 
 The files are found **before** the account is deleted (the rows that name them go with it) and unlinked **after**. A disk that cannot be reached does not undo a deletion that has already happened: the error is reported and the rest carries on.
 
@@ -55,11 +56,10 @@ php artisan metaforger:members:forget-leftovers
 
 The first counts and deletes nothing; the second deletes. It finds the rows by their account **not being in `users`**: a guest's session (no user), and a row that belongs to another type of owner, are never taken. It deletes in chunks, so a large site is slow but does not hold a table for the whole of it, and running it again finds nothing.
 
-**It cannot find the files** of accounts deleted earlier: the rows that named them went with the account. The zips of data exports are swept by the scheduler (`PruneDataExports`, every 15 minutes). The attachments of a deleted member's tickets are not found by anything; they sit in `support-attachments/` on the private disk, and the ones whose ticket no longer exists can be told apart by looking for directories named after a ticket id that is gone.
+**It cannot find the files** of accounts deleted earlier: the rows that named them went with the account. The zips of data exports are swept by the scheduler (`PruneDataExports`, every 15 minutes). The cover pictures of a deleted author's posts are found by `php artisan metaforger:blog:covers:prune`, which deletes the files in `blog-covers/` that no post names ([blog-covers.md](blog-covers.md#files-nobody-names)). The attachments of a deleted member's tickets are not found by anything; they sit in `support-attachments/` on the private disk, and the ones whose ticket no longer exists can be told apart by looking for directories named after a ticket id that is gone.
 
 ## Not done
 
-- **Blog covers.** Deleting a member deletes the posts they wrote (a cascade), and a cascade unlinks nothing, so the cover pictures of those posts stay on the public disk. The same is true of a cover when staff delete a post another way. It is a separate piece of work ([blog-covers.md](blog-covers.md)).
 - **Backups.** A backup taken before the deletion still holds the member until it is overwritten on its normal schedule. The starting privacy text says so (section 5).
 - **A queue for a very large account.** Rows are deleted in chunks, in the request. A member with millions of request-log rows makes the request slow, not wrong. Nothing is known to need it yet.
 

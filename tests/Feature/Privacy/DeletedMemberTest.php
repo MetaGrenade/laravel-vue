@@ -41,6 +41,7 @@ class DeletedMemberTest extends TestCase
         parent::setUp();
 
         Storage::fake('local');
+        Storage::fake('public');
 
         // Where sessions are kept in the database, a deleted member's are deleted with them (the tests run on `array`).
         config(['session.driver' => 'database']);
@@ -97,11 +98,11 @@ class DeletedMemberTest extends TestCase
             $this->assertSame($count / 2, $after[$table], "$table: only the other member's rows remain (a staff member made for the test owns none)");
         }
 
-        foreach ($mine['files'] as $path) {
-            Storage::disk('local')->assertMissing($path);
+        foreach ($mine['files'] as [$disk, $path]) {
+            Storage::disk($disk)->assertMissing($path);
         }
-        foreach ($theirs['files'] as $path) {
-            Storage::disk('local')->assertExists($path);
+        foreach ($theirs['files'] as [$disk, $path]) {
+            Storage::disk($disk)->assertExists($path);
         }
     }
 
@@ -227,8 +228,8 @@ class DeletedMemberTest extends TestCase
         $this->assertNull($member->fresh(), 'the account is gone');
         Exceptions::assertReported(InvalidArgumentException::class);
 
-        foreach ($mine['files'] as $path) {
-            Storage::disk('local')->assertMissing($path);
+        foreach ($mine['files'] as [$disk, $path]) {
+            Storage::disk($disk)->assertMissing($path);
         }
         $this->assertSame(0, DB::table('personal_access_tokens')->count());
         $this->assertSame(0, DB::table('notifications')->count());

@@ -3,6 +3,8 @@
 namespace Tests\Support;
 
 use App\Models\Address;
+use App\Models\Blog;
+use App\Models\BlogRevision;
 use App\Models\DataExport;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
@@ -34,7 +36,7 @@ trait PopulatesAMember
      * Everything a member can own that has no foreign key to them, and the files that the cascade cannot reach. What is made is the same
      * for everybody, so what remains of one member can be told from what remains of another by counting.
      *
-     * @return array{files: list<string>, keys: int}
+     * @return array{files: list<array{0: string, 1: string}>, keys: int} The files, each as its disk and its path.
      */
     private function populate(User $user, int $logsPerKey = 3): array
     {
@@ -90,7 +92,17 @@ trait PopulatesAMember
         $zip = "exports/user-{$user->id}-20261117_090000.zip";
         Storage::disk('local')->put($zip, 'everything about '.$user->nickname);
         DataExport::factory()->for($user)->completed()->create(['file_path' => $zip]);
-        $files[] = $zip;
+        $files[] = ['local', $zip];
+
+        // A post with a cover at three sizes on the public disk, and a revision that names it (the rows cascade; the files do not).
+        $base = 'blog-covers/'.strtolower((string) Str::ulid());
+        $blog = Blog::factory()->create(['user_id' => $user->id, 'cover_image' => "$base-1600x400-large.webp"]);
+        BlogRevision::recordSnapshot($blog->fresh(['categories:id', 'tags:id']), $user);
+
+        foreach (["$base-1600x400-large.webp", "$base-medium.webp", "$base-small.webp"] as $path) {
+            Storage::disk('public')->put($path, 'a cover');
+            $files[] = ['public', $path];
+        }
 
         // The attachments of a ticket the member opened (the rows cascade; the files do not).
         $ticket = SupportTicket::factory()->create(['user_id' => $user->id]);
@@ -100,7 +112,7 @@ trait PopulatesAMember
             $path = "support-attachments/{$ticket->id}/$name";
             Storage::disk('local')->put($path, 'private '.$name);
             $message->attachments()->create(['disk' => 'local', 'path' => $path, 'name' => $name, 'mime_type' => 'application/octet-stream', 'size' => 9]);
-            $files[] = $path;
+            $files[] = ['local', $path];
         }
 
         return ['files' => $files, 'keys' => 2];
@@ -114,7 +126,7 @@ trait PopulatesAMember
      */
     private function rows(User ...$members): array
     {
-        $tables = ['personal_access_tokens', 'token_logs', 'notifications', 'addresses', 'user_entitlements', 'sessions', 'data_exports', 'support_tickets', 'support_ticket_message_attachments'];
+        $tables = ['personal_access_tokens', 'token_logs', 'notifications', 'addresses', 'user_entitlements', 'sessions', 'data_exports', 'support_tickets', 'support_ticket_message_attachments', 'blogs', 'blog_revisions'];
 
         foreach ($this->discordTables() as $table) {
             if (Schema::hasTable($table)) {
