@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Forum\ForumAttachments;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -26,6 +27,14 @@ class ForumBoard extends Model
     protected $casts = [
         'prefixes_required' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        // The threads and replies of the board go with it by ON DELETE CASCADE, which runs no model events: the files go first.
+        static::deleting(function (ForumBoard $board): void {
+            app(ForumAttachments::class)->forgetInBoard($board);
+        });
+    }
 
     public function getRouteKeyName(): string
     {

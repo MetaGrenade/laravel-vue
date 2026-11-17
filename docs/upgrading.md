@@ -80,6 +80,8 @@ php artisan metaforger:members:forget-leftovers --dry-run # rows that belong to 
 php artisan metaforger:members:forget-leftovers
 php artisan metaforger:blog:covers:prune --dry-run        # cover files that no post names
 php artisan metaforger:blog:covers:prune
+php artisan metaforger:forum:attachments:prune --dry-run  # forum attachment files that no attachment names
+php artisan metaforger:forum:attachments:prune
 ```
 
 ### The storage link
@@ -169,6 +171,17 @@ php artisan metaforger:blog:covers:prune
 
 It deletes the files directly in `blog-covers/` that no post and no revision names, and leaves any file younger than an hour. It says how many files and how much space, counts only what was really deleted, and warns about (and exits with a failure for) a file the web server may not delete. Run it once; nothing schedules it ([blog-covers.md](blog-covers.md#files-nobody-names)).
 
+### Forum attachments
+
+Deleting a forum board, or a whole category, used to leave every file kept with a reply in it on the private disk, because the threads and replies go with the board by the database, which runs nothing that deletes a file. They go with the board now, and one command deletes the ones that were left:
+
+```bash
+php artisan metaforger:forum:attachments:prune --dry-run
+php artisan metaforger:forum:attachments:prune
+```
+
+It deletes the files in the attachment directory that no attachment names, and leaves a file younger than an hour and anything not named the way the forum names its files. It says how many files and how much space, counts only what was really deleted, and warns about (and exits with a failure for) a file the web server may not delete. Run it once; nothing schedules it ([forum-attachments.md](forum-attachments.md#files-nobody-names)).
+
 ### Accounts that were deleted
 
 Deleting an account used to leave rows behind that the database does not take with it: the API keys and the log of every request made with them (address, fields sent, answers), notifications, saved addresses, entitlements, browser sessions and the Discord package's rows. They name an account that is no longer there. From this version they are deleted with the account, and the command clears what accounts deleted before it left:
@@ -220,6 +233,7 @@ Behaviour that was different in an earlier build and is different now. The CHANG
 | **The zip of a data export is deleted 30 to 45 minutes after it is ready.** | The member is told the link works for 30 minutes, but the file stayed on the disk until somebody asked for the export again, and for ever if the member never came back or deleted their account. `PruneDataExports` (every 15 minutes, on the queue) now deletes the file of an export whose time is over, and any file in `storage/app/private/exports/` that no export names and that is over an hour old, **so the first run deletes the ones an earlier version left behind.** The row stays, with no file. In **Admin → Trust and safety**, the file of an export you mark finished has to be a file directly in `exports/` (it accepted any private file before); an export saved earlier with another path is not served, and its file is never deleted (the row only forgets the path). | Nothing, except that the scheduler and a worker must be running ([the queue](redis.md#the-queue)). A zip you meant to keep must be copied out of `exports/` before the first run. See [Data export files](private-uploads.md#data-export-files). |
 | **Deleting an account deletes its API keys, the log of their requests, notifications, saved addresses, entitlements, sessions and Discord rows, and the files that are the member's.** | These had no foreign key to the account (they belong to a morph, or to a package), so they stayed for ever: the address and the answers of every request a deleted member's key had made among them. A data export's zip and the attachments of the member's own tickets were not unlinked either, because a cascade runs no model event. Orders, invoices and payment records stay on purpose. | Run `php artisan metaforger:members:forget-leftovers` once for the accounts deleted before ([Accounts that were deleted](#accounts-that-were-deleted)). Staff who delete a member whose key has a very long log wait a little longer: the log is deleted 5,000 rows at a time. See [account-deletion.md](account-deletion.md). |
 | **Deleting a blog post, or the member who wrote it, deletes the files of its cover.** | The row went and every size of the cover stayed on the public disk for good, as did the covers its revisions named, and any cover that was written and then not saved. The path of a cover is a value in a row, so only a file directly in `blog-covers/` is ever deleted, and not one that another post names. | Run `php artisan metaforger:blog:covers:prune --dry-run`, then without `--dry-run`, once, to clear the files that were left ([Blog covers](#blog-covers)). Nothing schedules it. See [blog-covers.md](blog-covers.md#deleting-a-post). |
+| **Deleting a forum board or category deletes the files kept with the replies in it.** | The threads and replies went with the board by the database, which runs no model event, so every picture and file on them stayed on the private disk for good, including those on replies that were held for review. A file the disk refuses to delete is now reported with its name instead of being passed over in silence, for one attachment as much as for a board. | Run `php artisan metaforger:forum:attachments:prune --dry-run`, then without `--dry-run`, once, to clear the files that were left ([Forum attachments](#forum-attachments)). Nothing schedules it. See [forum-attachments.md](forum-attachments.md#deleting-a-board). |
 | **New colours, type and logo.** | The interface, the logo and every icon in `public/` follow the MetaForger design. | If you changed any of them, read [theming.md](theming.md) before you check out the new code. |
 
 ## If you changed the code

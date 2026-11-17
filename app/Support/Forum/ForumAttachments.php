@@ -3,6 +3,8 @@
 namespace App\Support\Forum;
 
 use App\Models\ForumAttachment;
+use App\Models\ForumBoard;
+use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumThread;
 use App\Models\User;
@@ -10,7 +12,9 @@ use App\Support\Commerce\Catalogue\ImageProcessor;
 use App\Support\Commerce\Catalogue\ImageRejected;
 use App\Support\Routing\ZiggyRouteGroup;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -40,6 +44,9 @@ class ForumAttachments
         'text/plain' => 'attachment',
         'application/zip' => 'attachment',
     ];
+
+    /** A file this young is never taken as a stray: it is written before the row that names it. */
+    public const STRAY_MINUTES = 60;
 
     public function __construct(private readonly ImageProcessor $images) {}
 
@@ -140,6 +147,107 @@ class ForumAttachments
             ->whereIn('forum_post_id', $postIds)
             ->get()
             ->each(fn (ForumAttachment $attachment) => $attachment->delete());
+    }
+
+    /**
+     * The files of every reply in a board that is being deleted. The threads and replies go with the board by `ON DELETE CASCADE`, which
+     * runs no model events, so this runs first (from the board's `deleting` hook), while the rows that name the files still exist.
+     */
+    public function forgetInBoard(ForumBoard $board): void
+    {
+        $this->forgetOfPosts(
+            DB::table('forum_posts')->select('id')->whereIn(
+                'forum_thread_id',
+                DB::table('forum_threads')->select('id')->where('forum_board_id', $board->getKey()),
+            ),
+        );
+    }
+
+    /**
+     * The same for a category: every reply in every board in it.
+     */
+    public function forgetInCategory(ForumCategory $category): void
+    {
+        $this->forgetOfPosts(
+            DB::table('forum_posts')->select('id')->whereIn(
+                'forum_thread_id',
+                DB::table('forum_threads')->select('id')->whereIn(
+                    'forum_board_id',
+                    DB::table('forum_boards')->select('id')->where('forum_category_id', $category->getKey()),
+                ),
+            ),
+        );
+    }
+
+    /**
+     * Every reply is named by a query, not a list: a board can hold more replies than a statement can name. That includes replies that
+     * are held for review or soft-deleted, which a query on the table does not leave out. The files are taken in batches, so neither the
+     * rows nor the paths of a big board are all in memory at once. A file that cannot be deleted does not stop the rest (it is reported,
+     * with its name, by the attachment), and the batch's rows go either way, as the cascade would take them.
+     *
+     * @param  QueryBuilder  $postIds  A query that selects the ids of the replies.
+     */
+    private function forgetOfPosts(QueryBuilder $postIds): void
+    {
+        ForumAttachment::query()
+            ->whereIn('forum_post_id', $postIds)
+            ->chunkById(200, function (Collection $attachments): void {
+                foreach ($attachments as $attachment) {
+                    try {
+                        $attachment->deleteFile();
+                    } catch (Throwable $exception) {
+                        report($exception);
+                    }
+                }
+
+                ForumAttachment::query()->whereKey($attachments->modelKeys())->delete();
+            });
+    }
+
+    /**
+     * Whether a path is one this class wrote: `forum-attachments/{post id}/{26 characters}.{pdf, txt, zip or webp}`. A file kept in the
+     * directory for any other reason is not one, whoever put it there.
+     */
+    public function isAttachmentPath(string $path): bool
+    {
+        $extensions = implode('|', [...array_values(array_unique(self::FILES)), 'webp']);
+
+        return preg_match('#^'.preg_quote($this->directory(), '#').'/[0-9]+/[0-9A-Za-z]{26}\.(?:'.$extensions.')$#D', $path) === 1;
+    }
+
+    /**
+     * The files in the attachment directory that no row names: what a board, a thread or an account left behind before their files were
+     * deleted with them, and a file written for a post that then could not be saved. Only a file that looks like ours (see
+     * {@see isAttachmentPath()}) and is older than STRAY_MINUTES is listed, because a file is written before the row that names it. A
+     * file that a row names is kept whatever disk the row says.
+     *
+     * @return list<string>
+     */
+    public function strays(): array
+    {
+        $disk = Storage::disk($this->diskName());
+        $limit = now()->subMinutes(self::STRAY_MINUTES)->getTimestamp();
+        $candidates = [];
+
+        foreach ($disk->allFiles($this->directory()) as $file) {
+            if ($this->isAttachmentPath($file) && $disk->lastModified($file) <= $limit) {
+                $candidates[] = $file;
+            }
+        }
+
+        $strays = [];
+
+        foreach (array_chunk($candidates, 500) as $batch) {
+            $named = array_flip(ForumAttachment::query()->whereIn('path', $batch)->pluck('path')->all());
+
+            foreach ($batch as $file) {
+                if (! isset($named[$file])) {
+                    $strays[] = $file;
+                }
+            }
+        }
+
+        return $strays;
     }
 
     public function visibleTo(?User $viewer, ForumAttachment $attachment): bool
@@ -323,8 +431,8 @@ class ForumAttachments
 
         $this->guardPrivateDisk();
 
-        $diskName = (string) config('forum.attachments.disk', 'local');
-        $directory = trim((string) config('forum.attachments.directory', 'forum-attachments'), '/').'/'.$post->id;
+        $diskName = $this->diskName();
+        $directory = $this->directory().'/'.$post->id;
         $created = [];
 
         try {
@@ -355,6 +463,16 @@ class ForumAttachments
                 'attachments' => __('forms.forum.attachment_unsaved'),
             ]);
         }
+    }
+
+    public function diskName(): string
+    {
+        return (string) config('forum.attachments.disk', 'local');
+    }
+
+    private function directory(): string
+    {
+        return trim((string) config('forum.attachments.directory', 'forum-attachments'), '/');
     }
 
     /**
