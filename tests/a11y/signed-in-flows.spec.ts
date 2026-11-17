@@ -1,5 +1,5 @@
-import { expect, test } from '@playwright/test';
 import { expectNoProblems } from './axe';
+import { expect, test } from './browser-says';
 import { adminPages, memberPages } from './pages';
 import { signInAndKeep, stateFile } from './session';
 
@@ -7,7 +7,8 @@ import { signInAndKeep, stateFile } from './session';
  * The pages a signed-in person opens (docs/accessibility.md, the lists are in pages.ts): a member's own pages, and the admin area for an
  * administrator.
  *
- * Every page is run through the same check as the public ones (tests/a11y/axe.ts), after it has finished loading what it asks for.
+ * Every page is run through the same check as the public ones (tests/a11y/axe.ts), after it has finished loading what it asks for, and is
+ * expected to leave the browser's console empty (tests/a11y/browser-says.ts).
  */
 function signedInAs(who: string, email: string, paths: string[]): void {
     test.describe(`signed in as ${who}`, () => {

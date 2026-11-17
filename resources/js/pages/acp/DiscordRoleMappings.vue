@@ -15,6 +15,8 @@ import { discordAdminApi, type DiscordGuildRole, type DiscordRoleMapping } from 
 
 const props = defineProps<{
     spatieRoles: string[];
+    /** Whether DISCORD_GUILD_ID and DISCORD_BOT_TOKEN are set; when they are not there is nothing to ask Discord for. */
+    discordConfigured: boolean;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Discord role mappings', href: '/acp/discord/role-mappings' }];
@@ -44,7 +46,9 @@ const loadData = async () => {
     try {
         const [mappingResponse, rolesResponse] = await Promise.all([
             discordAdminApi.listRoleMappings(),
-            discordAdminApi.listDiscordRoles().catch(() => ({ data: [] as DiscordGuildRole[] })),
+            props.discordConfigured
+                ? discordAdminApi.listDiscordRoles().catch(() => ({ data: [] as DiscordGuildRole[] }))
+                : { data: [] as DiscordGuildRole[] },
         ]);
 
         mappings.value = mappingResponse.data;

@@ -60,7 +60,7 @@ function handleLegendItemClick(d: BulletLegendItemInterface, i: number) {
       :data="data"
       :style="{ width: '100%', height: isMounted ? '100%' : 'auto' }"
     >
-      <ChartCrosshair v-if="showTooltip" :colors="colors" :items="legendItems" :index="index" :custom-tooltip="customTooltip" />
+      <ChartCrosshair v-if="showTooltip" :colors="colors" :items="legendItems" :index="index" :categories="categories" :custom-tooltip="customTooltip" />
 
       <template v-for="(category, i) in categories" :key="category">
         <VisLine

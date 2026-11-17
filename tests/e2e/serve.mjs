@@ -64,6 +64,11 @@ const env = {
     DISCORD_CLIENT_ID: '',
     DISCORD_CLIENT_SECRET: '',
     STEAM_API_KEY: '',
+    // No Discord server and no bot, whatever .env has: the role mappings page asks the site for the roles of the server only when both are
+    // set, and the site would then ask Discord (with this token). A suite that needs the page to ask says so in tests/e2e/playwright.config.ts,
+    // gives made-up values, and answers the request itself; the others never reach Discord, and the console of a page stays empty.
+    DISCORD_GUILD_ID: process.env.E2E_DISCORD_GUILD_ID ?? '',
+    DISCORD_BOT_TOKEN: process.env.E2E_DISCORD_BOT_TOKEN ?? '',
     SEARCH_DRIVER: 'database',
     // A cached configuration (`php artisan config:cache`) is read instead of .env and of everything set above, so `migrate:fresh` would
     // run against whatever database it names. These files never exist: the application reads its configuration, routes and events from

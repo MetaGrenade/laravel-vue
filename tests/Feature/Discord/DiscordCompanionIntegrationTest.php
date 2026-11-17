@@ -9,6 +9,7 @@ use App\Notifications\SupportTicketAgentReply;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use MetaForge\Discord\Models\DiscordSyncFailure;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -42,6 +43,40 @@ class DiscordCompanionIntegrationTest extends TestCase
             ->get(route('acp.discord.sync'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page->component('acp/DiscordSync'));
+    }
+
+    /**
+     * The page asks Discord for its roles only when there is a server and a bot token to ask with; otherwise the companion answers 422 and
+     * the browser writes that to its console on every visit (docs/accessibility.md, "What the browser says").
+     *
+     * @return array<string, array{0: string|null, 1: string|null, 2: bool}>
+     */
+    public static function discordSettings(): array
+    {
+        return [
+            'nothing set' => [null, null, false],
+            'empty strings' => ['', '', false],
+            'a server without a token' => ['123456789012345678', null, false],
+            'a token without a server' => [null, 'a-bot-token', false],
+            'both set' => ['123456789012345678', 'a-bot-token', true],
+        ];
+    }
+
+    #[DataProvider('discordSettings')]
+    public function test_role_mappings_page_says_whether_discord_is_configured(?string $guild, ?string $token, bool $configured): void
+    {
+        config(['discord.guild_id' => $guild, 'discord.bot_token' => $token]);
+
+        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user->assignRole('admin');
+        $user->givePermissionTo('system.acp.view');
+
+        $this->actingAs($user)
+            ->get(route('acp.discord.role-mappings'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('acp/DiscordRoleMappings')
+                ->where('discordConfigured', $configured));
     }
 
     public function test_admin_sync_failures_api_is_protected_when_registered(): void

@@ -16,6 +16,9 @@ class DiscordController extends Controller
 
         return Inertia::render('acp/DiscordRoleMappings', [
             'spatieRoles' => Role::query()->orderBy('name')->pluck('name')->values()->all(),
+            // Without a server and a bot token there are no Discord roles to list; the page does not ask for them then. (The companion
+            // package answers 422 "DISCORD_GUILD_ID is not configured" to that request, and the browser writes every such answer to its console.)
+            'discordConfigured' => (string) config('discord.guild_id') !== '' && (string) config('discord.bot_token') !== '',
         ]);
     }
 
