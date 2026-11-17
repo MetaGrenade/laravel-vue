@@ -361,6 +361,10 @@ class DataExportStreamingTest extends TestCase
     #[Test]
     public function the_member_is_told_a_sentence_and_not_what_the_exception_said(): void
     {
+        // The job writes its zip before it tells the member: without the fake this wrote a real file into storage/app/private/exports
+        // on every run of the suite (the date is the one this class stops the clock at).
+        Storage::fake('local');
+
         $user = User::factory()->create();
         $export = DataExport::factory()->for($user)->create();
 

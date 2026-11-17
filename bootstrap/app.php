@@ -23,6 +23,7 @@ use App\Jobs\ExpirePendingOrders;
 use App\Jobs\LiftRunOutBans;
 use App\Jobs\MonitorSupportTicketSlas;
 use App\Jobs\PruneAuditLogs;
+use App\Jobs\PruneDataExports;
 use App\Jobs\PruneSearchQueryLogs;
 use App\Jobs\PruneTokenLogs;
 use App\Jobs\PruneUsageEvents;
@@ -126,6 +127,8 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withSchedule(function (Schedule $schedule) {
         $schedule->job(new MonitorSupportTicketSlas)->everyFifteenMinutes();
+        // The zip of a member's data export is deleted when its 30 minutes to download it are over (it holds everything the site keeps about them).
+        $schedule->job(new PruneDataExports)->everyFifteenMinutes();
         $schedule->job(new AggregateSearchQueryStats)->dailyAt('00:30');
         $schedule->job(new PruneSearchQueryLogs)->dailyAt('01:00');
         $schedule->job(new PruneUsageEvents)->dailyAt('01:30');

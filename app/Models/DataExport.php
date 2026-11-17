@@ -33,6 +33,11 @@ class DataExport extends Model
     public const DOWNLOAD_TTL_MINUTES = 30;
 
     /**
+     * Where, on the `local` disk, the zip of an export is written. Nothing else is kept there, and PruneDataExports empties it.
+     */
+    public const DIRECTORY = 'exports';
+
+    /**
      * @var list<string>
      */
     protected $fillable = [

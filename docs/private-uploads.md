@@ -11,9 +11,22 @@ A file a person uploads that is not a picture the site shows stays on a private 
 | Support ticket files | `SUPPORT_ATTACHMENT_DISK` (`local` by default) | The person who opened the ticket, and staff who may see it. See [support-attachments.md](support-attachments.md). |
 | Forum pictures and files | `FORUM_ATTACHMENT_DISK` (`local` by default) | Anyone who can see the post. See [forum-attachments.md](forum-attachments.md). |
 | Product downloads | `COMMERCE_DOWNLOAD_DISK` (`local` by default) | A buyer, through a short-lived signed link. See [commerce.md](commerce.md#digital-goods). |
-| A member's data export | the `local` disk | That member, while the export has not expired. |
+| A member's data export | the `local` disk, in `exports/` | That member, for the 30 minutes after it is ready. The file is deleted after that ([below](#data-export-files)). |
 
 The stored name is generated. The name the person chose is used only when the file is downloaded.
+
+## Data export files
+
+The zip of a member's data export holds everything the site keeps about them, and the member is told the link works for 30 minutes (`DataExport::DOWNLOAD_TTL_MINUTES`). **The file is deleted when those 30 minutes are over.** The scheduler queues `PruneDataExports` every 15 minutes (`bootstrap/app.php`) and a worker runs it ([the queue](redis.md#the-queue)), so a file is gone within 45 minutes of the export being ready. The row stays, with no file, as the record that the member asked.
+
+The job makes two passes over `exports/` on the `local` disk:
+
+1. An export whose 30 minutes are over, and that still names a file, loses the file.
+2. A file that no export names and that is more than an hour old (two windows) is deleted: the zip of a member whose account was deleted (the account takes its export rows with it, and nothing took the file), or one that a job wrote and then could not record. A younger file may be one a job is still writing, so it is left. A file whose name starts with a dot (`.gitignore`) is not touched, and nothing outside `exports/` is.
+
+Until this job the file went only if somebody opened the member's privacy page or the download link after the 30 minutes were over. A member who downloaded the zip in time and never came back left it on the disk for good, and so did a member who deleted their account. **On a site that ran an earlier version, the first run deletes all of those:** every file in `exports/` that no export names and that is over an hour old, and the file of every export whose time is over.
+
+**Staff can say which file an export is** (Admin → Trust and safety, marking an export finished). The path has to be a file directly in `exports/`, such as `exports/user-4-20261116_120000.zip`: the member downloads whatever it names and the job deletes it. It accepted any path on the private disk, so a member of staff could have a support attachment, a forum attachment or a product download handed to them as their own "export", and have it deleted afterwards.
 
 ## What stays public
 
@@ -25,4 +38,4 @@ Support files, forum files and product downloads refuse a disk whose visibility 
 
 ## Testing
 
-`tests/Feature/Support/SupportAttachmentDownloadTest.php`: a public support disk opens no ticket and writes no file, and the move command fails without copying. `tests/Feature/Forum/ForumAttachmentTest.php`: a public forum disk adds no post and writes no file. `tests/Feature/Admin/Catalogue/ProductFileManagementTest.php`: a public download disk saves no product file.
+`tests/Feature/Support/SupportAttachmentDownloadTest.php`: a public support disk opens no ticket and writes no file, and the move command fails without copying. `tests/Feature/Forum/ForumAttachmentTest.php`: a public forum disk adds no post and writes no file. `tests/Feature/Admin/Catalogue/ProductFileManagementTest.php`: a public download disk saves no product file. `tests/Feature/Settings/PruneDataExportsTest.php`: an export past its window loses its file and keeps its row, one inside it keeps both, the job and `DataExport::hasExpired()` agree to the second, more rows than one chunk are all cleared, a file no export names goes at two windows and not before (the zip of a deleted member among them), a file an open export names is never taken, a dot file and everything outside `exports/` are left, and the schedule is every 15 minutes. `tests/Feature/Admin/DataExportFilePathTest.php`: a path outside `exports/` (another folder, a way out of it, a hidden file, a line break after a good name) is refused, one inside is accepted.
