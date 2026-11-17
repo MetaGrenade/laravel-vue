@@ -10,6 +10,7 @@ use App\Support\Localization\Locales;
 use App\Support\Notifications\EmailDigest;
 use App\Support\Notifications\RecordsForDigest;
 use App\Support\Notifications\SplitDelivery;
+use App\Support\Privacy\MemberLeftovers;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -37,6 +38,14 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements HasLocalePreference, MustVerifyEmail
 {
     use Billable, HasApiTokens, HasFactory, HasRoles, MustVerifyEmailTrait, Notifiable;
+
+    /**
+     * The files that go with this account, found by the `deleting` hook (while the rows that name them still exist) for the `deleted`
+     * one to unlink. Not an attribute: it is never saved. See MemberLeftovers.
+     *
+     * @var list<array{disk: string, path: string}>
+     */
+    private array $filesToForget = [];
 
     /**
      * The language of what is sent to this person, an email or a notice in the site, whoever caused it and whatever language that
@@ -81,9 +90,18 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
             }
 
             app(ForumAttachments::class)->forget($ids);
+
+            // The same for the zip of an export and the attachments of their tickets, which are unlinked once the account is gone.
+            $user->filesToForget = app(MemberLeftovers::class)->filesOf($user);
         });
         static::saved(fn () => SupportAssignmentRule::flushCache());
-        static::deleted(fn () => SupportAssignmentRule::flushCache());
+        static::deleted(function (User $user): void {
+            SupportAssignmentRule::flushCache();
+
+            // The rows the database cannot cascade (they have no foreign key to the user) and the files found above.
+            app(MemberLeftovers::class)->forget($user, $user->filesToForget);
+            $user->filesToForget = [];
+        });
         static::registerModelEvent('forceDeleted', fn () => SupportAssignmentRule::flushCache());
     }
 

@@ -81,6 +81,7 @@ Changing how the site looks, what language it speaks, and what it can do.
 - [Two-factor authentication](two-factor.md): an authenticator code at sign-in, recovery codes (shown when they are made, and again only after the password), signing out other browsers, the password asked before two-factor is set up or the email address changes, and staff switching two-factor off for a member who is locked out.
 - [Signing in with Google, Discord and Steam](social-login.md): switching on the buttons, what happens when somebody presses one, and linking an account afterwards.
 - [Discord companion](discord-companion.md): role sync, bot webhooks and Discord notification opt-in.
+- [Deleting an account](account-deletion.md): what goes with a member's account, what is kept on purpose, and the command that clears what accounts deleted by an earlier version left behind.
 
 ## The support desk
 
