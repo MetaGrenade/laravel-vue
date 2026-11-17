@@ -167,7 +167,7 @@ php artisan metaforger:blog:covers:prune --dry-run
 php artisan metaforger:blog:covers:prune
 ```
 
-It deletes the files directly in `blog-covers/` that no post and no revision names, and leaves any file younger than an hour. It says how many files and how much space. Run it once; nothing schedules it ([blog-covers.md](blog-covers.md#files-nobody-names)).
+It deletes the files directly in `blog-covers/` that no post and no revision names, and leaves any file younger than an hour. It says how many files and how much space, counts only what was really deleted, and warns about (and exits with a failure for) a file the web server may not delete. Run it once; nothing schedules it ([blog-covers.md](blog-covers.md#files-nobody-names)).
 
 ### Accounts that were deleted
 

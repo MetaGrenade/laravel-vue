@@ -29,7 +29,7 @@ Both end the member's Stripe subscriptions first. If Stripe cannot be reached no
 | **The attachments of the member's own tickets** | The same | Unlinked. What a member of staff attached to somebody else's ticket stays with that ticket |
 | **The covers of the posts the member wrote** | The posts cascade; their covers are files on the public disk | Every size of each cover, and every cover their revisions name, is unlinked, unless another post names the same file ([blog-covers.md](blog-covers.md#deleting-a-post)) |
 
-The files are found **before** the account is deleted (the rows that name them go with it) and unlinked **after**. A disk that cannot be reached does not undo a deletion that has already happened: the error is reported and the rest carries on.
+The files are found **before** the account is deleted (the rows that name them go with it) and unlinked **after**. A disk that cannot be reached does not undo a deletion that has already happened: the error is reported and the rest carries on. So is a file a disk refuses to delete without throwing (the public disk is set not to throw, so it answers `false`): each one is reported with its name, so a directory the web server may not write to shows up in the log and not only as files that never go.
 
 A row is the member's only when it names the member's **type** as well as the id. A key, notification, address or entitlement owned by something else that happens to have the same number (a team, in 1.1) is not touched.
 

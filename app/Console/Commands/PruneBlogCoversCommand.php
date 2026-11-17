@@ -21,6 +21,7 @@ class PruneBlogCoversCommand extends Command
         $strays = $covers->strays();
         $bytes = 0;
         $deleted = 0;
+        $failed = 0;
 
         foreach ($strays as $file) {
             try {
@@ -36,13 +37,25 @@ class PruneBlogCoversCommand extends Command
                 continue;
             }
 
+            // The public disk is set not to throw (config/filesystems.php): a file that cannot be deleted, say because its directory
+            // is not writable, comes back as `false`, and only a disk that does throw gets to the catch.
             try {
-                $disk->delete($file);
-                $deleted++;
-                $bytes += $size;
+                $gone = $disk->delete($file);
+                $problem = 'could not be deleted.';
             } catch (Throwable $exception) {
-                $this->warn("$file: {$exception->getMessage()}");
+                $gone = false;
+                $problem = $exception->getMessage();
             }
+
+            if (! $gone) {
+                $this->warn("$file: $problem");
+                $failed++;
+
+                continue;
+            }
+
+            $deleted++;
+            $bytes += $size;
         }
 
         $size = $this->humanSize($bytes);
@@ -52,6 +65,12 @@ class PruneBlogCoversCommand extends Command
             : sprintf('%d file(s), %s, in %s/ belonged to no post and were deleted.', $deleted, $size, BlogCovers::DIRECTORY));
 
         $this->line(sprintf('A file younger than %d minutes is never taken: a cover is written before the post that names it.', BlogCovers::STRAY_MINUTES));
+
+        if ($failed > 0) {
+            $this->error(sprintf('%d file(s) could not be deleted and are still there. Check that the web server may write to the directory, then run it again.', $failed));
+
+            return self::FAILURE;
+        }
 
         return self::SUCCESS;
     }

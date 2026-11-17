@@ -11,6 +11,7 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -94,12 +95,16 @@ class BlogCovers
 
     /**
      * Remove a cover: every file it has. Nothing happens for no cover, or for a path that is not a cover's (see {@see self::pathPattern()}).
+     *
+     * @return bool False when a file could not be deleted (the public disk is set not to throw, so that is how it says so).
      */
-    public function delete(?string $path): void
+    public function delete(?string $path): bool
     {
-        if ($this->isCoverPath($path)) {
-            Storage::disk('public')->delete($this->files((string) $path));
+        if (! $this->isCoverPath($path)) {
+            return true;
         }
+
+        return Storage::disk('public')->delete($this->files((string) $path));
     }
 
     /**
@@ -111,7 +116,10 @@ class BlogCovers
     {
         foreach ($paths as $path) {
             try {
-                $this->delete($path);
+                // The public disk does not throw (config/filesystems.php): a file it cannot delete is `false`.
+                if (! $this->delete($path)) {
+                    report(new RuntimeException("The files of the cover $path could not all be deleted."));
+                }
             } catch (Throwable $exception) {
                 report($exception);
             }

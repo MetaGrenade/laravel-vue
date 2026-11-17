@@ -249,6 +249,80 @@ class BlogCoverDeletionTest extends TestCase
     }
 
     #[Test]
+    public function a_file_the_disk_would_not_delete_is_reported_and_the_post_is_still_gone(): void
+    {
+        // The public disk is set not to throw: a file it cannot delete is `false`, and nothing said so.
+        Exceptions::fake();
+
+        $cover = $this->cover('01qqqqqqqqqqqqqqqqqqqqqqqq');
+        $blog = Blog::factory()->create(['cover_image' => $cover['large']]);
+
+        $this->diskThatCannotDelete($cover['medium'], throws: false);
+
+        $blog->delete();
+
+        $this->assertNull($blog->fresh());
+        Exceptions::assertReported(fn (RuntimeException $exception) => str_contains($exception->getMessage(), $cover['large']));
+    }
+
+    /**
+     * Make the public disk refuse to delete a file, the way a disk does when its directory is not writable: it says `false` (the
+     * public disk is set not to throw) or, for another kind of disk, throws.
+     */
+    private function diskThatCannotDelete(string $stuck, bool $throws): void
+    {
+        $real = Storage::disk('public');
+
+        $disk = Mockery::mock($real);
+        $disk->shouldReceive('delete')->andReturnUsing(function ($paths) use ($real, $stuck, $throws) {
+            if (! in_array($stuck, (array) $paths, true)) {
+                return $real->delete($paths);
+            }
+
+            if ($throws) {
+                throw new RuntimeException('Permission denied.');
+            }
+
+            return false;
+        });
+
+        Storage::set('public', $disk);
+    }
+
+    /**
+     * @return array<string, array{bool}>
+     */
+    public static function waysADiskRefuses(): array
+    {
+        return [
+            'it says false, as the public disk does' => [false],
+            'it throws, as a disk set to throw does' => [true],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('waysADiskRefuses')]
+    public function the_prune_command_does_not_count_a_file_it_could_not_delete(bool $throws): void
+    {
+        $stuck = $this->cover('01rrrrrrrrrrrrrrrrrrrrrrrr');
+        $fine = $this->cover('01ssssssssssssssssssssssss');
+        $this->old(array_merge(array_values($stuck), array_values($fine)));
+
+        $this->diskThatCannotDelete($stuck['medium'], $throws);
+
+        // Six files were found and one stays: five are counted, and the command says it did not finish.
+        $this->artisan('metaforger:blog:covers:prune')
+            ->expectsOutputToContain($stuck['medium'].': '.($throws ? 'Permission denied.' : 'could not be deleted.'))
+            ->expectsOutputToContain('5 file(s)')
+            ->expectsOutputToContain('1 file(s) could not be deleted and are still there')
+            ->assertFailed();
+
+        Storage::disk('public')->assertExists($stuck['medium']);
+        $this->assertGone([$stuck['large'], $stuck['small']]);
+        $this->assertGone($fine);
+    }
+
+    #[Test]
     public function more_covers_than_one_batch_are_all_looked_at_for_sharing(): void
     {
         // The paths are looked up 500 at a time to see whether another post names them: one in the second batch must be spared too.

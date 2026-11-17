@@ -21,7 +21,7 @@ Two rules hold the deletion to what it should take:
 - **Only a file of the covers directory.** The path of a cover is a value in a row, and nothing but its shape says it is a cover: a file directly in `blog-covers/`, named by letters, digits, dots, dashes and underscores, not starting with a dot. That is the shape of the names this site makes, and of the ones the first version made (`blog-covers/{random}.jpg`). A row that names anything else, such as a product picture, is not a reason to delete that file, whichever way the row got its value.
 - **Not a file that another post names.** Nothing in the site gives two posts one file, but if a row says so, the file stays until the last of them goes.
 
-A disk that cannot be reached does not undo a deletion that has happened: the error is reported, and the post is gone.
+A disk that cannot be reached does not undo a deletion that has happened: the error is reported, and the post is gone. The same holds for a file the disk refuses to delete without saying why (the public disk is set not to throw, so it answers `false`): it is reported with the name of the cover, and the post is gone. The prune command below finds what stays.
 
 ## Covers already on the site
 
@@ -36,7 +36,7 @@ php artisan metaforger:blog:covers:prune --dry-run
 php artisan metaforger:blog:covers:prune
 ```
 
-It looks at the files directly in `blog-covers/` and deletes those that no post and no revision names, with every size of a cover counted as named when the cover is. It says how many files and how much space. It leaves alone:
+It looks at the files directly in `blog-covers/` and deletes those that no post and no revision names, with every size of a cover counted as named when the cover is. It says how many files and how much space were deleted, and **only counts a file the disk really deleted**: the public disk is set not to throw, so a file it cannot delete (the directory is not writable by the web server's user) is reported to the command as a refusal, not an error. Each such file gets a warning with its name, is left out of the totals, and the command ends with a message that says how many are still there and **exits with a failure**, so a script or a cron line notices. It leaves alone:
 
 - a file younger than an hour, because a cover is written before the post that names it, and a save may be in the middle;
 - a file that is not named like a cover, such as `.gitignore`, and everything outside `blog-covers/`.
@@ -55,4 +55,4 @@ It is not scheduled. The files it finds are public pictures on a disk you may al
 
 `tests/Feature/Blog/BlogCoverSizesTest.php`: the three widths, what the pages send, and the upgrade command ([images.md](images.md#testing)).
 
-`tests/Feature/Blog/BlogCoverDeletionTest.php`: deleting a post takes every size of its cover and the covers its revisions name and no other post's; a cover that is one file goes too; a file another post or revision names stays; seven kinds of path that are not a cover's (a product download, above the directory, inside something else, a dotfile, a name with a space, a subdirectory, the directory itself) are not deleted whichever row names them; an unreachable disk does not undo the deletion; more than one batch of paths is looked at for sharing; the clean-up command takes the files nobody names (a size whose large file is gone, a file of the first version) and leaves what a post or revision names, files under an hour old, other directories and what is not named like a cover. `tests/Feature/Privacy/DeletedMemberTest.php` deletes a member three ways and counts the covers of their posts.
+`tests/Feature/Blog/BlogCoverDeletionTest.php`: deleting a post takes every size of its cover and the covers its revisions name and no other post's; a cover that is one file goes too; a file another post or revision names stays; seven kinds of path that are not a cover's (a product download, above the directory, inside something else, a dotfile, a name with a space, a subdirectory, the directory itself) are not deleted whichever row names them; an unreachable disk, and a file the disk refuses to delete (it says `false` or throws), do not undo the deletion and are reported; the command counts only the files that went and fails when one stays; more than one batch of paths is looked at for sharing; the clean-up command takes the files nobody names (a size whose large file is gone, a file of the first version) and leaves what a post or revision names, files under an hour old, other directories and what is not named like a cover. `tests/Feature/Privacy/DeletedMemberTest.php` deletes a member three ways and counts the covers of their posts.

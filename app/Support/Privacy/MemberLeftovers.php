@@ -15,6 +15,7 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -98,7 +99,10 @@ class MemberLeftovers
     {
         foreach ($files as $file) {
             try {
-                Storage::disk($file['disk'])->delete($file['path']);
+                // A disk set not to throw (the public one is) says `false` for a file it could not delete.
+                if (! Storage::disk($file['disk'])->delete($file['path'])) {
+                    report(new RuntimeException("The file {$file['path']} on the {$file['disk']} disk could not be deleted."));
+                }
             } catch (Throwable $exception) {
                 report($exception);
             }
