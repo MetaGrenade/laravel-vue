@@ -1,8 +1,8 @@
 # Indexes
 
-Every foreign key starts an index, on every database the app supports, and a test fails when a new one does not. Before this, MySQL and MariaDB had them and PostgreSQL and SQLite did not. Four lists have an index for the order they are shown in, too ([the order of the lists](#the-order-of-the-lists)).
+Every foreign key starts an index, on every database the app supports, and a test fails when a new one does not. Before this, MySQL and MariaDB had them and PostgreSQL and SQLite did not. Four lists have an index for the order they are shown in, too ([the order of the lists](#the-order-of-the-lists)), and the log of requests made with an API key has two for the questions asked of it ([the API request log](#the-api-request-log)).
 
-> **Status:** in place. Two migrations: `2026_11_10_000000_index_foreign_keys.php` added the missing foreign key indexes, and `2026_11_11_000000_index_the_lists.php` added the four for the lists. `ForeignKeyIndexTest` and `ListOrderIndexesTest` (in `tests/Feature/Database`) run with the rest of the suite on SQLite, MySQL and PostgreSQL. Not built: indexes for the leaderboard, the top threads by views and the other lists left out on purpose, and a check that no index goes unused. They are listed at the end.
+> **Status:** in place. Three migrations: `2026_11_10_000000_index_foreign_keys.php` added the missing foreign key indexes, `2026_11_11_000000_index_the_lists.php` added the four for the lists, and `2026_11_09_000002_index_the_api_request_log.php` added the two for the log (dated before the first on purpose, [see below](#how-the-two-indexes-were-shaped)). `ForeignKeyIndexTest`, `ListOrderIndexesTest` and `ApiRequestLogIndexesTest` (in `tests/Feature/Database`) run with the rest of the suite on SQLite, MySQL and PostgreSQL. Not built: indexes for the leaderboard, the top threads by views and the other lists left out on purpose, and a check that no index goes unused. They are listed at the end.
 
 ## Why
 
@@ -120,6 +120,58 @@ That is 10 to 20 percent more time to write, one to two microseconds a row. The 
 - **The forum index's top threads** (`views`): the same, a view is an update. 24 to 33 ms, cached.
 - **The latest thread of each board**, **the blog list** (1 ms at 5,000 posts), **the forum feed** (12 to 18 ms, kept five minutes now) and **the sitemap** (built once an hour).
 - **Counts.** The member list's `count(*)` is still 21 ms at 200,000 members, indexed or not: a count reads every row it counts.
+
+## The API request log
+
+Every request made with an API key is a row in `token_logs`: what was asked, from which address, what came back, how long it took ([the request log](api-keys.md#the-request-log)). Nothing ever deleted a row, and the only index was the foreign key's, so three readers got slower with every request the site had ever served:
+
+- **A key with an hourly or a daily limit** counts its rows of the last hour and of the last day before every request it makes (`ThrottleTokenUsage`). That read the key's whole history, and once one key had 40% of a million rows MariaDB gave up the index and read the table.
+- **Admin → Tokens** counts the last hour and the last day for every key, lists the newest rows (`ORDER BY created_at DESC`) and counts all of them for the pager.
+- **The nightly prune** (`PruneTokenLogs`, new) deletes what is older than the retention, 5,000 rows at a time, and each of those statements read the table to find them.
+
+`2026_11_09_000002_index_the_api_request_log.php` makes two indexes:
+
+| Index | Serves |
+|-------|--------|
+| `token_logs (personal_access_token_id, created_at)` | a key's rows since a time (the count behind a limit) and the oldest of them (when the limit lets the key through again) |
+| `token_logs (created_at, personal_access_token_id)` | the newest rows, a stretch of time and the count per key in it (the admin page, the prune); it holds the key of each row, so counting per key never reads the table |
+
+### What the two indexes measured
+
+MariaDB 11.4 in a database made for the run: 1,000,000 rows over 90 days with the recent days the busiest (the last hour holds 77,000 of them, so a hot table), 20 keys, one with 40% of the rows. The median of five runs of the query that the middleware or the page makes:
+
+| Query | Before | After |
+|-------|--------|-------|
+| A limit's count, the busiest key, the last hour | 129 ms | 5.3 ms |
+| A limit's count, the busiest key, the last day | 138 ms | 13 ms |
+| A limit's count, a key with a thirtieth of the rows, the last day | 34 ms | 3.3 ms |
+| When the busiest key may call again (its oldest row in the day) | 380 ms | 0.3 ms |
+| Admin → Tokens: calls of every key in the last hour | 155 ms | 16 ms |
+| Admin → Tokens: calls of every key in the last day | 172 ms | 43 ms |
+| Admin → Tokens: the newest 10 rows | 129 ms | 0.2 ms |
+| Admin → Tokens: the newest 10 failed rows | 140 ms | 0.6 ms |
+| The nightly prune, 306,000 rows due (a 30 day retention) | 11.6 s | 2.7 s |
+
+A key that has both limits pays both counts on every request, so on this table a request used to cost about 270 ms more and costs about 18. The quota check was the one that mattered: it ran for every request of such a key, because the cached count is forgotten after each response (`ThrottleTokenUsage::handle`), and it read more with every request the key had ever made.
+
+### What the two indexes cost
+
+- **Writes.** Inserting 300,000 rows in batches took 4.79 s without the indexes and 5.65 s with them (the median of three alternating runs: 18% more). One row at a time, which is what a request does, took 1.03 ms and 1.02 ms: the round trip hides the difference.
+- **Space.** The indexes are 76 MB beside 156 MB of rows at a million rows; they were 24 MB. The retention keeps the table from growing past its window.
+- **One query is slower.** The pager's `count(*)` of the whole list took 70 ms and takes 92 ms, because the smallest index it can count with is bigger now. The retention bounds it.
+- **The migration.** 1.6 s to make both on the million rows (MariaDB); `down()` took 6.1 s there, because it takes the foreign key off and puts it back ([below](#how-the-two-indexes-were-shaped)).
+
+### How the two indexes were shaped
+
+- **The key comes first for a limit, and cannot for the rest.** A key's count needs `(key, time)`; a list by time, a count per key and the prune need the time first. An index with the time first alone was tried for both: the busiest key's count was 9.3 ms and 25 ms (better than before, worse than 5.3 and 13), and a quiet key's was 36.7 ms, no better than the 34 it started at, because MariaDB chose the key's own index and read its history.
+- **The first one starts with the foreign key's column**, unlike the four for the lists. MySQL and MariaDB give a foreign key an index of its own and drop it when another that starts with the same column is made, after which neither the key nor the new index can be dropped (error 1553). So `down()` takes the constraint off, drops the index and puts the constraint back, which gives it its own index again (`ApiRequestLogIndexesTest` runs it, and the same migration with that step taken out fails with 1553 on MariaDB). On PostgreSQL and SQLite `down()` gives the column the `..._fk` index `index_foreign_keys` would have given it, and writes it in that migration's list, so the rule that every foreign key starts an index holds after a rollback of this one alone.
+- **Its date is before the foreign key migration's on purpose.** That migration makes an index for every column that starts none. Dated after it, this one left the column with two (that migration's `..._fk` and this); `ForeignKeyIndexTest` showed it, because after the `down()` and `up()` of that migration the `..._fk` index was not made again, the column being covered. Dated before it, the column already starts an index when it runs, and it makes nothing for `token_logs`. A database that has already run it keeps the one it made, which is harmless.
+- **An index somebody made before is theirs.** When one starts with the same columns, under any name, this migration makes none, and `down()` drops only the two names it gave (`token_logs_by_key_and_time`, `token_logs_by_time_and_key`, not names Laravel would pick).
+
+### Left alone in the request log
+
+- **The count behind a limit is still made for every request of a key that has a limit.** The cached count is forgotten after each response so that the next request sees the row the last one wrote; keeping a counter instead changes what is counted when the cache is lost, and with the index the count reads only the key's own last hour or day, which holds about as many rows as the key's limit allows (a request that is refused for being over its limit is not logged).
+- **What a row holds.** The whole JSON answer is kept: 88 bytes for the profile, more for a long list or a ticket with many messages. Not measured on a long ticket, and not changed here ([Not built](api-keys.md#not-built)).
 
 ## Dropping a column on SQLite
 

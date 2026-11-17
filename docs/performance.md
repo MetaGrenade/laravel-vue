@@ -224,6 +224,17 @@ Each figure is now one grouped statement over the rated tickets under the list's
 
 Each series is now one grouped count (`DashboardController::countsByMonth()`, the month made by `Sql::yearMonth()` as in the admin dashboard's chart), the number of queries of the page is the same (36), and the time and memory of the chart no longer depend on how much the member has written. The bars are the same as before, tested at the edges (`DashboardActivityChartTest`): the first and the last second of the window, a member's rows and nobody else's, a window that crosses a new year, and a row that was made long ago but changed this month.
 
+**The log of API requests is pruned and indexed.** Every request made with an API key is a row in `token_logs`, and nothing deleted one. A key with an hourly or a daily limit counts its own rows of the last hour and the last day before every request it makes, so the counting read more with every request the key had ever made; Admin → Tokens read and sorted the whole table. Measured on MariaDB with a million rows (90 days, the recent ones the busiest, one key with 40%), the median of five runs:
+
+| Query | Before | After |
+|-------|--------|-------|
+| A limit's count, the busiest key, the last hour | 129 ms | 5.3 ms |
+| A limit's count, the busiest key, the last day | 138 ms | 13 ms |
+| Admin → Tokens: the newest 10 rows | 129 ms | 0.2 ms |
+| The nightly delete of 306,000 old rows | 11.6 s | 2.7 s |
+
+A key with both limits spent about 270 ms of every request counting, and spends about 18. Two indexes (`token_logs (personal_access_token_id, created_at)` and `(created_at, personal_access_token_id)`) did that, and a daily job, `PruneTokenLogs`, keeps 30 days of the table (`API_TOKEN_LOG_RETENTION_DAYS`) so it does not grow past its window. What it costs, why the first index starts with a foreign key column, and what was left alone are in [indexes.md](indexes.md#the-api-request-log); the setting is in [api-keys.md](api-keys.md#the-request-log).
+
 ## Stripe calls that do not come back
 
 The Stripe library waits 80 seconds for an answer and 30 to make the connection, and the application used to leave that as it was. It is longer than a queue worker lets a job run (60 seconds, [redis.md](redis.md#the-queue)) and than most web servers wait for a page, so **one call that never came back cost the whole job or the whole request that made it**: the worker stopped the job, or the visitor was shown the web server's gateway timeout.

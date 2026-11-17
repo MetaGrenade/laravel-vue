@@ -88,4 +88,20 @@ return [
         'expiry_days' => env('API_SIGN_IN_EXPIRY_DAYS', 90),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | The log of requests made with a key
+    |--------------------------------------------------------------------------
+    |
+    | Every request made with an API key is a row in `token_logs` (what was asked, from where, what came back and how long it took), which
+    | is what Admin → Tokens lists and what a key's hourly and daily limits count. `retention_days` is how long the rows are kept: the
+    | daily `PruneTokenLogs` job deletes older ones, and 0 keeps them for ever. Even 1 is safe for the limits: they look back at most
+    | a day, and the job removes nothing newer than that.
+    |
+    */
+
+    'token_log' => [
+        'retention_days' => (int) env('API_TOKEN_LOG_RETENTION_DAYS', 30),
+    ],
+
 ];
