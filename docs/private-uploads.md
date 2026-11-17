@@ -22,7 +22,7 @@ The zip of a member's data export holds everything the site keeps about them, an
 The job makes two passes over `exports/` on the `local` disk:
 
 1. An export whose 30 minutes are over, and that still names a file, loses the file.
-2. A file that no export names and that is more than an hour old (two windows) is deleted: the zip of a member whose account was deleted (the account takes its export rows with it, and nothing took the file), or one that a job wrote and then could not record. A younger file may be one a job is still writing, so it is left. A file whose name starts with a dot (`.gitignore`) is not touched, and nothing outside `exports/` is.
+2. A file that no export names and that is more than an hour old (two windows) is deleted: the zip of a member whose account was deleted by an earlier version (the account takes its export rows with it, and nothing took the file; a deleted account's zip is unlinked at once now: [account-deletion.md](account-deletion.md)), or one that a job wrote and then could not record. A younger file may be one a job is still writing, so it is left. A file whose name starts with a dot (`.gitignore`) is not touched, and nothing outside `exports/` is.
 
 Until this job the file went only if somebody opened the member's privacy page or the download link after the 30 minutes were over. A member who downloaded the zip in time and never came back left it on the disk for good, and so did a member who deleted their account. **On a site that ran an earlier version, the first run deletes all of those:** every file in `exports/` that no export names and that is over an hour old, and the file of every export whose time is over.
 

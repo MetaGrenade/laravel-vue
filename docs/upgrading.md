@@ -76,6 +76,8 @@ php artisan db:seed --class=RolePermissionSeeder --force  # read "Roles and perm
 php artisan support:attachments:privatize --dry-run       # how many files are still on a public disk
 php artisan content:sanitize --dry-run                    # how many stored posts would change
 php artisan content:sanitize
+php artisan metaforger:members:forget-leftovers --dry-run # rows that belong to accounts that were deleted
+php artisan metaforger:members:forget-leftovers
 ```
 
 ### The storage link
@@ -156,6 +158,17 @@ A site that had `SEARCH_DRIVER=mysql_fulltext` searches the database now: that d
 
 A cover uploaded before the sizes were built has one file and is shown at that size. `php artisan metaforger:blog:covers:upgrade --dry-run` says how many would be drawn again and without `--dry-run` it does so ([images.md](images.md#covers-already-on-the-site)).
 
+### Accounts that were deleted
+
+Deleting an account used to leave rows behind that the database does not take with it: the API keys and the log of every request made with them (address, fields sent, answers), notifications, saved addresses, entitlements, browser sessions and the Discord package's rows. They name an account that is no longer there. From this version they are deleted with the account, and the command clears what accounts deleted before it left:
+
+```bash
+php artisan metaforger:members:forget-leftovers --dry-run
+php artisan metaforger:members:forget-leftovers
+```
+
+It deletes in chunks and finds a row by its account **not being in `users`**, so it never takes a guest's session or a row owned by something that is not a member. Run it once; a second run finds nothing. It **cannot find files** (the rows that named them went with the account): a data export's zip is swept by the scheduler, and the attachments of a deleted member's tickets are not ([account-deletion.md](account-deletion.md#accounts-deleted-before-this)).
+
 ## What changes for the people who run the site
 
 Behaviour that was different in an earlier build and is different now. The CHANGELOG has the reasons.
@@ -194,6 +207,7 @@ Behaviour that was different in an earlier build and is different now. The CHANG
 | **Making a card ready, saving one, choosing one, removing one, cancelling and resuming on the billing settings are limited.** | Each is a call to Stripe, and the first two are what somebody checking stolen card numbers repeats ("card testing"); every other billing action already had a limit and these six had none. Making the payment form ready and saving a card share ten a minute and sixty an hour per person; the other four share the `billing` limit of ten a minute with starting a subscription and opening the portal. A person who goes over is told to wait a while. | Nothing to run. A member who opens the two payment pages more than ten times in a minute is the only one who will see it. See [billing.md](billing.md#how-a-customer-subscribes). |
 | **The log of API requests keeps 30 days.** | Every request made with an API key is a row in `token_logs` (what **Admin → Tokens** lists), and nothing deleted one. A daily job, `PruneTokenLogs` (02:30), now deletes rows older than `API_TOKEN_LOG_RETENTION_DAYS` (30), 5,000 at a time, so **the first night after the upgrade removes everything older than that.** `migrate` also adds two indexes to the table (a second and a half on a million rows on MariaDB). A key's hourly and daily limits are not affected. | To keep the log longer, or for ever (`0`), set `API_TOKEN_LOG_RETENTION_DAYS` before the first night. The job runs on the queue, so the scheduler and a worker must be running ([the queue](redis.md#the-queue)). See [The request log](api-keys.md#the-request-log). |
 | **The zip of a data export is deleted 30 to 45 minutes after it is ready.** | The member is told the link works for 30 minutes, but the file stayed on the disk until somebody asked for the export again, and for ever if the member never came back or deleted their account. `PruneDataExports` (every 15 minutes, on the queue) now deletes the file of an export whose time is over, and any file in `storage/app/private/exports/` that no export names and that is over an hour old, **so the first run deletes the ones an earlier version left behind.** The row stays, with no file. In **Admin → Trust and safety**, the file of an export you mark finished has to be a file directly in `exports/` (it accepted any private file before); an export saved earlier with another path is not served, and its file is never deleted (the row only forgets the path). | Nothing, except that the scheduler and a worker must be running ([the queue](redis.md#the-queue)). A zip you meant to keep must be copied out of `exports/` before the first run. See [Data export files](private-uploads.md#data-export-files). |
+| **Deleting an account deletes its API keys, the log of their requests, notifications, saved addresses, entitlements, sessions and Discord rows, and the files that are the member's.** | These had no foreign key to the account (they belong to a morph, or to a package), so they stayed for ever: the address and the answers of every request a deleted member's key had made among them. A data export's zip and the attachments of the member's own tickets were not unlinked either, because a cascade runs no model event. Orders, invoices and payment records stay on purpose. | Run `php artisan metaforger:members:forget-leftovers` once for the accounts deleted before ([Accounts that were deleted](#accounts-that-were-deleted)). Staff who delete a member whose key has a very long log wait a little longer: the log is deleted 5,000 rows at a time. See [account-deletion.md](account-deletion.md). |
 | **New colours, type and logo.** | The interface, the logo and every icon in `public/` follow the MetaForger design. | If you changed any of them, read [theming.md](theming.md) before you check out the new code. |
 
 ## If you changed the code

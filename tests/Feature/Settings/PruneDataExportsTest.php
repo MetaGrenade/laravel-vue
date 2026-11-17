@@ -147,14 +147,15 @@ class PruneDataExportsTest extends TestCase
     }
 
     #[Test]
-    public function the_zip_of_a_member_who_was_deleted_goes_too(): void
+    public function the_zip_of_a_member_who_was_deleted_by_an_earlier_version_is_swept(): void
     {
         $member = User::factory()->create();
         $export = $this->export(5 * 60, $member);
         $path = (string) $export->file_path;
 
-        // The account goes, and the database takes the row with it; the file has nobody to ask for it.
-        $member->delete();
+        // The account goes the way it did before MemberLeftovers (nothing unlinks the file, which is now done when the account is deleted:
+        // see DeletedMemberTest), and the database takes the row with it; the file has nobody to ask for it.
+        User::withoutEvents(fn () => $member->delete());
         $this->assertNull(DataExport::query()->find($export->id));
         Storage::disk('local')->assertExists($path);
 

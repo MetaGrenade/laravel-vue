@@ -12,7 +12,11 @@ Other branches that happen to be in the checkout are not read. The scan is `HEAD
 
 Four old commits are named in `.gitleaksignore`. One holds a made-up Tebex token that a test helper used to contain, one holds the published two-factor test vector, one holds placeholder Discord role ids (eighteen digits in a row) that the client-id rule matches, and one holds a made-up Meilisearch key that a test looked for in messages. None of them was a real credential. The Tebex token, the test vector and the Meilisearch key are not in a later commit. The fingerprint is what lets the whole history pass.
 
-**A test that needs a made-up key** should not write one as a literal next to a name like `key`, `token` or `secret`: a string with enough different characters (the rule's bar is an entropy of 3.5) is taken for a real one, wherever it is, and a commit that holds it fails this scan for good, because the scan reads every commit. Build it from a repeated word instead, as `str_repeat('canary-', 3).'key'`, which is easy to look for and sits well under the bar. To see what the job will say before pushing, run the same scan: `gitleaks detect --source . --redact --log-opts="--full-history HEAD"`.
+**A test that needs a made-up key** should not write one as a literal next to a name like `key`, `token` or `secret`: a string with enough different characters (the rule's bar is an entropy of 3.5) is taken for a real one, wherever it is, and a commit that holds it fails this scan for good, because the scan reads every commit. Build it from a repeated word instead, as `str_repeat('canary-', 3).'key'`, which is easy to look for and sits well under the bar.
+
+**A list of names is read the same way.** The rule for a Discord client secret takes any 32 characters of letters, digits, `_` and `-` that follow the word `discord`, a separator such as a comma and a quote, with nothing to say it is a name. A list of the Discord package's three table names matched it, because the second one is exactly 32 characters long, and three files in one commit failed the scan (the names are not written out here for the same reason). Write such names without the prefix and put it back where they are used (`'discord_'.$name`), or put each on a line of its own that does not follow the word.
+
+To see what the job will say before pushing, run the same scan: `gitleaks detect --source . --redact --log-opts="--full-history HEAD"`.
 
 ## The scanner has to notice a key
 
