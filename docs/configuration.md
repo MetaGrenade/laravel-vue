@@ -165,6 +165,7 @@ All three of the cache, the sessions and the queue can use it ([redis.md](redis.
 | `API_KEYS_ALLOW_NO_EXPIRY` | `true` | Whether a person may make a key that never expires. |
 | `API_SIGN_IN_SCOPES` | `profile:read` | The scopes of a key made by `POST /api/v1/auth/token` when the request does not ask for any: a list, or `*` for every scope. |
 | `API_SIGN_IN_EXPIRY_DAYS` | `90` | How long that key lasts. Empty or `0` is no end, where `API_KEYS_ALLOW_NO_EXPIRY` allows it. |
+| `API_TOKEN_LOG_RETENTION_DAYS` | `30` | How many days the log of requests made with an API key is kept (Admin → Tokens; [api-keys.md](api-keys.md#the-request-log)). `0` keeps it for ever. Whatever number is chosen, a key's hourly and daily limits are not affected: they count the last day of it, and pruning never reaches that far. |
 | `CSP_ENABLED` | `true` | Send the Content Security Policy ([security-headers.md](security-headers.md)). |
 | `CSP_REPORT_ONLY` | `false` | Send it as report-only: the browser reports what it would have blocked and blocks nothing. For trying a change. |
 | `CSP_REPORT_URI` | — | Where browsers send those reports. |

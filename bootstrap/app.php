@@ -24,6 +24,7 @@ use App\Jobs\LiftRunOutBans;
 use App\Jobs\MonitorSupportTicketSlas;
 use App\Jobs\PruneAuditLogs;
 use App\Jobs\PruneSearchQueryLogs;
+use App\Jobs\PruneTokenLogs;
 use App\Jobs\PruneUsageEvents;
 use App\Jobs\SendEmailDigests;
 use App\Jobs\SyncTebexCatalogue;
@@ -129,6 +130,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->job(new PruneSearchQueryLogs)->dailyAt('01:00');
         $schedule->job(new PruneUsageEvents)->dailyAt('01:30');
         $schedule->job(new PruneAuditLogs)->dailyAt('02:00');
+        // The log of requests made with an API key: every such request is a row, so it would grow for ever (30 days are kept by default).
+        $schedule->job(new PruneTokenLogs)->dailyAt('02:30');
         // Community email that a member asked to receive once a day, instead of once per update.
         $schedule->job(new SendEmailDigests)->dailyAt('08:00');
         // A ban with an end date lifts itself when the member next tries to sign in or make a request; this is for the lists of members.

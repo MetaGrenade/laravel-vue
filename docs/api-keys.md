@@ -127,6 +127,16 @@ Sanctum's own `sanctum.expiration` (in minutes, `null` by default) still applies
 
 Revoking in the ACP now really revokes. **Restoring** a revoked token (clearing the revocation in the edit dialog) makes it work again.
 
+## The request log
+
+Every request made with a key is a row in `token_logs`: the route and method, the key's name, whether it worked and the HTTP status, the address and browser it came from, the fields of the request (cleaned: passwords and tokens left out, long text cut at 500 characters), the answer when it is JSON, how long it took, and the error if there was one. Staff read it in **Admin → Tokens**: the list (filtered by key, status and date, a row opens in full) and each key's calls in the last hour and the last day. A key's hourly and daily limits are counted from it ([limiting a key](#limiting-a-key)).
+
+**It is kept for 30 days**, and the setting is `API_TOKEN_LOG_RETENTION_DAYS` (`0` keeps it for ever). The daily `PruneTokenLogs` job (02:30) deletes older rows 5,000 at a time, so it needs the scheduler and a queue worker like the other scheduled jobs ([the queue](redis.md#the-queue)). Nothing deleted a row before it existed, so a site that has been running for a while has a backlog, and the first night takes it away; set the retention you want before then if 30 days is not it.
+
+- **The limits are not affected, whatever the setting.** A limit counts back at most a day from the request, and the job removes only rows older than the retention, which is a day or more. A retention of 1 is as safe as 30.
+- **Why it is kept short at all.** Every request is a row, and the checks that read the table (a key's limits on every request it makes, the admin page) read more with every row there is. At a million rows a key with both limits spent about 270 ms of every request counting; with the two indexes the table has now it spends about 18 ms ([indexes.md](indexes.md#the-api-request-log) has the measurements). The retention keeps the table from growing past its window.
+- **It is not an audit log.** The admin area has one that is never edited and is kept for as long as you decide ([audit-log.md](audit-log.md)). This one is for finding out what a script did and for counting its calls, and it is cut.
+
 ## Keys made over the API
 
 `POST /api/v1/auth/token` (email, password, optional `device_name` and `abilities`) still makes a key, and it appears on the person's page. It goes through the same `ApiKeys::create()` as the page, so it has the same limits and nobody can get around them by using it instead:
@@ -174,7 +184,7 @@ Run `php artisan api:docs` after deploying, so the generated OpenAPI document (c
 - Only a SHA-256 hash of a key is stored. The secret is flashed to the next page once, held in the page's memory while the dialog is open, and never logged: the activity log keeps the route, status and a cleaned request body, not the `Authorization` header.
 - The page that shows a new key (Settings → API keys and Admin → Tokens) is kept in the browser's history **encrypted**, and signing out has the browser throw the key away, so Back after signing out cannot show the secret again. Without that, the page was kept in the clear for as long as the tab lived. It needs HTTPS or `localhost`; on plain HTTP the browser cannot encrypt ([Seeing the recovery codes](two-factor.md#seeing-the-recovery-codes) says what stays).
 - A person's **data export** lists their keys (name, scopes, created, last used, ends, revoked) in both the JSON and the CSV, never the secret.
-- Keys go with the account when it is deleted.
+- Keys go with the account when it is deleted, and a key's rows in the [request log](#the-request-log) go with the key. The log holds the address, the browser, the fields of each request and the JSON answer, for 30 days unless you set `API_TOKEN_LOG_RETENTION_DAYS` otherwise.
 
 ## Not built
 
@@ -184,6 +194,7 @@ Run `php artisan api:docs` after deploying, so the generated OpenAPI document (c
 - **Opting out of the email**, or choosing another channel. It is a security notice, sent by email always.
 - **Two-factor authentication on `POST /api/v1/auth/token`.** It takes a password only, so an account with two-factor authentication can make a key without a code. Keys made on the settings page are made from a signed-in session, which has been through it.
 - **A client that signs in at every start and never gives the key back** will meet the limit on keys (a `422`): it should reuse its key or call `DELETE /api/v1/auth/token`.
+- **Keeping less of an answer in the request log.** It keeps the whole JSON answer to every request (88 bytes for the profile, more for a long list or a ticket with many messages), so a client that fetches big answers often fills the table faster; the retention bounds how long a row stays and not how big it is. It is not measured on a long ticket and not changed here.
 - **IP allow-lists** and **prefixes** for secret scanning (`SANCTUM_TOKEN_PREFIX` is available in `config/sanctum.php`; a distinctive prefix lets GitHub's secret scanning recognise a leaked key).
 
 ## Testing
