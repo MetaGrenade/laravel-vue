@@ -1082,7 +1082,7 @@ class Specification
                                     'required' => ['subject', 'body'],
                                     'properties' => [
                                         'subject' => ['type' => 'string', 'maxLength' => 255],
-                                        'body' => ['type' => 'string'],
+                                        'body' => ['type' => 'string', 'maxLength' => 16000],
                                         'priority' => ['type' => 'string', 'enum' => ['low', 'medium', 'high']],
                                         'support_ticket_category_id' => ['type' => 'integer', 'nullable' => true],
                                         'attachments' => [

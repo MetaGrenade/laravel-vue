@@ -35,11 +35,11 @@ class StoreUserRequest extends FormRequest
     {
         return [
             'nickname' => 'required|string|max:255|unique:users,nickname',
-            'email' => 'required|email|unique:users,email',
+            'email' => 'required|email|max:255|unique:users,email',
             'roles' => 'nullable|array',
             'roles.*' => 'string|exists:roles,name',
             'avatar_url' => 'nullable|url|max:2048',
-            'profile_bio' => 'nullable|string',
+            'profile_bio' => 'nullable|string|max:16000',
             'social_links' => 'nullable|array',
             'social_links.*.label' => 'nullable|string|max:255',
             'social_links.*.url' => 'nullable|url|max:2048',

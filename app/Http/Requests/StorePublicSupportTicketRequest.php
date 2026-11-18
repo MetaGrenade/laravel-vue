@@ -36,7 +36,7 @@ class StorePublicSupportTicketRequest extends FormRequest
     {
         return [
             'subject' => ['required', 'string', 'max:255'],
-            'body' => ['required', 'string'],
+            'body' => ['required', 'string', 'max:16000'],
             'priority' => ['nullable', 'in:low,medium,high'],
             'support_ticket_category_id' => ['nullable', 'exists:support_ticket_categories,id'],
             'user_id' => ['required', 'exists:users,id'],
