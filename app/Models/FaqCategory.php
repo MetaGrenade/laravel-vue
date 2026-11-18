@@ -27,6 +27,16 @@ class FaqCategory extends Model
 
     protected static function booted(): void
     {
+        // A question carries the name of its category in its search document (`category`), and nobody asks the index about it again when
+        // the category is renamed.
+        static::updated(function (FaqCategory $category): void {
+            if ($category->wasChanged('name')) {
+                app(CascadedDocuments::class)->refresh([
+                    Faq::class => DB::table('faqs')->where('faq_category_id', $category->id),
+                ]);
+            }
+        });
+
         // The questions of the category go with it by ON DELETE CASCADE, which runs no model events, so Scout would never hear of it.
         static::deleting(function (FaqCategory $category): void {
             $category->documentsLeaving = app(CascadedDocuments::class)->before([

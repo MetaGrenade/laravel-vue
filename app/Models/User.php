@@ -118,6 +118,16 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
                     ->all(),
             );
         });
+        // The threads and the blog posts of a member carry their nickname in their search document (`author`), and nobody asks the index
+        // about them again when it changes: the new name found nothing, and the old one kept finding what no longer had it.
+        static::updated(function (User $user): void {
+            if ($user->wasChanged('nickname')) {
+                app(CascadedDocuments::class)->refresh([
+                    ForumThread::class => DB::table('forum_threads')->where('user_id', $user->id),
+                    Blog::class => DB::table('blogs')->where('user_id', $user->id),
+                ]);
+            }
+        });
         static::saved(fn () => SupportAssignmentRule::flushCache());
         static::deleted(function (User $user): void {
             SupportAssignmentRule::flushCache();

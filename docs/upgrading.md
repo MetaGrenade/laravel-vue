@@ -190,6 +190,8 @@ With `SEARCH_DRIVER=meilisearch`, deleting a forum board or category, a FAQ cate
 php artisan metaforger:search:reindex
 ```
 
+The same command puts right the names that were changed before: renaming a member, a brand or a FAQ category now sends the documents that carry the name again (a member's threads and blog posts, a brand's products, the questions of a category), in jobs on the queue (`QUEUE_CONNECTION`), so unless it is `sync` a worker has to be running for the new name to reach Meilisearch ([deployment.md](deployment.md)). A document made before this carries the old name until the rebuild.
+
 Nothing is needed with the database search ([search-index.md](search-index.md#what-is-listed)).
 
 ### Accounts that were deleted
