@@ -27,6 +27,7 @@ use App\Jobs\PruneDataExports;
 use App\Jobs\PruneSearchQueryLogs;
 use App\Jobs\PruneTokenLogs;
 use App\Jobs\PruneUsageEvents;
+use App\Jobs\PublishDueBlogs;
 use App\Jobs\SendEmailDigests;
 use App\Jobs\SyncTebexCatalogue;
 use App\Payments\Tebex\TebexCatalogue;
@@ -139,6 +140,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->job(new SendEmailDigests)->dailyAt('08:00');
         // A ban with an end date lifts itself when the member next tries to sign in or make a request; this is for the lists of members.
         $schedule->job(new LiftRunOutBans)->everyMinute();
+        // A scheduled blog post goes live (and, with Meilisearch, into the search) when its time comes, not when somebody next opens the blog.
+        $schedule->job(new PublishDueBlogs)->everyMinute();
         $schedule->job(new ExpirePendingOrders)->everyFiveMinutes();
         // Looked at every five minutes; runs when the copy of the Tebex catalogue is older than the configured interval.
         $schedule->job(new SyncTebexCatalogue)->everyFiveMinutes()->when(fn () => app(TebexCatalogue::class)->isDue());

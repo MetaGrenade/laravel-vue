@@ -10,7 +10,7 @@ What may be put in the search index, how its Meilisearch settings are applied, h
 
 Four indexes, and a record is in one only when a guest could already open it:
 
-- **Blogs** (`blogs`). A published post, or a scheduled post whose time has arrived. A draft, an archived post, and a scheduled post that is still in the future stay out.
+- **Blogs** (`blogs`). A published post, or a scheduled post whose time has arrived. A draft, an archived post, and a scheduled post that is still in the future stay out. A scheduled post is saved while its time is still ahead, so nothing says to index it when the time comes: the scheduler's `PublishDueBlogs` job does, every minute. It makes each post whose time has come a published one (dated the time it was scheduled for), and saving it is what sends it to the index. It needs the scheduler and a queue worker, like the other timed jobs ([the queue](redis.md#the-queue)). A visit to the blog, to a post or to the posts in the admin area still publishes what is due (`Blog::publishDue()`), so a site with no scheduler publishes on time when somebody looks, but its search finds a due post only after that.
 - **Forum threads** (`forum_threads`). A published thread, including the text of its visible replies. A thread that is not published stays out, and so does a reply that is held or deleted. Boards are public, so there is no permission to apply. A board that later requires one is excluded in `ForumThread::shouldBeSearchable()`.
 - **FAQs** (`faqs`). A published question, with its category's name.
 - **Products** (`products`). A product that is for sale. An archived product stays out. The shop uses the same rule. Products are not shown on the global search page yet.
@@ -142,7 +142,6 @@ Every search made through `/search` that is at least `SEARCH_QUERY_MIN_LENGTH` c
 
 ## Not built
 
-- A scheduled blog post is not added to the Meilisearch index by the clock: it is added when the post is saved after it is due, or when the index is rebuilt. The database search path still finds a due scheduled post without that save.
 - Queued rebuild and zero-downtime index swap.
 - A rebuild counts refusals from where it began up to a page of 100 (it says "100 or more" past that), and any refusal of an index since it began counts, including one for a post somebody saved while it ran.
 - Telling anybody when the health check finds a problem (it shows on the System page and in the command; nothing is sent).
@@ -154,6 +153,8 @@ Every search made through `/search` that is at least `SEARCH_QUERY_MIN_LENGTH` c
 ## Testing
 
 `tests/Feature/Search/SearchIndexTest.php` uses Scout's collection engine: a draft, an unpublished thread, an unpublished FAQ, an archived product and a held reply are left out, unpublishing a post removes its document, and taking down a member's posts removes their threads and reply text from the index.
+
+`tests/Feature/Blog/PublishDueBlogsTest.php` saves a scheduled post while its time is ahead, lets the time pass and runs the job: the post is published as of the moment it was scheduled for and its document is sent, once, and one that is not due is not published or sent. It also checks that 250 due posts are read as 100, 100 and 50, that the posts that are not due are not read at all, that the scheduler queues the job every minute, and that the blog, a post, the feed and the admin area still publish what is due.
 
 `tests/Feature/Search/CascadedDocumentsTest.php` uses an engine that keeps the documents it is given (Scout's collection engine reads the database, so it cannot show one that is left over): deleting a board, a category, a FAQ category or a member leaves in the index only what belongs to somebody else, a thread of another member is made again without the deleted member's replies (and not for a reply that was held), 1,200 documents are asked for as 500, 500 and 200, with the queue on each batch is a job that a worker can run from the keys alone, a failure is reported without undoing the deletion or stopping the next batch, a deletion that is called off takes nothing out, and with the database search no query looks for documents.
 

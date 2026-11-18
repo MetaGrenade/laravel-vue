@@ -67,17 +67,7 @@ class BlogController extends Controller
             ->values()
             ->all();
 
-        Blog::query()
-            ->where('status', 'scheduled')
-            ->whereNotNull('scheduled_for')
-            ->where('scheduled_for', '<=', now())
-            ->each(function (Blog $dueBlog) {
-                $dueBlog->forceFill([
-                    'status' => 'published',
-                    'published_at' => $dueBlog->scheduled_for,
-                    'scheduled_for' => null,
-                ])->save();
-            });
+        Blog::publishDue();
 
         $baseQuery = Blog::query();
         $filteredQuery = (clone $baseQuery);
