@@ -7,12 +7,12 @@ use App\Http\Requests\Admin\UpdateDataErasureRequest;
 use App\Http\Requests\Admin\UpdateDataExportRequest;
 use App\Models\DataErasureRequest;
 use App\Models\DataExport;
+use App\Support\Localization\BrowserTime;
 use App\Support\Localization\DateFormatter;
 use App\Support\Search\LikePattern;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -181,7 +181,7 @@ class TrustSafetyController extends Controller
             'file_path' => $data['file_path'] ?? null,
             'failure_reason' => $status === DataExport::STATUS_FAILED ? ($data['failure_reason'] ?? null) : null,
             'completed_at' => $status === DataExport::STATUS_COMPLETED
-                ? ($data['completed_at'] ? Carbon::parse($data['completed_at']) : now())
+                ? (BrowserTime::parse($data['completed_at'] ?? null) ?? now())
                 : null,
         ])->save();
 
@@ -203,7 +203,7 @@ class TrustSafetyController extends Controller
                 DataErasureRequest::STATUS_COMPLETED,
                 DataErasureRequest::STATUS_REJECTED,
             ], true)
-                ? ($data['processed_at'] ? Carbon::parse($data['processed_at']) : now())
+                ? (BrowserTime::parse($data['processed_at'] ?? null) ?? now())
                 : null,
         ])->save();
 

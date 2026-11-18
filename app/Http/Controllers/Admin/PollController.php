@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\PollRequest;
 use App\Models\Poll;
 use App\Models\PollOption;
+use App\Support\Localization\BrowserTime;
 use App\Support\Localization\DateFormatter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -65,8 +66,8 @@ class PollController extends Controller
             'description' => $validated['description'] ?? null,
             'status' => $validated['status'],
             'allow_multiple' => $validated['allow_multiple'] ?? false,
-            'starts_at' => $validated['starts_at'] ?? null,
-            'ends_at' => $validated['ends_at'] ?? null,
+            'starts_at' => BrowserTime::parse($validated['starts_at'] ?? null),
+            'ends_at' => BrowserTime::parse($validated['ends_at'] ?? null),
         ]);
 
         $options = collect($validated['options'])->values();
@@ -122,8 +123,8 @@ class PollController extends Controller
             'description' => $validated['description'] ?? null,
             'status' => $validated['status'],
             'allow_multiple' => $validated['allow_multiple'] ?? false,
-            'starts_at' => $validated['starts_at'] ?? null,
-            'ends_at' => $validated['ends_at'] ?? null,
+            'starts_at' => BrowserTime::parse($validated['starts_at'] ?? null),
+            'ends_at' => BrowserTime::parse($validated['ends_at'] ?? null),
         ])->save();
 
         $options = collect($validated['options'])->values();

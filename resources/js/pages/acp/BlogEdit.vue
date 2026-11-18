@@ -14,6 +14,8 @@ import CoverImage from '@/components/blog/CoverImage.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import dayjs from '@/lib/dayjs';
+import { inputFromInstant, instantFromInput } from '@/lib/localTime';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CalendarClock, Eye, Link as LinkIcon } from '@lucide/vue';
@@ -336,48 +338,24 @@ const previewCopied = ref(false);
 
 const canViewRevisions = computed(() => props.permissions?.canViewRevisions ?? false);
 
-const formatForInput = (date: Date) => {
-    const pad = (value: number) => value.toString().padStart(2, '0');
-    const year = date.getFullYear();
-    const month = pad(date.getMonth() + 1);
-    const day = pad(date.getDate());
-    const hours = pad(date.getHours());
-    const minutes = pad(date.getMinutes());
-
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
-
-const toInputValue = (value?: string | null) => {
-    if (!value) {
-        return '';
-    }
-
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-        return '';
-    }
-
-    return formatForInput(date);
-};
-
 const defaultScheduledAt = () => {
     const date = new Date();
     date.setMinutes(date.getMinutes() + 30);
     date.setSeconds(0, 0);
 
-    return formatForInput(date);
+    return inputFromInstant(date);
 };
 
-const minScheduleValue = computed(() => formatForInput(new Date()));
+const minScheduleValue = computed(() => inputFromInstant(new Date()));
 
-form.scheduled_for = props.blog.status === 'scheduled' ? toInputValue(props.blog.scheduled_for) : '';
+form.scheduled_for = props.blog.status === 'scheduled' ? inputFromInstant(props.blog.scheduled_for) : '';
 
 watch(
     () => form.status,
     (status) => {
         if (status === 'scheduled' && !form.scheduled_for) {
             form.scheduled_for =
-                props.blog.status === 'scheduled' && props.blog.scheduled_for ? toInputValue(props.blog.scheduled_for) : defaultScheduledAt();
+                props.blog.status === 'scheduled' && props.blog.scheduled_for ? inputFromInstant(props.blog.scheduled_for) : defaultScheduledAt();
         }
 
         if (status !== 'scheduled') {
@@ -392,7 +370,7 @@ const selectedTags = computed(() => tagOptions.value.filter((tag) => form.tag_id
 
 const previewScheduledMessage = computed(() => {
     if (form.status === 'scheduled' && form.scheduled_for) {
-        return `Scheduled for ${formatDate(form.scheduled_for, 'MMMM D, YYYY h:mm A')}`;
+        return `Scheduled for ${dayjs(form.scheduled_for).format('MMMM D, YYYY h:mm A')}`;
     }
 
     if (form.status === 'draft') {
@@ -470,6 +448,9 @@ const handleSubmit = () => {
 
         if (data.status !== 'scheduled') {
             delete payload.scheduled_for;
+        } else {
+            // The box holds the admin's wall clock; the server is sent the moment it names.
+            payload.scheduled_for = instantFromInput(data.scheduled_for);
         }
 
         return payload;

@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/InputError.vue';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { PlusCircle, Trash2 } from '@lucide/vue';
+import { instantFromInput } from '@/lib/localTime';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Polls ACP', href: route('acp.polls.index') },
@@ -43,7 +44,12 @@ const removeOption = (index: number) => {
 };
 
 const handleSubmit = () => {
-    form.post(route('acp.polls.store'), {
+    // The boxes hold the admin's wall clock; the server is sent the moments they name.
+    form.transform((data) => ({
+        ...data,
+        starts_at: instantFromInput(data.starts_at),
+        ends_at: instantFromInput(data.ends_at),
+    })).post(route('acp.polls.store'), {
         preserveScroll: true,
     });
 };

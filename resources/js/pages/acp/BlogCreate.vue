@@ -16,7 +16,8 @@ import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CalendarClock, Eye } from '@lucide/vue';
-import { useUserTimezone } from '@/composables/useUserTimezone';
+import dayjs from '@/lib/dayjs';
+import { inputFromInstant, instantFromInput } from '@/lib/localTime';
 
 type BlogTaxonomyOption = {
     id: number;
@@ -104,8 +105,6 @@ const fieldError = (key: string): string | undefined => (form.errors as Record<s
 
 const coverImagePreview = ref<string | null>(null);
 const previewOpen = ref(false);
-
-const { formatDate } = useUserTimezone();
 
 const categoryOptions = ref<BlogTaxonomyOption[]>([]);
 const refreshingCategories = ref(false);
@@ -291,26 +290,15 @@ const refreshTags = async () => {
     }
 };
 
-const formatForInput = (date: Date) => {
-    const pad = (value: number) => value.toString().padStart(2, '0');
-    const year = date.getFullYear();
-    const month = pad(date.getMonth() + 1);
-    const day = pad(date.getDate());
-    const hours = pad(date.getHours());
-    const minutes = pad(date.getMinutes());
-
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
-
 const defaultScheduledAt = () => {
     const date = new Date();
     date.setMinutes(date.getMinutes() + 30);
     date.setSeconds(0, 0);
 
-    return formatForInput(date);
+    return inputFromInstant(date);
 };
 
-const minScheduleValue = computed(() => formatForInput(new Date()));
+const minScheduleValue = computed(() => inputFromInstant(new Date()));
 
 watch(
     () => form.status,
@@ -331,7 +319,7 @@ const selectedCategories = computed(() => categoryOptions.value.filter((category
 const selectedTags = computed(() => tagOptions.value.filter((tag) => form.tag_ids.includes(tag.id)));
 const previewScheduledMessage = computed(() => {
     if (form.status === 'scheduled' && form.scheduled_for) {
-        return `Scheduled for ${formatDate(form.scheduled_for, 'MMMM D, YYYY h:mm A')}`;
+        return `Scheduled for ${dayjs(form.scheduled_for).format('MMMM D, YYYY h:mm A')}`;
     }
 
     if (form.status === 'draft') {
@@ -373,6 +361,9 @@ const handleSubmit = () => {
 
         if (data.status !== 'scheduled') {
             delete payload.scheduled_for;
+        } else {
+            // The box holds the admin's wall clock; the server is sent the moment it names.
+            payload.scheduled_for = instantFromInput(data.scheduled_for);
         }
 
         return payload;

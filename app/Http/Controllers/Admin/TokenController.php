@@ -13,6 +13,7 @@ use App\Notifications\ApiKeyCreated;
 use App\Support\Api\ApiKeys;
 use App\Support\Api\Scope;
 use App\Support\Api\Scopes;
+use App\Support\Localization\BrowserTime;
 use App\Support\Localization\DateFormatter;
 use App\Support\Members\StaffUserSearch;
 use App\Support\Search\LikePattern;
@@ -206,7 +207,7 @@ class TokenController extends Controller
         $newToken = $user->createToken(
             $data['name'],
             array_values(array_unique($data['abilities'])),
-            $data['expires_at'] ? Carbon::parse($data['expires_at']) : null
+            BrowserTime::parse($data['expires_at'] ?? null)
         );
 
         // Limits staff set are staff's: the owner cannot change them (see ApiKeys::setLimits()).
@@ -234,7 +235,7 @@ class TokenController extends Controller
         $token->forceFill([
             'name' => $data['name'],
             'abilities' => array_values(array_unique($data['abilities'])),
-            'expires_at' => $data['expires_at'] ? Carbon::parse($data['expires_at']) : null,
+            'expires_at' => BrowserTime::parse($data['expires_at'] ?? null),
             'hourly_quota' => $data['hourly_quota'] ?? null,
             'daily_quota' => $data['daily_quota'] ?? null,
         ]);

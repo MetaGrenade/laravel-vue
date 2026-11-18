@@ -923,6 +923,47 @@ test.describe('staff', () => {
         await expect(page.getByText(secret)).toHaveCount(0);
     });
 
+    test.describe('in a zone that is not UTC', () => {
+        // A time box holds the admin's wall clock, with no zone. The site keeps moments, in UTC: the form has to send the moment the box
+        // names and to fill the box from the moment it is given (docs/upgrading.md, "Times typed in the admin area"). In UTC the two are the
+        // same number, so only a browser in another zone can tell a form that does it from one that does not.
+        test.use({ timezoneId: 'Asia/Tokyo' });
+
+        test('an administrator opens a poll at 09:00 on their own clock, and the form says 09:00 when it is opened again and when it is saved untouched', async ({
+            page,
+        }) => {
+            await signIn(page, admin.email);
+            await page.goto('/acp/polls/create');
+
+            const title = unique('Smoke poll');
+            await page.getByLabel('Title', { exact: true }).fill(title);
+            await page.getByLabel('Option 1').fill('Red');
+            await page.getByLabel('Option 2').fill('Blue');
+            await page.getByLabel('Starts at').fill('2030-03-10T09:00');
+            await page.getByLabel('Ends at').fill('2030-03-11T09:00');
+            await page.getByRole('button', { name: 'Save poll' }).first().click();
+            await expect(page).toHaveURL(/\/acp\/polls$/);
+
+            // What the list shows is the moment on the administrator's clock: 09:00 on the 10th (Tokyo), not 18:00 (what 09:00 UTC is there).
+            const row = page.getByRole('row').filter({ hasText: title });
+            await expect(row).toContainText('Mar 10, 2030 9:00 AM');
+            await expect(row).toContainText('Mar 11, 2030 9:00 AM');
+
+            await row.getByRole('link', { name: 'Edit' }).click();
+            await expect(page.getByLabel('Starts at')).toHaveValue('2030-03-10T09:00');
+            await expect(page.getByLabel('Ends at')).toHaveValue('2030-03-11T09:00');
+
+            // Saved as it is, twice: nothing moves.
+            for (let save = 0; save < 2; save++) {
+                await page.getByRole('button', { name: 'Save changes' }).first().click();
+                await expect(page).toHaveURL(/\/acp\/polls$/);
+                await page.getByRole('row').filter({ hasText: title }).getByRole('link', { name: 'Edit' }).click();
+                await expect(page.getByLabel('Starts at')).toHaveValue('2030-03-10T09:00');
+                await expect(page.getByLabel('Ends at')).toHaveValue('2030-03-11T09:00');
+            }
+        });
+    });
+
     test('a site with no sign-in provider set up offers no provider button, and the system settings say what each still needs', async ({
         page,
         request,

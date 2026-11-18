@@ -11,11 +11,11 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Support\Commerce\Discounts\CouponRedemptions;
+use App\Support\Localization\BrowserTime;
 use App\Support\Search\LikePattern;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -176,8 +176,8 @@ class CouponController extends Controller
             // A fixed amount is money in the shop's currency; a percentage has no currency.
             'currency' => $type === CouponType::Fixed ? $this->currency() : null,
             'minimum_subtotal' => $validated['minimum_subtotal'] ?? null,
-            'starts_at' => $this->moment($validated['starts_at'] ?? null),
-            'ends_at' => $this->moment($validated['ends_at'] ?? null),
+            'starts_at' => BrowserTime::parse($validated['starts_at'] ?? null),
+            'ends_at' => BrowserTime::parse($validated['ends_at'] ?? null),
             'max_redemptions' => $validated['max_redemptions'] ?? null,
             'max_redemptions_per_customer' => $validated['max_redemptions_per_customer'] ?? null,
             'is_active' => (bool) ($validated['is_active'] ?? true),
@@ -201,14 +201,6 @@ class CouponController extends Controller
 
         // Choosing nothing means no limit; choosing something is remembered even after what was chosen is deleted.
         $coupon->forceFill(['is_restricted' => $products !== [] || $categories !== []])->save();
-    }
-
-    /**
-     * A time the browser sent (an ISO date with its zone) as a time in the app's own zone.
-     */
-    private function moment(?string $value): ?Carbon
-    {
-        return $value === null ? null : Carbon::parse($value)->setTimezone(config('app.timezone'));
     }
 
     /**
