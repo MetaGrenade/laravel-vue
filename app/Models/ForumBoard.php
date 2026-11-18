@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Support\Forum\ForumAttachments;
+use App\Support\Search\CascadedDocuments;
+use App\Support\Search\DocumentsLeaving;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
 
 class ForumBoard extends Model
 {
@@ -28,11 +31,26 @@ class ForumBoard extends Model
         'prefixes_required' => 'boolean',
     ];
 
+    /**
+     * The documents of the threads this board is being deleted with, found by `deleting` and forgotten by `deleted`.
+     */
+    private ?DocumentsLeaving $documentsLeaving = null;
+
     protected static function booted(): void
     {
-        // The threads and replies of the board go with it by ON DELETE CASCADE, which runs no model events: the files go first.
+        // The threads and replies of the board go with it by ON DELETE CASCADE, which runs no model events: the files go first, and the
+        // threads' documents in the search index are asked to go once the board is.
         static::deleting(function (ForumBoard $board): void {
             app(ForumAttachments::class)->forgetInBoard($board);
+
+            $board->documentsLeaving = app(CascadedDocuments::class)->before([
+                ForumThread::class => DB::table('forum_threads')->where('forum_board_id', $board->id),
+            ]);
+        });
+
+        static::deleted(function (ForumBoard $board): void {
+            app(CascadedDocuments::class)->after($board->documentsLeaving);
+            $board->documentsLeaving = null;
         });
     }
 

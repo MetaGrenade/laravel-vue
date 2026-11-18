@@ -15,6 +15,17 @@ final class SearchDriver
     }
 
     /**
+     * Whether Scout is on an engine that keeps documents. On the null engine (the database search) there is nothing to remove or to
+     * rebuild, so whoever would ask for it can skip the work, and the queries that find what to ask for.
+     */
+    public static function keepsAnIndex(): bool
+    {
+        $driver = config('scout.driver');
+
+        return $driver !== 'null' && $driver !== null && $driver !== '';
+    }
+
+    /**
      * Whether saving a record indexes it on the queue (config/scout.php). SCOUT_QUEUE decides when it is set; when it is not, Meilisearch
      * is indexed on the queue, so that a save still works while Meilisearch is down, and the database search has nothing to index.
      */

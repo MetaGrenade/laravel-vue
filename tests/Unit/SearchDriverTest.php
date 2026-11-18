@@ -44,6 +44,29 @@ class SearchDriverTest extends TestCase
         $this->assertSame($expected, SearchDriver::indexesOnQueue($setting, $driver));
     }
 
+    /**
+     * @return array<string, array{mixed, bool}>
+     */
+    public static function engines(): array
+    {
+        return [
+            'the null engine' => ['null', false],
+            'not set' => [null, false],
+            'set but empty' => ['', false],
+            'meilisearch' => ['meilisearch', true],
+            'an engine that is not known here' => ['collection', true],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('engines')]
+    public function only_an_engine_that_keeps_documents_has_an_index_to_keep_right(mixed $driver, bool $expected): void
+    {
+        config(['scout.driver' => $driver]);
+
+        $this->assertSame($expected, SearchDriver::keepsAnIndex());
+    }
+
     #[Test]
     public function the_scout_configuration_reads_both_variables(): void
     {
