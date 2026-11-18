@@ -2,6 +2,7 @@
 
 namespace App\Support\Search;
 
+use App\Jobs\RefreshSearchDocuments;
 use App\Observers\SearchIndexObserver;
 use Closure;
 use Illuminate\Database\Eloquent\Collection;
@@ -17,6 +18,10 @@ use Throwable;
  * It is done in two steps, as the files of the same rows are: {@see before()} finds the keys while the rows exist, and {@see after()}
  * asks the index to forget them once the deletion has happened, so a deletion that is called off, or fails, takes nothing out of the index.
  * Removing a document needs only its key, which is why the rows can be gone by then.
+ *
+ * The same silence leaves a document with a name that is no longer true: a brand deleted leaves its products without one by `ON DELETE
+ * SET NULL`, and a rename changes a row nobody asks the index about again. Those documents are not removed but sent again, by
+ * {@see RefreshSearchDocuments} (`$refresh` of {@see before()}, and {@see refresh()} for a rename, where nothing is lost and one step does).
  */
 final class CascadedDocuments
 {
@@ -28,29 +33,28 @@ final class CascadedDocuments
     /**
      * @param  array<class-string<Model>, Builder>  $remove  Per searchable model, a query for the rows the database is about to remove (their `id` is read).
      * @param  Closure(): list<int>|null  $rebuildThreads  The ids of the threads that stay and have a visible reply that goes, when there are some.
+     * @param  array<class-string<Model>, Builder>  $refresh  Per searchable model, a query for the rows that stay and carry a name that is about to go (a brand
+     *                                                        deleted leaves its products without one, by `ON DELETE SET NULL`, which runs no model event either).
      */
-    public function before(array $remove, ?Closure $rebuildThreads = null): DocumentsLeaving
+    public function before(array $remove, ?Closure $rebuildThreads = null, array $refresh = []): DocumentsLeaving
     {
         // The null engine (the database search) keeps nothing, so there is nothing to ask and nothing to look up.
         if (! SearchDriver::keepsAnIndex()) {
             return new DocumentsLeaving;
         }
 
-        $keys = [];
+        return new DocumentsLeaving($this->keysOf($remove), $rebuildThreads === null ? [] : $rebuildThreads(), $this->keysOf($refresh));
+    }
 
-        foreach ($remove as $model => $rows) {
-            $found = [];
-
-            foreach ($rows->pluck('id') as $id) {
-                $found[] = (int) $id;
-            }
-
-            if ($found !== []) {
-                $keys[$model] = $found;
-            }
-        }
-
-        return new DocumentsLeaving($keys, $rebuildThreads === null ? [] : $rebuildThreads());
+    /**
+     * Send documents again because the name they carry has changed (a member's nickname, a brand, a FAQ category). The rows are all still
+     * there, so it is one step, and what is sent is made from the rows by a worker: here only the keys are read.
+     *
+     * @param  array<class-string<Model>, Builder>  $carriers  Per searchable model, a query for the rows that carry the name (their `id` is read).
+     */
+    public function refresh(array $carriers): void
+    {
+        $this->after($this->before([], null, $carriers));
     }
 
     /**
@@ -72,6 +76,33 @@ final class CascadedDocuments
         if ($leaving->rebuildThreads !== []) {
             $this->attempt(fn () => $this->searchIndex->afterMemberContentTakedown([], $leaving->rebuildThreads));
         }
+
+        foreach ($leaving->refresh as $model => $keys) {
+            $this->attempt(fn () => RefreshSearchDocuments::dispatchInChunks($model, $keys));
+        }
+    }
+
+    /**
+     * @param  array<class-string<Model>, Builder>  $queries
+     * @return array<class-string<Model>, list<int>> The keys that were found, per model that has some.
+     */
+    private function keysOf(array $queries): array
+    {
+        $keys = [];
+
+        foreach ($queries as $model => $rows) {
+            $found = [];
+
+            foreach ($rows->pluck('id') as $id) {
+                $found[] = (int) $id;
+            }
+
+            if ($found !== []) {
+                $keys[$model] = $found;
+            }
+        }
+
+        return $keys;
     }
 
     /**
