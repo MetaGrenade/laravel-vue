@@ -12,6 +12,7 @@ import InputError from '@/components/InputError.vue';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'vue-sonner';
 import { useInertiaPagination, type PaginationMeta } from '@/composables/useInertiaPagination';
+import { instantFromInput } from '@/lib/localTime';
 import { useDebounceFn } from '@vueuse/core';
 import { ShieldCheck, FileDown } from '@lucide/vue';
 
@@ -387,7 +388,7 @@ const submitExportForm = () => {
             status: data.status,
             file_path: data.file_path?.trim() || null,
             failure_reason: data.failure_reason?.trim() || null,
-            completed_at: data.completed_at ? data.completed_at : null,
+            completed_at: data.completed_at ? instantFromInput(data.completed_at) : null,
         }))
         .patch(route('acp.trust-safety.exports.update', { export: target.id }), {
             preserveScroll: true,
@@ -410,7 +411,7 @@ const submitErasureForm = () => {
     erasureForm
         .transform((data) => ({
             status: data.status,
-            processed_at: data.processed_at ? data.processed_at : null,
+            processed_at: data.processed_at ? instantFromInput(data.processed_at) : null,
         }))
         .patch(route('acp.trust-safety.erasure.update', { erasureRequest: target.id }), {
             preserveScroll: true,

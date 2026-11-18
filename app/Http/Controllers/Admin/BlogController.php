@@ -12,6 +12,7 @@ use App\Models\BlogTag;
 use App\Models\User;
 use App\Support\Blog\BlogCovers;
 use App\Support\Commerce\Catalogue\ImageRejected;
+use App\Support\Localization\BrowserTime;
 use App\Support\Localization\DateFormatter;
 use App\Support\Search\LikePattern;
 use Illuminate\Http\RedirectResponse;
@@ -273,7 +274,7 @@ class BlogController extends Controller
         if ($status === 'scheduled') {
             $scheduledValue = $validated['scheduled_for'] ?? null;
             if ($scheduledValue) {
-                $scheduledCandidate = Carbon::parse($scheduledValue);
+                $scheduledCandidate = BrowserTime::parse($scheduledValue);
 
                 if ($scheduledCandidate->isPast()) {
                     $status = 'published';
@@ -439,7 +440,7 @@ class BlogController extends Controller
         if ($status === 'scheduled') {
             $scheduledValue = $validated['scheduled_for'] ?? null;
             if ($scheduledValue) {
-                $scheduledCandidate = Carbon::parse($scheduledValue);
+                $scheduledCandidate = BrowserTime::parse($scheduledValue);
 
                 if ($scheduledCandidate->isPast()) {
                     $status = 'published';

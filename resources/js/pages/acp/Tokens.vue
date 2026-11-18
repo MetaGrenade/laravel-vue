@@ -22,6 +22,7 @@ import {
 import { Ellipsis, Trash2, Pencil, Coins, ShieldCheck, ShieldAlert, ShieldOff, Ban } from '@lucide/vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useUserTimezone } from '@/composables/useUserTimezone';
+import { instantFromInput } from '@/lib/localTime';
 import InputError from '@/components/InputError.vue';
 import ApiScopePicker from '@/components/ApiScopePicker.vue';
 import SupportTicketUserSelect from '@/components/SupportTicketUserSelect.vue';
@@ -481,12 +482,15 @@ const submitCreateToken = () => {
     createTokenForm.hourly_quota = normalizeQuotaValue(createTokenForm.hourly_quota);
     createTokenForm.daily_quota = normalizeQuotaValue(createTokenForm.daily_quota);
 
-    createTokenForm.post(route('acp.tokens.store'), {
-        preserveScroll: true,
-        onSuccess: () => {
-            createDialogOpen.value = false;
-        },
-    });
+    // The box holds the admin's wall clock; the server is sent the moment it names.
+    createTokenForm
+        .transform((data) => ({ ...data, expires_at: instantFromInput(data.expires_at) }))
+        .post(route('acp.tokens.store'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                createDialogOpen.value = false;
+            },
+        });
 };
 
 const editDialogOpen = ref(false);
@@ -545,12 +549,14 @@ const submitEditToken = () => {
     editTokenForm.hourly_quota = normalizeQuotaValue(editTokenForm.hourly_quota);
     editTokenForm.daily_quota = normalizeQuotaValue(editTokenForm.daily_quota);
 
-    editTokenForm.put(route('acp.tokens.update', { token: editingTokenId.value }), {
-        preserveScroll: true,
-        onSuccess: () => {
-            editDialogOpen.value = false;
-        },
-    });
+    editTokenForm
+        .transform((data) => ({ ...data, expires_at: instantFromInput(data.expires_at) }))
+        .put(route('acp.tokens.update', { token: editingTokenId.value }), {
+            preserveScroll: true,
+            onSuccess: () => {
+                editDialogOpen.value = false;
+            },
+        });
 };
 
 const deleteForm = useForm({});
