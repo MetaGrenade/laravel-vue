@@ -164,6 +164,53 @@ class Blog extends Model
         return $this->hasMany(BlogRevision::class);
     }
 
+    /**
+     * Makes a scheduled post whose time has come a published one, dated the moment it was scheduled for. Saving it is what sends it to
+     * the search index too: while its time was in the future it was not there, and nothing else says that the time has come.
+     *
+     * @return bool whether it was published now (false for any post that is not scheduled, or not yet due)
+     */
+    public function publishIfDue(): bool
+    {
+        $due = $this->scheduled_for;
+
+        if ($this->status !== 'scheduled' || ! $due instanceof CarbonInterface || $due->greaterThan(now())) {
+            return false;
+        }
+
+        $this->forceFill([
+            'status' => 'published',
+            'published_at' => $due,
+            'scheduled_for' => null,
+        ])->save();
+
+        return true;
+    }
+
+    /**
+     * Publishes every scheduled post whose time has come. The scheduler does it every minute (`PublishDueBlogs`), and a visit to the blog
+     * or to the posts in the admin area does it again, so a site with no scheduler or no worker still publishes on time when it is looked at.
+     *
+     * @return int how many posts were published
+     */
+    public static function publishDue(): int
+    {
+        $published = 0;
+
+        // By id: each post saved leaves the rows this selects, and a page that began at an offset would skip the ones behind it.
+        static::query()
+            ->where('status', 'scheduled')
+            ->whereNotNull('scheduled_for')
+            ->where('scheduled_for', '<=', now())
+            ->eachById(function (Blog $blog) use (&$published): void {
+                if ($blog->publishIfDue()) {
+                    $published++;
+                }
+            }, 100);
+
+        return $published;
+    }
+
     public function searchableAs(): string
     {
         return $this->searchIndexAs('blogs');

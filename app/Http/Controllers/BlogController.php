@@ -42,7 +42,7 @@ class BlogController extends Controller
 
         $formatter = DateFormatter::for($request->user());
 
-        $this->publishDueScheduledBlogs();
+        Blog::publishDue();
 
         $blogsQuery = Blog::query()
             ->where(function ($query) {
@@ -183,7 +183,7 @@ class BlogController extends Controller
      */
     public function feed(): HttpResponse
     {
-        $this->publishDueScheduledBlogs();
+        Blog::publishDue();
 
         $posts = Blog::query()
             ->where('status', 'published')
@@ -229,21 +229,6 @@ class BlogController extends Controller
         ]);
     }
 
-    protected function publishDueScheduledBlogs(): void
-    {
-        Blog::query()
-            ->where('status', 'scheduled')
-            ->whereNotNull('scheduled_for')
-            ->where('scheduled_for', '<=', now())
-            ->each(function (Blog $dueBlog) {
-                $dueBlog->forceFill([
-                    'status' => 'published',
-                    'published_at' => $dueBlog->scheduled_for,
-                    'scheduled_for' => null,
-                ])->save();
-            });
-    }
-
     /**
      * Show the detailed view for a single blog post.
      */
@@ -267,13 +252,7 @@ class BlogController extends Controller
 
         $blog->loadCount('commentSubscribers');
 
-        if ($blog->status === 'scheduled' && $blog->scheduled_for && $blog->scheduled_for->lessThanOrEqualTo(now())) {
-            $blog->forceFill([
-                'status' => 'published',
-                'published_at' => $blog->scheduled_for,
-                'scheduled_for' => null,
-            ])->save();
-        }
+        $blog->publishIfDue();
 
         $formatter = DateFormatter::for($request->user());
 

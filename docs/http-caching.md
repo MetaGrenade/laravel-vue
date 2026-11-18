@@ -50,7 +50,7 @@ PublicDocuments::cachedFor(300)->get('/blogs/feed', [BlogController::class, 'fee
 
 - **A change can take up to the time above to show** in a shared cache (a CDN, a proxy) and in a reader that keeps it. Switching `SEO_INDEXING` on at launch, or changing the security contact, is not seen by a crawler at once: purge the CDN or wait an hour.
 - **A CDN needs nothing set up.** The headers say `public`, nothing varies on a cookie or a language, and no document sets a cookie. Put a CDN in front and the documents are kept at the edge.
-- **The blog feed is up to five minutes late.** Asking for it publishes the posts whose scheduled time has passed (`publishDueScheduledBlogs`), and it is now asked less often. The posts' own pages publish a due post on their own, as before.
+- **The blog feed is up to five minutes late.** Asking for it publishes the posts whose scheduled time has passed (`Blog::publishDue()`, which the scheduler also runs every minute, [search-index.md](search-index.md)), and it is now asked less often. The posts' own pages publish a due post on their own, as before.
 - **A kept `200` outlives maintenance by its time.** A `503` is never kept, but a cache that kept the sitemap before maintenance began may serve it for up to an hour.
 
 ## Adding a document
