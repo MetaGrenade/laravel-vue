@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\InteractsWithStripe;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Rules\UniqueIgnoringCase;
 use App\Support\Billing\PlanPresenter;
 use App\Support\Billing\PromotionCodes;
 use App\Support\Billing\SubscriptionManager;
@@ -17,7 +18,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Laravel\Cashier\Exceptions\IncompletePayment;
@@ -59,7 +59,7 @@ class PricingController extends Controller
                 $user ? 'sometimes' : 'required',
                 'email',
                 'max:255',
-                Rule::unique('users', 'email')->ignore($user?->id),
+                UniqueIgnoringCase::in('users', 'email')->ignore($user?->id),
             ],
         ])->validate();
 
@@ -168,7 +168,7 @@ class PricingController extends Controller
         $nickname = $baseNickname;
         $counter = 1;
 
-        while (User::where('nickname', $nickname)->exists()) {
+        while (UniqueIgnoringCase::taken('users', 'nickname', $nickname)) {
             $nickname = $baseNickname.'-'.$counter;
             $counter++;
         }

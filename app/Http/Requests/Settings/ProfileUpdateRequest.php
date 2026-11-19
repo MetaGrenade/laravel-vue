@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Settings;
 
-use App\Models\User;
+use App\Rules\UniqueIgnoringCase;
 use App\Support\Localization\PreferenceOptions;
 use App\Support\Security\EmailChange;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -67,7 +67,7 @@ class ProfileUpdateRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique(User::class)->ignore($this->user()->id),
+                UniqueIgnoringCase::in('users', 'nickname')->ignore($this->user()->id),
             ],
             'email' => [
                 'required',
@@ -75,7 +75,7 @@ class ProfileUpdateRequest extends FormRequest
                 'lowercase',
                 'email',
                 'max:255',
-                Rule::unique(User::class)->ignore($this->user()->id),
+                UniqueIgnoringCase::in('users', 'email')->ignore($this->user()->id),
             ],
             'avatar_url' => [
                 'nullable',

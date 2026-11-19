@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Rules\UniqueIgnoringCase;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateUserRequest extends FormRequest
 {
@@ -41,11 +41,11 @@ class UpdateUserRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('users', 'nickname')->ignore($userId),
+                UniqueIgnoringCase::in('users', 'nickname')->ignore($userId),
             ],
             'email' => [
                 'required', 'email', 'max:255',
-                Rule::unique('users', 'email')->ignore($userId),
+                UniqueIgnoringCase::in('users', 'email')->ignore($userId),
             ],
             'roles' => 'nullable|array',
             'roles.*' => 'string|exists:roles,name',

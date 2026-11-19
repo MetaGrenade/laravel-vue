@@ -233,6 +233,21 @@ Three kinds of field gave no upper bound on a number: the **order** of a FAQ que
 
 The forms now refuse a bigger number and say what the field can be: an **order** between -2,147,483,648 and 2,147,483,647, a **quota** from 1 to 2,147,483,647. Nothing stored changes and nothing has to be done: with the database in strict mode (Laravel's default) nothing bigger than a column was ever saved. A script or client that sends a bigger number gets `422` with the field's message where it got a 500. `tests/Feature/Validation/NumberRulesHaveABoundTest.php` fails when a rule that takes a number has no upper bound, so a new field cannot go back. It lets through a number that is an id (a column named `user_id`, `ids.*`, anything checked with `exists:`) or a page number, which PHP already keeps inside 64 bits.
 
+### Nicknames and email addresses that differ only by case
+
+MySQL and MariaDB compare text without regard to case, so on them `Ada` and `ada` were already the same nickname and `Ada@Example.com` and `ada@example.com` the same address. SQLite and PostgreSQL compare exactly, so on them the check for "already taken" let both through: two members whose names differ only by case (one can pass for the other, `Admin` and `admin`), or two accounts for one mailbox.
+
+The check now sets case aside on every database. Registration, the profile settings, **Admin → Members** (when a member is changed) and the subscribe form for a guest refuse a nickname or an address that is taken in other letters with the usual "has already been taken", and so do the nickname that is made up for a guest or for someone who signs in with a provider, and an address a provider hands over (which is then left out and a placeholder used, as for any taken address). Nothing stored changes and nothing has to be done. SQLite sets aside the 26 ASCII letters and no others, PostgreSQL every letter its collation knows.
+
+A member who already has a case variant, on a site that grew some before this, can keep their name and save their settings; they cannot take another variant. To see who has one (the queries return nothing on MySQL and MariaDB, which could never hold two):
+
+```sql
+SELECT LOWER(nickname) AS name, COUNT(*) FROM users GROUP BY LOWER(nickname) HAVING COUNT(*) > 1;
+SELECT LOWER(email) AS address, COUNT(*) FROM users GROUP BY LOWER(email) HAVING COUNT(*) > 1;
+```
+
+Not changed, and still different by database: signing in (web and API), the password reset and linking a provider by its address still match the address exactly on SQLite and PostgreSQL, so `Ada@Example.com` typed for `ada@example.com` finds no account there and does on MySQL and MariaDB. `tests/Feature/Validation/NamesAreComparedIgnoringCaseTest.php` fails when a rule uses `unique` for a nickname or an address, or a query matches one with `where('email', ...)`, and lists the lookups that are still open.
+
 ## What changes for the people who run the site
 
 Behaviour that was different in an earlier build and is different now. The CHANGELOG has the reasons.
@@ -278,6 +293,7 @@ Behaviour that was different in an earlier build and is different now. The CHANG
 | **A time typed in the admin area is the time on the administrator's clock.** | A scheduled post, a poll's start and end, an API key's expiry and the dates of an export or an erasure were kept as typed, with the zone dropped (read as UTC), and the edit pages showed them in the browser's zone, so saving a form untouched moved the time. Rows saved before keep their hours. | Look over the scheduled posts, the polls and the keys that have an expiry ([Times typed in the admin area](#times-typed-in-the-admin-area)). |
 | **A description, a name, an email address or a text that is longer than its column is refused with a message.** | The rules gave no limit, so on MySQL, MariaDB and PostgreSQL the database refused the value and the person got a 500 (forum board and category descriptions, permission and role names, a member's email in the admin area, poll descriptions, excerpts, bios, FAQ answers, reply templates, the first message of a ticket). They say 255 or 16,000 characters now. | Nothing. A client that sends more gets `422` ([Text that was longer than its column](#text-that-was-longer-than-its-column)). |
 | **A FAQ order or an API key quota that is too big for its column is refused with a message.** | The rules gave no upper bound, so on MySQL, MariaDB and PostgreSQL the database refused the number and the person got a 500. An order is limited to 2,147,483,647 (and down to -2,147,483,648) and a quota to 2,147,483,647 now. | Nothing. A client that sends more gets `422` ([Numbers that were bigger than their column](#numbers-that-were-bigger-than-their-column)). |
+| **A nickname or an email address that differs from another only by case is refused on PostgreSQL and SQLite too.** | MySQL and MariaDB already did, because their collations ignore case; the other two compared exactly and let `Ada` and `ada` both in. | Nothing. To see whether a site already has two, run the queries in [Nicknames and email addresses that differ only by case](#nicknames-and-email-addresses-that-differ-only-by-case). |
 | **New colours, type and logo.** | The interface, the logo and every icon in `public/` follow the MetaForger design. | If you changed any of them, read [theming.md](theming.md) before you check out the new code. |
 
 ## If you changed the code

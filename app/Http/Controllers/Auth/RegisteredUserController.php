@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Rules\UniqueIgnoringCase;
 use App\Support\Commerce\GuestCarryOver;
 use App\Support\OAuth\OAuthProviders;
 use Illuminate\Auth\Events\Registered;
@@ -36,8 +37,8 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'nickname' => 'required|string|max:255|unique:users,nickname',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'nickname' => ['required', 'string', 'max:255', UniqueIgnoringCase::in('users', 'nickname')],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', UniqueIgnoringCase::in('users', 'email')],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
