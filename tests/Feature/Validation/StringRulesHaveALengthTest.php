@@ -3,6 +3,7 @@
 namespace Tests\Feature\Validation;
 
 use Illuminate\Support\Facades\File;
+use Tests\Support\RuleScanner;
 use Tests\TestCase;
 
 /**
@@ -84,7 +85,7 @@ class StringRulesHaveALengthTest extends TestCase
     public function test_the_scan_sees_the_rules_it_is_meant_to(): void
     {
         // A scan that reads nothing passes for ever. These two are written the two ways rules are written (an array, and a string with pipes).
-        $all = $this->entries();
+        $all = RuleScanner::entries();
 
         $this->assertArrayHasKey('Requests/Admin/StoreForumBoardRequest.php::title', $all);
         $this->assertArrayHasKey('Requests/Admin/StoreFaqRequest.php::answer', $all);
@@ -132,7 +133,7 @@ PHP);
     {
         $found = [];
 
-        foreach ($this->entries($base) as $key => $rules) {
+        foreach (RuleScanner::entries($base) as $key => $rules) {
             foreach ($rules as $rule) {
                 // `string` or `email` as a rule (`'string'`, `|string|`, `'email:rfc'`), and not as the key of a list of props (`'email' => $user->email`).
                 $takesText = preg_match('/[\'|](?:string|email)(?:[\'|:](?!\s*=>))/', $rule) === 1;
@@ -145,77 +146,5 @@ PHP);
         }
 
         return $found;
-    }
-
-    /**
-     * Every `'field' => [rules]` or `'field' => 'rules|with|pipes'` in `app/Http`, as `path::field` => the text of the rules. A field that is
-     * written more than once in a file (the same rule in two actions) keeps every one of its rules, so the second cannot hide behind the first.
-     *
-     * @return array<string, list<string>>
-     */
-    private function entries(?string $base = null): array
-    {
-        $base ??= app_path('Http');
-        $entries = [];
-
-        foreach (File::allFiles($base) as $file) {
-            if ($file->getExtension() !== 'php') {
-                continue;
-            }
-
-            $source = (string) file_get_contents($file->getPathname());
-            $path = str_replace('\\', '/', $file->getRelativePathname());
-
-            if (preg_match_all('/\'([A-Za-z0-9_.*-]+)\'\s*=>\s*(?=\[|\'[a-z])/', $source, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER) === 0) {
-                continue;
-            }
-
-            foreach ($matches as $match) {
-                $start = $match[0][1] + strlen($match[0][0]);
-                $entries["{$path}::{$match[1][0]}"][] = $this->valueAt($source, $start);
-            }
-        }
-
-        return $entries;
-    }
-
-    /**
-     * The text of one value: up to the comma, or the closing bracket, that ends it (brackets and quotes inside it are skipped over).
-     */
-    private function valueAt(string $source, int $start): string
-    {
-        $depth = 0;
-        $quote = null;
-        $length = strlen($source);
-
-        for ($i = $start; $i < $length; $i++) {
-            $char = $source[$i];
-
-            if ($quote !== null) {
-                if ($char === '\\') {
-                    $i++;
-                } elseif ($char === $quote) {
-                    $quote = null;
-                }
-
-                continue;
-            }
-
-            if ($char === "'" || $char === '"') {
-                $quote = $char;
-            } elseif ($char === '[' || $char === '(') {
-                $depth++;
-            } elseif ($char === ']' || $char === ')') {
-                if ($depth === 0) {
-                    break;
-                }
-
-                $depth--;
-            } elseif ($char === ',' && $depth === 0) {
-                break;
-            }
-        }
-
-        return substr($source, $start, $i - $start);
     }
 }

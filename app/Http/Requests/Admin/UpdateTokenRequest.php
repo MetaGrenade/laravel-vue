@@ -21,8 +21,8 @@ class UpdateTokenRequest extends FormRequest
             'abilities.*' => ['string', Rule::in([Scopes::FULL, ...app(Scopes::class)->keys()])],
             'expires_at' => ['nullable', 'date'],
             'clear_revocation' => ['sometimes', 'boolean'],
-            'hourly_quota' => ['nullable', 'integer', 'min:1'],
-            'daily_quota' => ['nullable', 'integer', 'min:1'],
+            'hourly_quota' => ['nullable', 'integer', 'min:1', 'max:2147483647'],
+            'daily_quota' => ['nullable', 'integer', 'min:1', 'max:2147483647'],
         ];
     }
 

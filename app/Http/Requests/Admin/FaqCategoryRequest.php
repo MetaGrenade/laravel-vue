@@ -49,7 +49,7 @@ class FaqCategoryRequest extends FormRequest
                 Rule::unique('faq_categories', 'slug')->ignore($categoryId),
             ],
             'description' => ['nullable', 'string', 'max:255'],
-            'order' => ['required', 'integer'],
+            'order' => ['required', 'integer', 'between:-2147483648,2147483647'],
         ];
     }
 }
