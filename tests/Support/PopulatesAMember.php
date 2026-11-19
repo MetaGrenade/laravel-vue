@@ -81,6 +81,9 @@ trait PopulatesAMember
             'last_activity' => now()->timestamp,
         ]);
 
+        // A password reset that was asked for and not used: a row keyed by the address, with no foreign key to the account.
+        DB::table('password_reset_tokens')->insert(['email' => $user->email, 'token' => hash('sha256', 'a-reset-token-'.$user->id), 'created_at' => now()]);
+
         // The Discord package's tables (guarded: a site may not have them).
         if (Schema::hasTable('discord_user_sync_states')) {
             DB::table('discord_user_sync_states')->insert(['user_id' => $user->id, 'last_status' => 'ok', 'created_at' => now(), 'updated_at' => now()]);
@@ -126,7 +129,7 @@ trait PopulatesAMember
      */
     private function rows(User ...$members): array
     {
-        $tables = ['personal_access_tokens', 'token_logs', 'notifications', 'addresses', 'user_entitlements', 'sessions', 'data_exports', 'support_tickets', 'support_ticket_message_attachments', 'blogs', 'blog_revisions'];
+        $tables = ['personal_access_tokens', 'token_logs', 'notifications', 'addresses', 'user_entitlements', 'sessions', 'password_reset_tokens', 'data_exports', 'support_tickets', 'support_ticket_message_attachments', 'blogs', 'blog_revisions'];
 
         foreach ($this->discordTables() as $table) {
             if (Schema::hasTable($table)) {

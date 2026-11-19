@@ -26,7 +26,8 @@ use Throwable;
  *
  *  - rows with no foreign key to the user, because they belong to a morph (`tokenable`, `notifiable`, `owner`) or to a package: API
  *    keys and the log of every request made with them (the address, the fields sent, the answers), notifications, the address book,
- *    entitlements, browser sessions, and the Discord rows of the Discord package;
+ *    entitlements, browser sessions, a password reset that was asked for and not used (a row keyed by the address), and the Discord
+ *    rows of the Discord package;
  *  - files on a disk. A cascade runs inside the database and fires no model event, so the `deleting` hooks that unlink a file never
  *    run: the zip of a data export, the attachments of the member's support tickets and the covers of the posts they wrote stayed for
  *    good (the forum's attachments are handled in User::booted() already).
@@ -110,6 +111,11 @@ class MemberLeftovers
 
         $this->forgetApiKeys($user);
 
+        // A reset link that was asked for and not used: a row keyed by the address, with no foreign key to the account.
+        if ($user->email !== '') {
+            DB::table($this->resetTokensTable())->where('email', $user->email)->delete();
+        }
+
         $this->inChunks(DB::table('notifications')
             ->where('notifiable_type', $user->getMorphClass())
             ->where('notifiable_id', $user->getKey()));
@@ -148,6 +154,16 @@ class MemberLeftovers
         $counts['personal_access_tokens'] = $this->take($keys(), $delete);
         $counts['notifications'] = $this->take($this->nobodyOwns(DB::table('notifications')->where('notifiable_type', $morph), 'notifications', 'notifiable_id'), $delete);
 
+        // Keyed by the address and not by an id; found by no account holding that address, case set aside (a token is made for the
+        // address as the account holds it, so only an address that was changed since, or an account that is gone, is not matched).
+        $tokens = $this->resetTokensTable();
+        $wrapped = DB::getQueryGrammar()->wrapTable($tokens);
+        $counts[$tokens] = $this->take(
+            DB::table($tokens)->whereNotExists(fn (QueryBuilder $users) => $users->from('users')->selectRaw('1')->whereRaw("LOWER(users.email) = LOWER({$wrapped}.email)")),
+            $delete,
+            'email',
+        );
+
         foreach (['addresses', 'user_entitlements'] as $table) {
             $counts[$table] = $this->take($this->nobodyOwns(DB::table($table)->where('owner_type', $morph), $table, 'owner_id'), $delete);
         }
@@ -178,9 +194,9 @@ class MemberLeftovers
 
     /**
      * Count the rows of a query, or delete them a chunk at a time by their ids (a delete with a limit and a subquery on the same table is
-     * written differently by each database; ids are the same on all).
+     * written differently by each database; ids are the same on all). `$key` is the column that names a row, for a table that has no `id`.
      */
-    private function take(QueryBuilder $query, bool $delete): int
+    private function take(QueryBuilder $query, bool $delete, string $key = 'id'): int
     {
         if (! $delete) {
             return $query->count();
@@ -189,12 +205,20 @@ class MemberLeftovers
         $total = 0;
 
         do {
-            $ids = (clone $query)->limit(1000)->pluck('id')->all();
-            $deleted = $ids === [] ? 0 : DB::table((string) $query->from)->whereIn('id', $ids)->delete();
+            $ids = (clone $query)->limit(1000)->pluck($key)->all();
+            $deleted = $ids === [] ? 0 : DB::table((string) $query->from)->whereIn($key, $ids)->delete();
             $total += $deleted;
         } while ($deleted > 0);
 
         return $total;
+    }
+
+    /**
+     * Where a password reset asked for and not used is kept: the table of the broker the site resets passwords with.
+     */
+    private function resetTokensTable(): string
+    {
+        return (string) config('auth.passwords.users.table', 'password_reset_tokens');
     }
 
     /**

@@ -24,6 +24,7 @@ use App\Jobs\LiftRunOutBans;
 use App\Jobs\MonitorSupportTicketSlas;
 use App\Jobs\PruneAuditLogs;
 use App\Jobs\PruneDataExports;
+use App\Jobs\PruneExpiredCacheEntries;
 use App\Jobs\PruneSearchQueryLogs;
 use App\Jobs\PruneTokenLogs;
 use App\Jobs\PruneUsageEvents;
@@ -136,6 +137,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->job(new PruneAuditLogs)->dailyAt('02:00');
         // The log of requests made with an API key: every such request is a row, so it would grow for ever (30 days are kept by default).
         $schedule->job(new PruneTokenLogs)->dailyAt('02:30');
+        // Password reset tokens expire after an hour but nothing deletes them (Laravel only does it when this is run): the address of a
+        // member who asked and never used it, or who has since deleted their account, would stay in `password_reset_tokens` for ever.
+        $schedule->command('auth:clear-resets')->dailyAt('03:00');
+        // A database cache deletes a row that has run out only when its key is asked for again: every failed sign-in leaves two rows of the
+        // rate limiter that are never asked for again. (Redis and files drop them by themselves; with those this finds no table to clean.)
+        $schedule->job(new PruneExpiredCacheEntries)->hourly();
         // Community email that a member asked to receive once a day, instead of once per update.
         $schedule->job(new SendEmailDigests)->dailyAt('08:00');
         // A ban with an end date lifts itself when the member next tries to sign in or make a request; this is for the lists of members.

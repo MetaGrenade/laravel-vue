@@ -96,6 +96,7 @@ class ForgetDeletedMembersLeftoversTest extends TestCase
         $this->assertSame(2, $counts['addresses']);
         $this->assertSame(2, $counts['user_entitlements']);
         $this->assertSame(1, $counts['sessions']);
+        $this->assertSame(1, $counts['password_reset_tokens']);
 
         // The Discord package's tables are there when the package is installed, and then each has the member's one row.
         foreach ($this->discordTables() as $table) {
@@ -129,6 +130,26 @@ class ForgetDeletedMembersLeftoversTest extends TestCase
         foreach (['notifications', 'addresses', 'sessions', 'personal_access_tokens'] as $table) {
             $this->assertSame(1, DB::table($table)->count(), "$table: not a member's, so not touched");
         }
+    }
+
+    #[Test]
+    public function a_reset_token_of_an_address_a_member_holds_is_kept_whatever_its_case(): void
+    {
+        $member = User::factory()->create(['email' => 'ada@example.com']);
+        $gone = User::factory()->create(['email' => 'gone@example.com']);
+        $this->deletedTheOldWay($gone);
+
+        // One for an address a member holds, written in other letters (the table's key compares exactly on SQLite and PostgreSQL), and one
+        // for an address nobody holds any more.
+        DB::table('password_reset_tokens')->insert([
+            ['email' => 'ADA@EXAMPLE.COM', 'token' => hash('sha256', 'a'), 'created_at' => now()],
+            ['email' => 'gone@example.com', 'token' => hash('sha256', 'b'), 'created_at' => now()],
+        ]);
+
+        $this->artisan('metaforger:members:forget-leftovers')->assertSuccessful();
+
+        $this->assertSame(['ADA@EXAMPLE.COM'], DB::table('password_reset_tokens')->pluck('email')->all());
+        $this->assertNotNull($member->fresh());
     }
 
     #[Test]

@@ -24,6 +24,7 @@ Both end the member's Stripe subscriptions first. If Stripe cannot be reached no
 | **API keys** and **every request made with them** (the address, the fields sent, the answers) | `personal_access_tokens` belongs to a morph (`tokenable`), so it has no foreign key to `users` | The log is deleted in chunks of 5,000, then the keys |
 | **Notifications** (`notifiable`), **saved addresses** and **entitlements** (`owner`) | The same: morphs | Deleted, for the member's morph type and id only |
 | **Browser sessions** | `sessions.user_id` has no foreign key | Deleted when sessions are kept in the database (`SESSION_DRIVER=database`), so the member's other browsers are signed out at once; with another driver there is nothing to delete here |
+| **A password reset that was asked for and not used** (`password_reset_tokens`) | The row is keyed by the member's address and has no foreign key. It holds the address and a hash of the token, and Laravel deletes it only when the reset is used or `auth:clear-resets` runs, which nothing did | Deleted by the address the account held, with the rest. The scheduler also runs `auth:clear-resets` every night (03:00), which clears every token that has run out (they last an hour), whoever it was for |
 | **The Discord package's rows** (`discord_user_sync_states`, `discord_notification_preferences`, `discord_sync_failures`) | The package's tables have no foreign key | Deleted, if the tables exist |
 | **The zip of a data export** | The row cascades; the file does not, because a cascade runs inside the database and fires no model event, so the `deleting` hook that unlinks a file never runs | Unlinked. Only a file inside `exports/` is taken: a row that names any other path is not the member's to delete (see [private-uploads.md](private-uploads.md#data-export-files)) |
 | **The attachments of the member's own tickets** | The same | Unlinked. What a member of staff attached to somebody else's ticket stays with that ticket |
@@ -47,7 +48,7 @@ Change any of these only after reading what your privacy policy promises. The st
 
 ## Accounts deleted before this
 
-An account deleted by an earlier version left its API keys and their request log, notifications, addresses, entitlements, sessions and Discord rows behind. They name an account that no longer exists, and nothing else would ever delete them. Once, after upgrading:
+An account deleted by an earlier version left its API keys and their request log, notifications, addresses, entitlements, sessions, an unused password reset and Discord rows behind. They name an account that no longer exists, and nothing else would ever delete them. Once, after upgrading:
 
 ```bash
 php artisan metaforger:members:forget-leftovers --dry-run
