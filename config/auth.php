@@ -70,13 +70,16 @@ return [
     | providers to represent the model / table. These providers may then
     | be assigned to any extra authentication guards you have defined.
     |
-    | Supported: "database", "eloquent"
+    | Supported: "database", "eloquent", and "eloquent-ignoring-case", which is
+    | "eloquent" that finds an account by its email address whatever the case it
+    | is typed in (App\Support\Members\EmailIgnoringCaseUserProvider): SQLite
+    | and PostgreSQL compare text exactly, MySQL and MariaDB do not.
     |
     */
 
     'providers' => [
         'users' => [
-            'driver' => 'eloquent',
+            'driver' => 'eloquent-ignoring-case',
             'model' => env('AUTH_MODEL', User::class),
         ],
 

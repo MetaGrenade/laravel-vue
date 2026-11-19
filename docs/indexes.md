@@ -173,6 +173,16 @@ A key that has both limits pays both counts on every request, so on this table a
 - **The count behind a limit is still made for every request of a key that has a limit.** The cached count is forgotten after each response so that the next request sees the row the last one wrote; keeping a counter instead changes what is counted when the cache is lost, and with the index the count reads only the key's own last hour or day, which holds about as many rows as the key's limit allows (a request that is refused for being over its limit is not logged).
 - **What a row holds.** The whole JSON answer is kept: 88 bytes for the profile, more for a long list or a ticket with many messages. Not measured on a long ticket, and not changed here ([Not built](api-keys.md#not-built)).
 
+## The address typed in other letters
+
+`users_lower_email_index` is an index on `LOWER(email)`, made by `2026_11_19_000000_index_the_lowercase_email.php` on **SQLite and PostgreSQL only**.
+
+An address typed in other letters than the account holds (`Ada@Example.com` for `ada@example.com`) is found by asking `LOWER(email) = LOWER(?)` (`App\Support\Members\EmailLookup`, behind the sign-in page, the API sign-in, the password reset and a provider's verified address). MySQL and MariaDB compare text without regard to case, so there the unique index on `email` already answers it. SQLite and PostgreSQL compare exactly: the unique index cannot answer a `LOWER()` of the column, so without this one the question reads every member, and it is asked for every address typed that does not exist, which is every wrong address and every bot. The address as typed is asked first (the unique index), so a person who types it right never reaches the second question.
+
+MySQL and MariaDB get no index, and are not asked the second question. The `LOWER(nickname)` and `LOWER(email)` that the rule `UniqueIgnoringCase` asks when a name or an address is chosen or changed are not indexed on purpose: they run on registration and on a profile change, never on a page or a search.
+
+`tests/Feature/Database/LowercaseEmailIndexTest.php` checks that the index is there on the two databases that need it and not on the others, that the migration rolls back and forward (twice over, so an index built by hand first, `CREATE INDEX CONCURRENTLY users_lower_email_index ON users (LOWER(email))`, is left alone), and, on SQLite, that the query the lookup runs is answered by the index and not by reading the table.
+
 ## Dropping a column on SQLite
 
 SQLite refuses to drop a column that an index uses (`error in index ... after drop column`), so a migration that removes a foreign key column drops the index on it first, and so does one that removes a column the list indexes use (`created_at`, `status`, `is_pinned` and the rest). The migration tests that roll an older migration back by hand do what `migrate:rollback` does: the newer migration comes off first. They call `Tests\Support\ForeignKeyIndexes::takeOff()` before and `putBack()` after (`CouponMigrationsTest` is the pattern). PostgreSQL drops the indexes of a dropped column by itself.

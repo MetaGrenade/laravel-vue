@@ -7,6 +7,7 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use App\Rules\UniqueIgnoringCase;
 use App\Support\Commerce\GuestCarryOver;
+use App\Support\Members\EmailLookup;
 use App\Support\Moderation\Moderation;
 use App\Support\OAuth\Exceptions\OAuthException;
 use App\Support\OAuth\OAuthManager;
@@ -102,7 +103,7 @@ class SocialLoginController extends Controller
         // An email address is only a way to recognise an existing account if the provider has verified that the
         // person owns it: otherwise anyone could sign in as someone else by giving a provider their address.
         if (! $user && $oauthUser->emailVerified && $oauthUser->email) {
-            $user = User::query()->where('email', $oauthUser->email)->first();
+            $user = EmailLookup::find($oauthUser->email);
         }
 
         if (! $user) {
