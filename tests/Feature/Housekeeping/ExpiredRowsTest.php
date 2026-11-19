@@ -80,6 +80,31 @@ class ExpiredRowsTest extends TestCase
         $this->assertSame(['live'], $this->keys());
     }
 
+    public function test_no_statement_binds_more_parameters_than_sql_server_allows(): void
+    {
+        // SQL Server refuses a statement of more than 2,100 parameters, and a delete by a list of keys binds one for each (and one for the
+        // time). A backlog bigger than that must be taken a chunk at a time, not in one statement that fails on every retry.
+        $past = now()->subDay()->getTimestamp();
+
+        foreach (array_chunk(range(1, 2600), 500) as $chunk) {
+            DB::table('cache')->insert(array_map(fn (int $n) => ['key' => "metaforger-cache-old-{$n}", 'value' => 's:1:"x";', 'expiration' => $past], $chunk));
+        }
+
+        $bound = [];
+        $deletes = 0;
+
+        DB::listen(function ($query) use (&$bound, &$deletes) {
+            $bound[] = count($query->bindings);
+            $deletes += str_starts_with(strtolower($query->sql), 'delete') ? 1 : 0;
+        });
+
+        (new PruneExpiredCacheEntries)->handle();
+
+        $this->assertSame([], $this->keys());
+        $this->assertGreaterThan(1, $deletes, 'a backlog this size is taken in more than one statement');
+        $this->assertLessThanOrEqual(2100, max($bound), 'the most parameters one statement of the job binds');
+    }
+
     public function test_a_row_that_runs_out_this_second_is_deleted_and_one_that_runs_out_next_is_not(): void
     {
         $now = now()->getTimestamp();

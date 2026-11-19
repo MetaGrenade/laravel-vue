@@ -25,8 +25,14 @@ class PruneExpiredCacheEntries implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /** Rows are deleted this many at a time, so that a table with a great many does not hold a lock for the whole of it. */
-    private const CHUNK = 5000;
+    /**
+     * Rows are deleted this many at a time, so that a table with a great many does not hold a lock for the whole of it.
+     *
+     * It is also the number of keys the delete binds (`whereIn` binds one parameter for each, and the `expiration` test one more), and SQL
+     * Server refuses a statement of more than 2,100 parameters (`sqlsrv` is a connection of config/database.php), so it stays well below
+     * that: a backlog bigger than the limit would otherwise fail before the first chunk, and fail the same way on every retry.
+     */
+    private const CHUNK = 1000;
 
     public function handle(): void
     {
