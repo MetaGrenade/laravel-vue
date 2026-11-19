@@ -28,12 +28,10 @@ use App\Models\User;
 use App\Support\OpenApi\Specification;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Validator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Tests\Support\ChecksFormRules;
 use Tests\TestCase;
 
 /**
@@ -45,6 +43,7 @@ use Tests\TestCase;
  */
 class TextLengthTest extends TestCase
 {
+    use ChecksFormRules;
     use RefreshDatabase;
 
     /** What a `varchar(255)` holds. */
@@ -197,37 +196,5 @@ class TextLengthTest extends TestCase
         $this->actingAs($user);
 
         return $user;
-    }
-
-    /**
-     * What the form's own rules say about a value for one field.
-     *
-     * @param  class-string<FormRequest>  $class
-     * @param  array<string, object>  $route
-     * @return Collection<int, string>
-     */
-    private function errorsFor(string $class, array $route, string $field, string $value): Collection
-    {
-        /** @var FormRequest $request */
-        $request = new $class;
-        $request->setUserResolver(fn () => User::factory()->make(['id' => 1]));
-        $request->setRouteResolver(fn () => new class($route)
-        {
-            /** @param  array<string, object>  $parameters */
-            public function __construct(private array $parameters) {}
-
-            public function parameter(string $name, mixed $default = null): mixed
-            {
-                return $this->parameters[$name] ?? $default;
-            }
-        });
-
-        $data = [];
-        Arr::set($data, $field, $value);
-
-        $validator = Validator::make($data, $request->rules());
-        $validator->fails();
-
-        return collect($validator->errors()->get($field));
     }
 }

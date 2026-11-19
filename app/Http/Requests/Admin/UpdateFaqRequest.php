@@ -17,7 +17,7 @@ class UpdateFaqRequest extends FormRequest
             'faq_category_id' => 'sometimes|required|integer|exists:faq_categories,id',
             'question' => 'sometimes|required|string|max:255',
             'answer' => 'sometimes|required|string|max:16000',
-            'order' => 'integer',
+            'order' => 'integer|between:-2147483648,2147483647',
             'published' => 'boolean',
         ];
     }

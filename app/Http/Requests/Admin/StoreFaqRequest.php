@@ -17,7 +17,7 @@ class StoreFaqRequest extends FormRequest
             'faq_category_id' => 'required|integer|exists:faq_categories,id',
             'question' => 'required|string|max:255',
             'answer' => 'required|string|max:16000',
-            'order' => 'integer',
+            'order' => 'integer|between:-2147483648,2147483647',
             'published' => 'boolean',
         ];
     }
