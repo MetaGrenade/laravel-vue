@@ -27,6 +27,7 @@ class NamesAreComparedIgnoringCaseTest extends TestCase
      * @var array<string, string>
      */
     private const EXACT = [
+        'Support/Privacy/MemberLeftovers.php::DB::table($this->resetTokensTable())->where(\'email\', $user->email)->delete();' => 'the reset token the broker made for this account, which is keyed by the address as the account holds it (getEmailForPasswordReset())',
         'Support/Members/EmailLookup.php::$exact = User::query()->where(\'email\', $given)->first();' => 'the address as it was typed, tried first so that two accounts that differ by case each keep their own spelling; EmailLookup asks LOWER() next',
         'Http/Controllers/Auth/SocialLoginController.php::if (! User::query()->where(\'email\', $base)->exists()) {' => 'a placeholder address this code made, all lowercase and kept lowercase',
         'Http/Controllers/Auth/SocialLoginController.php::} while (User::query()->where(\'email\', $email)->exists());' => 'a placeholder address this code made, all lowercase and kept lowercase',

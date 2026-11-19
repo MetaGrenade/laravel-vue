@@ -47,6 +47,14 @@ So `php artisan cache:clear` empties database 1 and nothing else. That is checke
 
 What stays in the database whatever you choose: failed jobs (`failed_jobs`, so a lost Redis does not lose the record of what failed) and job batches.
 
+## The database cache and what it keeps
+
+With `CACHE_STORE=database`, Laravel deletes a row that has run out only when somebody asks for that very key again. A key nobody asks for again stays for ever, and the rate limiters make a great many: a failed sign-in leaves two rows (the counter and its timer) for the address that was tried, a password reset request leaves two more, and an address that is never tried again is never read again. The table grew with every stranger who typed a wrong address, and with nothing to stop it. Redis, files and the array store drop a key when its time is up and have no such table.
+
+`PruneExpiredCacheEntries` is scheduled every hour and deletes the rows whose `expiration` has passed, 1,000 at a time, in **every store of `config/cache.php` whose driver is `database`**, each table once (whatever it is called, and on whichever `DB_CACHE_CONNECTION`). A row that has run out is not an answer: `get()` treats it as missing and `add()` replaces it, so nothing a request can see changes. A key stored with `forever()` is kept (Laravel gives it ten years). It needs the scheduler and a queue worker like every timed job ([deployment.md](deployment.md#what-a-live-site-is-made-of)); a site on Redis has no database store and the job finds nothing to do. The table of locks (`cache_locks`) is not touched: Laravel deletes the locks that have run out itself whenever one is taken.
+
+`tests/Feature/Housekeeping/ExpiredRowsTest.php` checks it: what has run out goes and what has not stays, what failed sign-ins leave goes, more than a chunk goes, a second database store with a table of its own is cleaned and the other drivers are left alone.
+
 ## The queue
 
 A worker has to be running, with the database queue as much as with Redis: the scheduler's jobs, the queued notifications and the shop's emails go through it.

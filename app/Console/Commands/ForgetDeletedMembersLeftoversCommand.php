@@ -9,7 +9,7 @@ class ForgetDeletedMembersLeftoversCommand extends Command
 {
     protected $signature = 'metaforger:members:forget-leftovers {--dry-run : Count what would be deleted without deleting anything}';
 
-    protected $description = 'Delete what accounts deleted by an earlier version left behind (API keys and their request log, notifications, saved addresses, entitlements, sessions, Discord rows)';
+    protected $description = 'Delete what accounts deleted by an earlier version left behind (API keys and their request log, notifications, saved addresses, entitlements, sessions, an unused password reset, Discord rows)';
 
     public function handle(MemberLeftovers $leftovers): int
     {
