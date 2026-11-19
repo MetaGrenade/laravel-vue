@@ -38,7 +38,7 @@ class PollRequest extends FormRequest
                 'max:255',
                 Rule::unique('polls', 'slug')->ignore($pollId),
             ],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:16000'],
             'status' => ['required', 'string', Rule::in(['draft', 'published', 'closed'])],
             'allow_multiple' => ['sometimes', 'boolean'],
             'starts_at' => ['nullable', 'date'],

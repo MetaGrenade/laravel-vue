@@ -16,7 +16,7 @@ class StoreForumCategoryRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:forum_categories,slug'],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

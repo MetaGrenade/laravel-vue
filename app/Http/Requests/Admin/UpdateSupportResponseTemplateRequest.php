@@ -37,7 +37,7 @@ class UpdateSupportResponseTemplateRequest extends FormRequest
     {
         return [
             'title' => ['required', 'string', 'max:255'],
-            'body' => ['required', 'string'],
+            'body' => ['required', 'string', 'max:16000'],
             'support_ticket_category_id' => ['nullable', 'integer', 'exists:support_ticket_categories,id'],
             'support_team_ids' => ['array'],
             'support_team_ids.*' => ['integer', 'exists:support_teams,id'],

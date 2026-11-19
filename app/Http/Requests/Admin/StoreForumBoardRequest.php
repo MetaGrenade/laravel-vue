@@ -17,7 +17,7 @@ class StoreForumBoardRequest extends FormRequest
             'forum_category_id' => ['required', 'exists:forum_categories,id'],
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:forum_boards,slug'],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

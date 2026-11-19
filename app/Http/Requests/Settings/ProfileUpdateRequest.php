@@ -90,6 +90,7 @@ class ProfileUpdateRequest extends FormRequest
             'profile_bio' => [
                 'nullable',
                 'string',
+                'max:16000',
             ],
             'social_links' => [
                 'nullable',

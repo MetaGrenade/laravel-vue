@@ -24,7 +24,7 @@ class UpdateForumCategoryRequest extends FormRequest
                 'max:255',
                 Rule::unique('forum_categories', 'slug')->ignore($categoryId),
             ],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

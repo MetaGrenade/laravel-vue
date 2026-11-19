@@ -25,7 +25,7 @@ class UpdateForumBoardRequest extends FormRequest
                 'max:255',
                 Rule::unique('forum_boards', 'slug')->ignore($boardId),
             ],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:255'],
             'prefixes_required' => ['required', 'boolean'],
         ];
     }

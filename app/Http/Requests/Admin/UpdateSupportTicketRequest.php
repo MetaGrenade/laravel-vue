@@ -30,7 +30,7 @@ class UpdateSupportTicketRequest extends FormRequest
     {
         return [
             'subject' => 'sometimes|required|string|max:255',
-            'body' => 'sometimes|required|string',
+            'body' => 'sometimes|required|string|max:16000',
             'status' => 'sometimes|required|in:open,pending,closed',
             'priority' => 'in:low,medium,high',
             'assigned_to' => 'nullable|exists:users,id',

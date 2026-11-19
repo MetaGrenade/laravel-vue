@@ -20,7 +20,7 @@ class UpdateDataExportRequest extends FormRequest
             // The member downloads whatever this names, and PruneDataExports deletes it: so it has to be a file in the exports directory
             // and not another file on the private disk (a support attachment, a forum attachment, a digital product).
             'file_path' => ['nullable', 'string', 'max:255', 'regex:'.DataExport::pathPattern()],
-            'failure_reason' => ['nullable', 'string'],
+            'failure_reason' => ['nullable', 'string', 'max:16000'],
             'completed_at' => ['nullable', 'date'],
         ];
     }

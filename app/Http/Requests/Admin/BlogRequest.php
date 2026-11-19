@@ -58,7 +58,7 @@ class BlogRequest extends FormRequest
     {
         return [
             'title' => 'required|string|max:255',
-            'excerpt' => 'nullable|string',
+            'excerpt' => 'nullable|string|max:16000',
             'body' => 'required|string',
             'status' => 'required|in:draft,scheduled,published,archived',
             'scheduled_for' => 'nullable|date|after:now|required_if:status,scheduled',
@@ -69,7 +69,7 @@ class BlogRequest extends FormRequest
             'tag_ids.*' => 'integer|exists:blog_tags,id',
             'author' => 'nullable|array',
             'author.avatar_url' => 'nullable|url|max:2048',
-            'author.profile_bio' => 'nullable|string',
+            'author.profile_bio' => 'nullable|string|max:16000',
             'author.social_links' => 'nullable|array',
             'author.social_links.*.label' => 'nullable|string|max:255',
             'author.social_links.*.url' => 'nullable|url|max:2048',
