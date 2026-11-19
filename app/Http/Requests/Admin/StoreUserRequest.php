@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Rules\UniqueIgnoringCase;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreUserRequest extends FormRequest
@@ -34,8 +35,8 @@ class StoreUserRequest extends FormRequest
     public function rules()
     {
         return [
-            'nickname' => 'required|string|max:255|unique:users,nickname',
-            'email' => 'required|email|max:255|unique:users,email',
+            'nickname' => ['required', 'string', 'max:255', UniqueIgnoringCase::in('users', 'nickname')],
+            'email' => ['required', 'email', 'max:255', UniqueIgnoringCase::in('users', 'email')],
             'roles' => 'nullable|array',
             'roles.*' => 'string|exists:roles,name',
             'avatar_url' => 'nullable|url|max:2048',

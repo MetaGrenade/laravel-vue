@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Rules\UniqueIgnoringCase;
 use App\Support\Commerce\GuestCarryOver;
 use App\Support\Moderation\Moderation;
 use App\Support\OAuth\Exceptions\OAuthException;
@@ -150,7 +151,7 @@ class SocialLoginController extends Controller
     {
         // The provider's address is used if it is free; an address another account already has is never taken
         // over, whatever the provider says about it.
-        $email = $oauthUser->email && ! User::query()->where('email', $oauthUser->email)->exists()
+        $email = $oauthUser->email && ! UniqueIgnoringCase::taken('users', 'email', $oauthUser->email)
             ? $oauthUser->email
             : $this->placeholderEmail($provider, $oauthUser->id);
 
@@ -185,7 +186,7 @@ class SocialLoginController extends Controller
         $nickname = $base;
         $counter = 1;
 
-        while (User::query()->where('nickname', $nickname)->exists()) {
+        while (UniqueIgnoringCase::taken('users', 'nickname', $nickname)) {
             $suffix = (string) $counter++;
             $nickname = Str::limit($base.$suffix, 32, '');
 
