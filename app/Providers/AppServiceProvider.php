@@ -37,6 +37,7 @@ use App\Support\Audit\Audit;
 use App\Support\Audit\AuditObserver;
 use App\Support\Billing\SubscriptionManager;
 use App\Support\Frontend\StaffAreaVite;
+use App\Support\Members\EmailIgnoringCaseUserProvider;
 use App\Support\Search\MeilisearchCircuitBreaker;
 use App\Support\Search\SearchHealth;
 use App\Support\Search\SearchTasks;
@@ -49,6 +50,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\TransactionRolledBack;
 use Illuminate\Foundation\Vite;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -93,6 +95,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // MySQL's time zone is set where the connection is made (`timezone` in config/database.php), so it is set again whenever a
         // long-lived worker reconnects. It used to be a statement here, which runs once for a process and not for its next connection.
+
+        // The user provider that finds an account by its address whatever the case (`providers.users.driver` in config/auth.php).
+        Auth::provider('eloquent-ignoring-case', fn ($app, array $config) => new EmailIgnoringCaseUserProvider($app['hash'], $config['model']));
 
         Gate::policy(ForumPost::class, ForumPostPolicy::class);
         Gate::policy(Blog::class, BlogPolicy::class);

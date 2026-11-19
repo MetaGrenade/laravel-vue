@@ -13,7 +13,8 @@ use Tests\TestCase;
  * MySQL and MariaDB do that on their own and SQLite and PostgreSQL do not, so a plain `unique` rule or `where('nickname', ...)` answers
  * differently depending on the database, and the tests (which run on SQLite) never see the answer of the one most sites use. This reads
  * `app/` and names the two ways of asking that leave the case to the database: a `unique` rule on a `nickname` or an `email`, and a query
- * that matches one of those columns with `where('email', ...)`.
+ * that matches one of those columns with `where('email', ...)`. (Signing in and a password reset do not appear here: they go through
+ * `EmailIgnoringCaseUserProvider`, which EmailLookupIgnoresCaseTest checks is the provider the site uses.)
  *
  * The list is for queries that ask something else, each with its reason. One that is not on it fails here, and a line on it that no longer
  * matches fails too, so the list cannot go stale.
@@ -26,10 +27,9 @@ class NamesAreComparedIgnoringCaseTest extends TestCase
      * @var array<string, string>
      */
     private const EXACT = [
-        'Http/Controllers/Auth/SocialLoginController.php::$user = User::query()->where(\'email\', $oauthUser->email)->first();' => 'OPEN: finds the account a verified provider address belongs to; `Ada@x.com` does not find `ada@x.com` on SQLite and PostgreSQL',
+        'Support/Members/EmailLookup.php::$exact = User::query()->where(\'email\', $given)->first();' => 'the address as it was typed, tried first so that two accounts that differ by case each keep their own spelling; EmailLookup asks LOWER() next',
         'Http/Controllers/Auth/SocialLoginController.php::if (! User::query()->where(\'email\', $base)->exists()) {' => 'a placeholder address this code made, all lowercase and kept lowercase',
         'Http/Controllers/Auth/SocialLoginController.php::} while (User::query()->where(\'email\', $email)->exists());' => 'a placeholder address this code made, all lowercase and kept lowercase',
-        'Http/Requests/Api/V1/StoreTokenRequest.php::return User::where(\'email\', $this->input(\'email\'))->first();' => 'OPEN: signs in by address; `Ada@x.com` does not find `ada@x.com` on SQLite and PostgreSQL',
     ];
 
     public function test_no_rule_leaves_the_case_of_a_nickname_or_an_address_to_the_database(): void
@@ -51,7 +51,7 @@ class NamesAreComparedIgnoringCaseTest extends TestCase
         $this->assertSame(
             [],
             $missing,
-            "These queries match a nickname or an email address exactly, which is what MySQL and MariaDB do not do. To ask whether a name is free use UniqueIgnoringCase::taken(); if the query asks something else, add it to EXACT with the reason:\n".implode("\n", $missing),
+            "These queries match a nickname or an email address exactly, which is what MySQL and MariaDB do not do. To ask whether a name is free use UniqueIgnoringCase::taken(), and to find the account an address names use EmailLookup::find(); if the query asks something else, add it to EXACT with the reason:\n".implode("\n", $missing),
         );
     }
 
