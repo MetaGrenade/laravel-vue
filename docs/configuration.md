@@ -281,6 +281,9 @@ Notifications are pushed to the browser through Pusher or a service that speaks 
 | `SEARCH_MEILISEARCH_CIRCUIT_SECONDS` | `60` | How long search falls back to the database after Meilisearch could not be reached, instead of trying on every request. |
 | `SEARCH_MEILISEARCH_CIRCUIT_CACHE_KEY` | `search:meilisearch:circuit_open` | The cache key that remembers it. |
 | `SEARCH_HEALTH_TIMEOUT` | `3` | Seconds the admin health card and `metaforger:search:health` wait for Meilisearch. |
+| `SEARCH_TIMEOUT` | `5` | Seconds a web request (a search, or a save with `SCOUT_QUEUE=false`) waits for Meilisearch to answer before the call fails and search is served from the database. Without a limit a Meilisearch that said nothing held the request for ever. `0` waits for ever. See [search-index.md](search-index.md#when-meilisearch-does-not-answer). |
+| `SEARCH_CONSOLE_TIMEOUT` | `30` | The same for a queue worker or an artisan command (indexing, `metaforger:search:reindex`), which send more and are not waited on by a visitor. A worker stops a job after 60 seconds, so keep it below that. |
+| `SEARCH_CONNECT_TIMEOUT` | `2` | Seconds to make the connection to Meilisearch, for both. |
 | `SEARCH_REINDEX_WAIT` | `120` | Seconds `metaforger:search:reindex` waits for Meilisearch to finish before it says the rebuild is done. A large index needs longer; `--wait=0` does not wait. |
 | `SEARCH_HIGHLIGHT_CONTEXT_CHARS` | `80` | How long, in characters, the excerpt around the match in a result is. |
 | `SEARCH_QUERY_MIN_LENGTH` | `2` | The shortest search that is written to the search log. A shorter one is still carried out. |
