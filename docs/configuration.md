@@ -191,6 +191,7 @@ Every notification is queued on `mail`, so a queue worker must be running ([redi
 | `MAIL_USERNAME` | — | The SMTP user. `.env.example` says `null`. |
 | `MAIL_PASSWORD` | — | **Secret.** `.env.example` says `null`. |
 | `MAIL_EHLO_DOMAIN` | the host of `APP_URL` | The name the site gives the SMTP server when it greets it. |
+| `MAIL_TIMEOUT` | `15` | How many seconds the `smtp` mailer waits at each step (to connect, for the server's greeting, for each reply) before it gives up and the send fails. It is a limit for a step, not for the whole conversation. Empty or `0` gives PHP's own `default_socket_timeout` back (60 seconds); `0` is not "no limit". The other mailers have their own client: see [deployment.md](deployment.md#files-mail-and-backups). |
 | `MAIL_SENDMAIL_PATH` | `/usr/sbin/sendmail -bs -i` | The command of the `sendmail` mailer. |
 | `MAIL_LOG_CHANNEL` | — | The log channel the `log` mailer writes to (the default channel when empty). |
 | `POSTMARK_API_KEY` | — | **Secret.** The Postmark mailer's key. |

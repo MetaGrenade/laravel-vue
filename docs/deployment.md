@@ -262,6 +262,8 @@ HTTPS can end in two places.
   ```
 
   That is sent at once and shows a wrong password or port. The site's own emails go through the queue, so also check that a worker is running. Your mail service has to be allowed to send for `MAIL_FROM_ADDRESS` (SPF and DKIM), or the emails go to spam.
+
+  **An SMTP server that takes the connection and says nothing** (down behind a firewall that drops packets, or stuck) is given up on after `MAIL_TIMEOUT` seconds, 15 by default, at each step of the conversation. Before, the wait was PHP's `default_socket_timeout`, 60 seconds, and the two emails that go out inside the request (to verify an address, and to reset a password) held a PHP worker that long. A send that runs out of time fails like a refused one does, so a `failover` mailer goes on to the next mailer and a queued email is tried again. The limit belongs to the `smtp` mailer; Postmark, Resend, Mailgun and SES use the HTTP client of their own package, with its own limit (for Postmark, `client.timeout` in `config/mail.php`, which the file shows commented out).
 - **Logs.** `LOG_STACK=daily` with `LOG_LEVEL=warning` keeps `storage/logs` from growing without end; `LOG_DAILY_DAYS` says how long. Failed jobs are in the database: `php artisan queue:failed`, and `php artisan queue:retry all` after the cause is fixed.
 - **What to back up:** the database, `.env` (the application key is in it), and `storage/app` (private files and, unless they are on S3, the public pictures). Not `vendor`, `node_modules` or `public/build`: a deploy makes those. Try a restore on another machine before you need one.
 
