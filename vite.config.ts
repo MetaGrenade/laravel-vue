@@ -55,7 +55,13 @@ export default defineConfig({
     },
     server: {
         watch: {
-            ignored: ['**/storage/framework/views/**', '**/vendor/**', '**/.claude/**'],
+            // Vite watches the whole project folder. Nothing it builds comes
+            // from storage/ (compiled views, logs, uploads, and the files the
+            // test suite writes into storage/framework/testing/), but those
+            // files appear and vanish all the time, and on Windows a file that
+            // PHP still has open cannot be watched, so `npm run dev` printed
+            // "file watcher error: EBUSY" for every export zip a test made.
+            ignored: ['**/storage/**', '**/vendor/**', '**/.claude/**'],
         },
     },
 });
