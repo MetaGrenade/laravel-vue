@@ -185,7 +185,7 @@ Every notification is queued on `mail`, so a queue worker must be running ([redi
 | `MAIL_FROM_ADDRESS` | `hello@example.com` | The address emails are sent from. Use one your mail service is allowed to send for. |
 | `MAIL_FROM_NAME` | the value of `APP_NAME` | The name emails are sent from. |
 | `MAIL_SCHEME` | — | `smtp` or `smtps` (TLS from the first byte). Empty lets the port decide: 465 is TLS. `.env.example` says `null`. |
-| `MAIL_URL` | — | One address in place of the pieces: `smtp://user:password@host:587`. |
+| `MAIL_URL` | — | One address in place of the pieces: `smtp://user:password@host:587`. Empty (`MAIL_URL=`) is the same as leaving it out. |
 | `MAIL_HOST` | `127.0.0.1` | The SMTP server. |
 | `MAIL_PORT` | `2525` | Its port. |
 | `MAIL_USERNAME` | — | The SMTP user. `.env.example` says `null`. |

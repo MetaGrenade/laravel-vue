@@ -40,7 +40,9 @@ return [
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),
-            'url' => env('MAIL_URL'),
+            // An empty `MAIL_URL=` is "not set": Laravel takes any url that is set as an address to read the transport from, and finds
+            // none in an empty text ("Unsupported mail transport []").
+            'url' => env('MAIL_URL') ?: null,
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),
