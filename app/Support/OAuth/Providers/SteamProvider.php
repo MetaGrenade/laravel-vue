@@ -2,6 +2,7 @@
 
 namespace App\Support\OAuth\Providers;
 
+use App\Support\Http\RequestText;
 use App\Support\OAuth\Exceptions\OAuthException;
 use App\Support\OAuth\OAuthUser;
 use Illuminate\Http\RedirectResponse;
@@ -43,7 +44,7 @@ class SteamProvider extends AbstractProvider
             throw new OAuthException('Steam authentication was cancelled.');
         }
 
-        $claimedId = (string) $request->query('openid_claimed_id');
+        $claimedId = RequestText::query($request, 'openid_claimed_id');
 
         if ($claimedId === '') {
             throw new OAuthException('Steam did not return a valid identifier.');

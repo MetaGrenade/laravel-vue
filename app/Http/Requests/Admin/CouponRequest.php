@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin;
 use App\Enums\CouponType;
 use App\Models\Coupon;
 use App\Support\Commerce\Discounts\CouponCode;
+use App\Support\Http\RequestText;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -42,7 +43,7 @@ class CouponRequest extends FormRequest
     public function rules(): array
     {
         $coupon = $this->route('coupon');
-        $type = CouponType::tryFrom((string) $this->input('type'));
+        $type = CouponType::tryFrom(RequestText::input($this, 'type'));
 
         return [
             'code' => [

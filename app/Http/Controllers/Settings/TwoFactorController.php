@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Support\Http\RequestText;
 use App\Support\Security\TwoFactorAuthenticator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,7 +56,7 @@ class TwoFactorController extends Controller
 
         $secret = TwoFactorAuthenticator::decryptSecret($user->two_factor_secret);
 
-        if (! $secret || ! TwoFactorAuthenticator::verify($secret, $request->string('code'), 1, now()->timestamp)) {
+        if (! $secret || ! TwoFactorAuthenticator::verify($secret, str(RequestText::input($request, 'code')), 1, now()->timestamp)) {
             throw ValidationException::withMessages([
                 'code' => __('forms.two_factor.code_invalid'),
             ]);

@@ -23,6 +23,7 @@ use App\Support\Commerce\Digital\LicenceKeys;
 use App\Support\Commerce\OrderLifecycle;
 use App\Support\Commerce\OrderRefunder;
 use App\Support\Commerce\ProviderSubscriptions;
+use App\Support\Http\RequestText;
 use App\Support\Search\LikePattern;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,9 +52,9 @@ class CommerceOrderController extends Controller
 
     public function index(Request $request): Response
     {
-        $search = trim((string) $request->query('search', ''));
-        $status = OrderStatus::tryFrom((string) $request->query('status', ''));
-        $paymentStatus = OrderPaymentStatus::tryFrom((string) $request->query('payment_status', ''));
+        $search = trim(RequestText::query($request, 'search', ''));
+        $status = OrderStatus::tryFrom(RequestText::query($request, 'status', ''));
+        $paymentStatus = OrderPaymentStatus::tryFrom(RequestText::query($request, 'payment_status', ''));
 
         $paginator = Order::query()
             ->withCount('items')

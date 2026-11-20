@@ -16,6 +16,7 @@ use App\Support\Forum\ForumIndexCache;
 use App\Support\Forum\ForumSubmissions;
 use App\Support\Forum\IgnoredMembers;
 use App\Support\Forum\ThreadPrefixes;
+use App\Support\Http\RequestText;
 use App\Support\Localization\DateFormatter;
 use App\Support\Search\LikePattern;
 use App\Support\Security\HtmlSanitizer;
@@ -173,9 +174,9 @@ class ForumController extends Controller
     {
         $board->load('category');
 
-        $search = trim((string) $request->query('search', ''));
+        $search = trim(RequestText::query($request, 'search', ''));
         $offered = $prefixes->choices($board);
-        $prefixSlug = trim((string) $request->query('prefix', ''));
+        $prefixSlug = trim(RequestText::query($request, 'prefix', ''));
         $solvedQuery = $request->query('solved');
         $activeSolved = $solvedQuery === 'yes' || $solvedQuery === 'no' ? $solvedQuery : null;
         $activePrefix = null;

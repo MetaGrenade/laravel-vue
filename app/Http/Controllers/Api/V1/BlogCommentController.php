@@ -13,6 +13,7 @@ use App\Models\BlogComment;
 use App\Models\BlogCommentReaction;
 use App\Models\BlogCommentReport;
 use App\Notifications\BlogCommentPosted;
+use App\Support\Http\RequestText;
 use App\Support\Spam\CommentGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,7 @@ class BlogCommentController extends Controller
         $perPage = (int) $request->integer('per_page', 10);
         $perPage = max(1, min($perPage, 50));
 
-        $sortFilter = $request->string('sort')->lower();
+        $sortFilter = str(RequestText::input($request, 'sort'))->lower();
         $sortMode = match ($sortFilter->value()) {
             'newest' => 'newest',
             'top' => 'top',

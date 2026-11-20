@@ -12,6 +12,7 @@ use App\Support\Commerce\GiftCards\GiftCardCode;
 use App\Support\Commerce\GiftCards\GiftCardException;
 use App\Support\Commerce\GiftCards\GiftCards;
 use App\Support\Commerce\Money;
+use App\Support\Http\RequestText;
 use App\Support\Search\LikePattern;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -42,8 +43,8 @@ class GiftCardController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $search = trim((string) $request->query('search', ''));
-        $status = (string) $request->query('status', 'all');
+        $search = trim(RequestText::query($request, 'search', ''));
+        $status = RequestText::query($request, 'status', 'all');
         $status = in_array($status, self::STATUSES, true) ? $status : 'all';
 
         $paginator = GiftCard::query()

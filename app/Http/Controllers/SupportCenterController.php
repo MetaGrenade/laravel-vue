@@ -19,6 +19,7 @@ use App\Models\SupportTicketMessageAttachment;
 use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
 use App\Support\Database\Transaction;
+use App\Support\Http\RequestText;
 use App\Support\Localization\DateFormatter;
 use App\Support\Search\LikePattern;
 use App\Support\Seo\Seo;
@@ -44,8 +45,8 @@ class SupportCenterController extends Controller
         $user = $request->user();
 
         $ticketsPerPage = max(1, (int) $request->query('tickets_per_page', 10));
-        $ticketsSearch = $request->string('tickets_search')->trim();
-        $faqsSearch = $request->string('faqs_search')->trim();
+        $ticketsSearch = str(RequestText::input($request, 'tickets_search'))->trim();
+        $faqsSearch = str(RequestText::input($request, 'faqs_search'))->trim();
         $selectedFaqCategoryId = $request->query('faq_category_id');
         $selectedFaqId = $request->query('faq');
         $selectedTicketCategoryId = $request->query('ticket_category_id');

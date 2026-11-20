@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\Http\RequestText;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreSupportTeamRequest extends FormRequest
@@ -10,7 +11,7 @@ class StoreSupportTeamRequest extends FormRequest
     {
         if ($this->has('name')) {
             $this->merge([
-                'name' => trim((string) $this->input('name')),
+                'name' => trim(RequestText::input($this, 'name')),
             ]);
         }
 

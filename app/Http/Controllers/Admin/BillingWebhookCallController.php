@@ -7,6 +7,7 @@ use App\Models\BillingWebhookCall;
 use App\Payments\Providers\TebexProvider;
 use App\Payments\Tebex\TebexEvent;
 use App\Support\Billing\BillingWebhookProcessor;
+use App\Support\Http\RequestText;
 use App\Support\Search\LikePattern;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,7 @@ class BillingWebhookCallController extends Controller
         $query = BillingWebhookCall::query()
             ->with('user:id,nickname,email');
 
-        $search = trim((string) $request->query('search', ''));
+        $search = trim(RequestText::query($request, 'search', ''));
         if ($search !== '') {
             $like = LikePattern::contains($search);
 
@@ -41,17 +42,17 @@ class BillingWebhookCallController extends Controller
             });
         }
 
-        $typeFilter = trim((string) $request->query('type', ''));
+        $typeFilter = trim(RequestText::query($request, 'type', ''));
         if ($typeFilter !== '') {
             $query->where('type', $typeFilter);
         }
 
-        $providerFilter = trim((string) $request->query('provider', ''));
+        $providerFilter = trim(RequestText::query($request, 'provider', ''));
         if ($providerFilter !== '') {
             $query->where('provider', $providerFilter);
         }
 
-        $processedFilter = trim((string) $request->query('processed', ''));
+        $processedFilter = trim(RequestText::query($request, 'processed', ''));
         if ($processedFilter === 'processed') {
             $query->whereNotNull('processed_at');
         } elseif ($processedFilter === 'pending') {

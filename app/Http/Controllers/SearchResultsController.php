@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Http\RequestText;
 use App\Support\Search\GlobalSearchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -14,7 +15,7 @@ class SearchResultsController extends Controller
 
     public function __invoke(Request $request, GlobalSearchService $searchService): Response
     {
-        $query = $request->string('q')->trim();
+        $query = str(RequestText::input($request, 'q'))->trim();
         $perPage = $this->normalizePerPage($request->integer('per_page', 10));
 
         $pages = [

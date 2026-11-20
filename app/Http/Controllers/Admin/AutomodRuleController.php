@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AutomodRuleRequest;
 use App\Models\AutomodRule;
+use App\Support\Http\RequestText;
 use App\Support\Localization\DateFormatter;
 use App\Support\Moderation\Automod;
 use App\Support\Moderation\AutomodVerdict;
@@ -26,7 +27,7 @@ class AutomodRuleController extends Controller
         $formatter = DateFormatter::for($request->user());
 
         $request->validate(['test' => ['nullable', 'string', 'max:5000']]);
-        $test = trim((string) $request->query('test', ''));
+        $test = trim(RequestText::query($request, 'test', ''));
 
         return Inertia::render('acp/ForumAutomod', [
             'rules' => AutomodRule::query()->orderBy('id')->get()->map(fn (AutomodRule $rule) => [
