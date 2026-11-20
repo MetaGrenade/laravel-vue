@@ -13,6 +13,7 @@ use App\Http\Middleware\LogTokenActivity;
 use App\Http\Middleware\MeterUsage;
 use App\Http\Middleware\PrefetchAssetsForMembers;
 use App\Http\Middleware\PreventBannedUser;
+use App\Http\Middleware\ScrubMalformedInput;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\ShareTranslationGroups;
@@ -56,6 +57,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withBroadcasting(__DIR__.'/../routes/channels.php')
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->encryptCookies(except: ['appearance']);
+
+        // First of all, before anything reads the query string or the form: bytes that are not UTF-8 cannot be put in a JSON response or
+        // an Inertia page, and nothing after this would have to think about them.
+        $middleware->prepend(ScrubMalformedInput::class);
 
         $middleware->api(
             prepend: [

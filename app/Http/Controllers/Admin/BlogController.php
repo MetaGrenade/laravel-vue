@@ -35,7 +35,7 @@ class BlogController extends Controller
      */
     public function index(Request $request): Response
     {
-        $perPage = (int) $request->get('per_page', 15);
+        $perPage = $this->requestedPerPage($request, 15);
         $search = trim(RequestText::query($request, 'search', ''));
         $sort = strtolower(RequestText::query($request, 'sort', 'created_desc'));
         $allowedSorts = ['created_desc', 'created_asc', 'views_desc', 'views_asc'];

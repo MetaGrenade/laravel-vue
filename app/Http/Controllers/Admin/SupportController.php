@@ -339,7 +339,7 @@ class SupportController extends Controller
 
     public function index(Request $request): Response
     {
-        $perPage = (int) $request->get('per_page', 25);
+        $perPage = $this->requestedPerPage($request, 25);
 
         $ticketsSearch = str(RequestText::input($request, 'tickets_search'))->trim();
         $faqsSearch = str(RequestText::input($request, 'faqs_search'))->trim();

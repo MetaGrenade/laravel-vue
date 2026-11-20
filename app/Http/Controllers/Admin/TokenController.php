@@ -35,7 +35,7 @@ class TokenController extends Controller
      */
     public function index(Request $request, Scopes $scopes): Response
     {
-        $perPage = (int) $request->get('per_page', 10);
+        $perPage = $this->requestedPerPage($request, 10);
 
         $formatter = DateFormatter::for($request->user());
 

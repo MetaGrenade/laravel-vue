@@ -39,6 +39,8 @@ There is also the command line (`php artisan list` shows the site's own commands
 
 ## A page request
 
+Before any of it, a global middleware, **`ScrubMalformedInput`**, replaces bytes that are not valid UTF-8 in the query string and the form body with `?` (`?search=%FF` is a link typed by hand, an old page in another encoding or a scanner, never a browser). A JSON response or an Inertia page that echoes such text back cannot be encoded, so without it the live search answered 500 and a dozen lists came back with their page data empty, a blank screen.
+
 Laravel does not run a route's middleware in the order they were listed: some are moved by a **priority list**, and `bootstrap/app.php` adds five to it. This is the order a page request goes through (`app('router')->gatherRouteMiddleware($route)` prints it for any route):
 
 1. Laravel's own: cookies, the session, the forgery check.
