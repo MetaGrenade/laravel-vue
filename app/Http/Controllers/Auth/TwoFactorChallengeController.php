@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Commerce\GuestCarryOver;
+use App\Support\Http\RequestText;
 use App\Support\Security\TwoFactorAuthenticator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -54,8 +55,8 @@ class TwoFactorChallengeController extends Controller
             return redirect()->route('login');
         }
 
-        $code = $request->string('code')->trim()->value();
-        $recoveryCode = Str::of($request->string('recovery_code')->value())
+        $code = str(RequestText::input($request, 'code'))->trim()->value();
+        $recoveryCode = Str::of(str(RequestText::input($request, 'recovery_code'))->value())
             ->upper()
             ->replace(' ', '')
             ->value();

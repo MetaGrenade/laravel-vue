@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Support\Audit\Audit;
 use App\Support\Billing\SubscriptionCancellationFailed;
 use App\Support\Billing\SubscriptionManager;
+use App\Support\Http\RequestText;
 use App\Support\Impersonation\Impersonation;
 use App\Support\Localization\DateFormatter;
 use App\Support\Moderation\ContentTakenDown;
@@ -42,8 +43,8 @@ class UsersController extends Controller
     public function index(Request $request): Response
     {
         $perPage = (int) $request->get('per_page', 15);
-        $search = trim((string) $request->query('search', ''));
-        $role = trim((string) $request->query('role', '')) ?: null;
+        $search = trim(RequestText::query($request, 'search', ''));
+        $role = trim(RequestText::query($request, 'role', '')) ?: null;
         $verification = $request->query('verification');
         $banned = $request->query('banned');
         $activityWindow = $request->query('activity_window');

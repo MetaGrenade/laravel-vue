@@ -2,6 +2,7 @@
 
 namespace App\Support\OAuth\Providers;
 
+use App\Support\Http\RequestText;
 use App\Support\OAuth\Exceptions\OAuthException;
 use App\Support\OAuth\OAuthUser;
 use Illuminate\Http\RedirectResponse;
@@ -64,7 +65,7 @@ abstract class AbstractOAuth2Provider extends AbstractProvider
 
         $this->validateState($request);
 
-        $code = (string) $request->query('code');
+        $code = RequestText::query($request, 'code');
 
         if ($code === '') {
             throw new OAuthException('Missing authorization code from provider.');

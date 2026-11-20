@@ -6,6 +6,7 @@ use App\Enums\ReviewStatus;
 use App\Http\Controllers\Concerns\InteractsWithInertiaPagination;
 use App\Http\Controllers\Controller;
 use App\Models\ProductReview;
+use App\Support\Http\RequestText;
 use App\Support\Search\LikePattern;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,9 +28,9 @@ class CommerceReviewController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $search = trim((string) $request->query('search', ''));
+        $search = trim(RequestText::query($request, 'search', ''));
 
-        $status = (string) $request->query('status', ReviewStatus::Pending->value);
+        $status = RequestText::query($request, 'status', ReviewStatus::Pending->value);
         $status = in_array($status, [...array_column(ReviewStatus::cases(), 'value'), self::ALL], true) ? $status : ReviewStatus::Pending->value;
 
         $rating = (int) $request->query('rating', 0);

@@ -20,6 +20,7 @@ use App\Support\Commerce\ProductAvailability;
 use App\Support\Commerce\Reviews\ProductReviews;
 use App\Support\Commerce\StorefrontProducts;
 use App\Support\Commerce\Wishlists;
+use App\Support\Http\RequestText;
 use App\Support\Search\LikePattern;
 use App\Support\Seo\Seo;
 use Illuminate\Http\RedirectResponse;
@@ -206,7 +207,7 @@ class ProductCatalogController extends Controller
      */
     private function reviewsPayload(Request $request, ?User $user, Product $product, ProductReviews $reviews, array $summary): array
     {
-        $requested = (string) $request->query('review_sort', 'newest');
+        $requested = RequestText::query($request, 'review_sort', 'newest');
         $sort = in_array($requested, ProductReviews::SORTS, true) ? $requested : 'newest';
 
         $page = $reviews->published($product, $sort)

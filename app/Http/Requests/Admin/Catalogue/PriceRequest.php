@@ -6,6 +6,7 @@ use App\Models\Price;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Support\Commerce\Money;
+use App\Support\Http\RequestText;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -73,13 +74,13 @@ class PriceRequest extends FormRequest
 
             [$owner, $price] = $this->subject();
             $currency = $price->currency ?? strtoupper((string) config('commerce.currency', 'USD'));
-            $amount = Money::parse((string) $this->input('amount'), $currency);
+            $amount = Money::parse(RequestText::input($this, 'amount'), $currency);
 
             // A price of zero is allowed: it makes a free product (a free download), whose orders cost
             // nothing and are paid on the spot. The amount format already refuses a negative price.
 
             // A zero-decimal currency (yen) has no cents, so 500.50 would be charged as 501.
-            if (Money::exponentFor($currency) === 0 && preg_match('/\.\d*[1-9]/', (string) $this->input('amount'))) {
+            if (Money::exponentFor($currency) === 0 && preg_match('/\.\d*[1-9]/', RequestText::input($this, 'amount'))) {
                 $validator->errors()->add('amount', "{$currency} has no cents; enter a whole amount.");
 
                 return;

@@ -13,6 +13,7 @@ use App\Notifications\ApiKeyCreated;
 use App\Support\Api\ApiKeys;
 use App\Support\Api\Scope;
 use App\Support\Api\Scopes;
+use App\Support\Http\RequestText;
 use App\Support\Localization\BrowserTime;
 use App\Support\Localization\DateFormatter;
 use App\Support\Members\StaffUserSearch;
@@ -101,7 +102,7 @@ class TokenController extends Controller
             ->with('token:id,name')
             ->orderByDesc('created_at');
 
-        $tokenFilter = trim((string) $request->query('token', ''));
+        $tokenFilter = trim(RequestText::query($request, 'token', ''));
         if ($tokenFilter !== '') {
             $like = LikePattern::contains($tokenFilter);
 
@@ -113,7 +114,7 @@ class TokenController extends Controller
             });
         }
 
-        $statusFilter = trim((string) $request->query('status', ''));
+        $statusFilter = trim(RequestText::query($request, 'status', ''));
         if ($statusFilter !== '') {
             $tokenLogQuery->where('status', $statusFilter);
         }

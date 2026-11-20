@@ -32,6 +32,7 @@ use App\Notifications\TicketReplied;
 use App\Notifications\TicketStatusUpdated;
 use App\Support\Database\Sql;
 use App\Support\Database\Transaction;
+use App\Support\Http\RequestText;
 use App\Support\Localization\DateFormatter;
 use App\Support\Members\StaffUserSearch;
 use App\Support\Search\LikePattern;
@@ -340,18 +341,18 @@ class SupportController extends Controller
     {
         $perPage = (int) $request->get('per_page', 25);
 
-        $ticketsSearch = $request->string('tickets_search')->trim();
-        $faqsSearch = $request->string('faqs_search')->trim();
+        $ticketsSearch = str(RequestText::input($request, 'tickets_search'))->trim();
+        $faqsSearch = str(RequestText::input($request, 'faqs_search'))->trim();
 
         $ticketsSearchTerm = $ticketsSearch->isNotEmpty() ? $ticketsSearch->value() : null;
         $faqsSearchTerm = $faqsSearch->isNotEmpty() ? $faqsSearch->value() : null;
 
-        $statusFilter = $this->normalizeStatusFilter($request->string('status'));
-        $priorityFilter = $this->normalizePriorityFilter($request->string('priority'));
-        $assigneeFilter = $this->normalizeAssigneeFilter($request->string('assignee'));
+        $statusFilter = $this->normalizeStatusFilter(str(RequestText::input($request, 'status')));
+        $priorityFilter = $this->normalizePriorityFilter(str(RequestText::input($request, 'priority')));
+        $assigneeFilter = $this->normalizeAssigneeFilter(str(RequestText::input($request, 'assignee')));
         [$createdFrom, $createdTo] = $this->normalizeDateRange(
-            $request->string('date_from'),
-            $request->string('date_to'),
+            str(RequestText::input($request, 'date_from')),
+            str(RequestText::input($request, 'date_to')),
         );
 
         $formatter = DateFormatter::for($request->user());

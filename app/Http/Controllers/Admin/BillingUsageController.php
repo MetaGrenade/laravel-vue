@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\UsageEvent;
 use App\Models\User;
+use App\Support\Http\RequestText;
 use App\Support\Usage\Meters;
 use App\Support\Usage\Usage;
 use App\Support\Usage\UsagePeriod;
@@ -32,8 +33,8 @@ class BillingUsageController extends Controller
     public function index(Request $request): Response
     {
         $meters = $this->meters->all();
-        $key = array_key_exists((string) $request->query('meter'), $meters) ? (string) $request->query('meter') : array_key_first($meters);
-        $period = UsagePeriod::monthOf($this->monthFrom((string) $request->query('month')));
+        $key = array_key_exists(RequestText::query($request, 'meter'), $meters) ? RequestText::query($request, 'meter') : array_key_first($meters);
+        $period = UsagePeriod::monthOf($this->monthFrom(RequestText::query($request, 'month')));
 
         $props = [
             'meters' => array_values(array_map(fn ($meter) => ['key' => $meter->key, 'label' => $meter->label, 'unit' => $meter->unit], $meters)),

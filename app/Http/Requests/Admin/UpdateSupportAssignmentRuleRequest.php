@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\Http\RequestText;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,7 +24,7 @@ class UpdateSupportAssignmentRuleRequest extends FormRequest
         }
 
         if ($this->has('assignee_type')) {
-            $assigneeType = strtolower((string) $this->input('assignee_type'));
+            $assigneeType = strtolower(RequestText::input($this, 'assignee_type'));
 
             $this->merge([
                 'assignee_type' => $assigneeType,

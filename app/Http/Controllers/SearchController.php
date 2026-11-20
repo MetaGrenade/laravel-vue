@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SearchQuery;
+use App\Support\Http\RequestText;
 use App\Support\Search\GlobalSearchService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class SearchController extends Controller
      */
     public function __invoke(Request $request): JsonResponse
     {
-        $query = $request->string('q')->trim();
+        $query = str(RequestText::input($request, 'q'))->trim();
         $limit = (int) $request->integer('limit', 5);
         $limit = max(1, min($limit, 10));
         $types = $request->input('types');

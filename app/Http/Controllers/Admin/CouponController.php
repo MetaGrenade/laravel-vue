@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Support\Commerce\Discounts\CouponRedemptions;
+use App\Support\Http\RequestText;
 use App\Support\Localization\BrowserTime;
 use App\Support\Search\LikePattern;
 use Illuminate\Http\JsonResponse;
@@ -30,7 +31,7 @@ class CouponController extends Controller
     public function index(Request $request, CouponRedemptions $redemptions): Response
     {
         $user = $request->user();
-        $search = trim((string) $request->query('search', ''));
+        $search = trim(RequestText::query($request, 'search', ''));
         $currency = $this->currency();
 
         $paginator = Coupon::query()
@@ -149,7 +150,7 @@ class CouponController extends Controller
      */
     public function productSearch(Request $request): JsonResponse
     {
-        $search = trim((string) $request->query('search', ''));
+        $search = trim(RequestText::query($request, 'search', ''));
 
         $products = Product::query()
             ->when($search !== '', fn ($query) => $query->whereRaw(LikePattern::clause('name'), [LikePattern::contains($search)]))

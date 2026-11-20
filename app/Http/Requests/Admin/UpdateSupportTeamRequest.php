@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\Http\RequestText;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -11,7 +12,7 @@ class UpdateSupportTeamRequest extends FormRequest
     {
         if ($this->has('name')) {
             $this->merge([
-                'name' => trim((string) $this->input('name')),
+                'name' => trim(RequestText::input($this, 'name')),
             ]);
         }
 

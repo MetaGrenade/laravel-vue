@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Support\Audit\Audit;
+use App\Support\Http\RequestText;
 use App\Support\Localization\DateFormatter;
 use App\Support\Search\LikePattern;
 use Illuminate\Http\Request;
@@ -28,13 +29,13 @@ class AuditLogController extends Controller
         $formatter = DateFormatter::for($request->user());
 
         $perPage = max(1, min((int) $request->query('per_page', 25), 100));
-        $search = trim((string) $request->query('search', ''));
-        $event = trim((string) $request->query('event', ''));
-        $outcome = trim((string) $request->query('outcome', ''));
+        $search = trim(RequestText::query($request, 'search', ''));
+        $event = trim(RequestText::query($request, 'event', ''));
+        $outcome = trim(RequestText::query($request, 'outcome', ''));
         $actor = $request->query('actor');
         $account = $request->query('account');
-        $from = $this->day((string) $request->query('from', ''), $formatter->timezone(), false);
-        $to = $this->day((string) $request->query('to', ''), $formatter->timezone(), true);
+        $from = $this->day(RequestText::query($request, 'from', ''), $formatter->timezone(), false);
+        $to = $this->day(RequestText::query($request, 'to', ''), $formatter->timezone(), true);
 
         $query = AuditLog::query();
 
@@ -106,8 +107,8 @@ class AuditLogController extends Controller
                 'outcome' => $outcome,
                 'actor' => is_numeric($actor) ? (string) (int) $actor : '',
                 'account' => is_numeric($account) ? (string) (int) $account : '',
-                'from' => (string) $request->query('from', ''),
-                'to' => (string) $request->query('to', ''),
+                'from' => RequestText::query($request, 'from', ''),
+                'to' => RequestText::query($request, 'to', ''),
                 'per_page' => $perPage,
             ],
             // Who is being looked at, when the page was opened from a person's account.

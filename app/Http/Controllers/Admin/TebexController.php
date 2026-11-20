@@ -19,6 +19,7 @@ use App\Payments\Tebex\TebexException;
 use App\Payments\Tebex\TebexSelling;
 use App\Payments\Tebex\TebexStoreProfile;
 use App\Payments\Tebex\TebexWebhookVerifier;
+use App\Support\Http\RequestText;
 use App\Support\Search\LikePattern;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -49,8 +50,8 @@ class TebexController extends Controller
 
     public function index(Request $request): Response
     {
-        $search = trim((string) $request->query('search', ''));
-        $status = (string) $request->query('status', 'listed');
+        $search = trim(RequestText::query($request, 'search', ''));
+        $status = RequestText::query($request, 'status', 'listed');
         $status = in_array($status, self::STATUSES, true) ? $status : 'listed';
         $category = $request->query('category');
         $category = is_numeric($category) ? (int) $category : null;

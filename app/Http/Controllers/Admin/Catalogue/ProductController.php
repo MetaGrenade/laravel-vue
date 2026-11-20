@@ -24,6 +24,7 @@ use App\Support\Commerce\Catalogue\VariantGenerator;
 use App\Support\Commerce\Digital\LicenceKeys;
 use App\Support\Commerce\Money;
 use App\Support\Commerce\PriceResolver;
+use App\Support\Http\RequestText;
 use App\Support\Search\LikePattern;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -53,8 +54,8 @@ class ProductController extends Controller
 
     public function index(Request $request): Response
     {
-        $search = trim((string) $request->query('search', ''));
-        $status = in_array($request->query('status'), ['active', 'archived'], true) ? (string) $request->query('status') : '';
+        $search = trim(RequestText::query($request, 'search', ''));
+        $status = in_array($request->query('status'), ['active', 'archived'], true) ? RequestText::query($request, 'status') : '';
         $brand = $request->integer('brand') ?: null;
 
         $paginator = Product::query()

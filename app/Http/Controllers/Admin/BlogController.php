@@ -12,6 +12,7 @@ use App\Models\BlogTag;
 use App\Models\User;
 use App\Support\Blog\BlogCovers;
 use App\Support\Commerce\Catalogue\ImageRejected;
+use App\Support\Http\RequestText;
 use App\Support\Localization\BrowserTime;
 use App\Support\Localization\DateFormatter;
 use App\Support\Search\LikePattern;
@@ -35,8 +36,8 @@ class BlogController extends Controller
     public function index(Request $request): Response
     {
         $perPage = (int) $request->get('per_page', 15);
-        $search = trim((string) $request->query('search', ''));
-        $sort = strtolower((string) $request->query('sort', 'created_desc'));
+        $search = trim(RequestText::query($request, 'search', ''));
+        $sort = strtolower(RequestText::query($request, 'sort', 'created_desc'));
         $allowedSorts = ['created_desc', 'created_asc', 'views_desc', 'views_asc'];
         if (! in_array($sort, $allowedSorts, true)) {
             $sort = 'created_desc';

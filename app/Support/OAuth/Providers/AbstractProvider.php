@@ -2,6 +2,7 @@
 
 namespace App\Support\OAuth\Providers;
 
+use App\Support\Http\RequestText;
 use App\Support\OAuth\Contracts\Provider as ProviderContract;
 use App\Support\OAuth\Exceptions\OAuthException;
 use App\Support\OAuth\OAuthUser;
@@ -53,7 +54,7 @@ abstract class AbstractProvider implements ProviderContract
             throw new OAuthException('Missing OAuth state. Please try again.');
         }
 
-        if ((string) $request->query('state') !== $expected) {
+        if (RequestText::query($request, 'state') !== $expected) {
             throw new OAuthException('Invalid OAuth state received.');
         }
     }

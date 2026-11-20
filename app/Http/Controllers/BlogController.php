@@ -10,6 +10,7 @@ use App\Models\BlogTag;
 use App\Models\BlogView;
 use App\Models\User;
 use App\Support\Blog\BlogCovers;
+use App\Support\Http\RequestText;
 use App\Support\Localization\DateFormatter;
 use App\Support\Search\LikePattern;
 use App\Support\Seo\Seo;
@@ -31,10 +32,10 @@ class BlogController extends Controller
      */
     public function index(Request $request): Response
     {
-        $categoryFilter = $request->string('category')->trim();
-        $tagFilter = $request->string('tag')->trim();
-        $searchFilter = $request->string('search')->trim();
-        $sortFilter = $request->string('sort')->lower();
+        $categoryFilter = str(RequestText::input($request, 'category'))->trim();
+        $tagFilter = str(RequestText::input($request, 'tag'))->trim();
+        $searchFilter = str(RequestText::input($request, 'search'))->trim();
+        $sortFilter = str(RequestText::input($request, 'sort'))->lower();
 
         $sortMode = in_array($sortFilter->toString(), ['latest', 'oldest', 'popular'], true)
             ? $sortFilter->toString()

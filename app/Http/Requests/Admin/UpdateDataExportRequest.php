@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\DataExport;
+use App\Support\Http\RequestText;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -46,8 +47,8 @@ class UpdateDataExportRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $status = $this->string('status')->toString();
-            $filePath = $this->string('file_path')->toString();
+            $status = RequestText::input($this, 'status');
+            $filePath = RequestText::input($this, 'file_path');
 
             if ($status === DataExport::STATUS_COMPLETED && $filePath === '') {
                 $validator->errors()->add('file_path', 'A file path is required when marking an export as completed.');
