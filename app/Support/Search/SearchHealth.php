@@ -27,7 +27,8 @@ final class SearchHealth
     }
 
     /**
-     * A client for the configured host and key that gives up quickly, unlike the one Scout uses to index and search.
+     * A client for the configured host and key that gives up quickly (SEARCH_HEALTH_TIMEOUT), sooner than the one Scout uses to index and
+     * search, which waits SEARCH_TIMEOUT seconds on a web request and SEARCH_CONSOLE_TIMEOUT in a worker or a command (MeilisearchHttp).
      */
     public static function clientFromConfig(): Client
     {

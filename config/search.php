@@ -32,6 +32,16 @@ return [
         'timeout_seconds' => (int) env('SEARCH_HEALTH_TIMEOUT', 3),
     ],
 
+    // How long a call to Meilisearch waits for an answer before it is given up on: the client Scout uses to search and to index. Without a
+    // limit a Meilisearch that takes the connection and says nothing holds the request that searched, and the circuit below never opens,
+    // because the call never fails. A web request waits `timeout_seconds`; a queue worker or an artisan command waits `console_timeout_seconds`
+    // (a rebuild sends up to 500 documents in one call). 0 waits for ever. See docs/search-index.md.
+    'http' => [
+        'timeout_seconds' => (int) env('SEARCH_TIMEOUT', 5),
+        'console_timeout_seconds' => (int) env('SEARCH_CONSOLE_TIMEOUT', 30),
+        'connect_timeout_seconds' => (int) env('SEARCH_CONNECT_TIMEOUT', 2),
+    ],
+
     // When SEARCH_DRIVER=meilisearch and the host is unreachable, search falls
     // back to the database for this many seconds without retrying every request.
     'meilisearch_fallback' => [

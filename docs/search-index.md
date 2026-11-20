@@ -33,7 +33,7 @@ With `SEARCH_DRIVER=meilisearch`, `/search` (header JSON) and `/search/results` 
 
 With `SEARCH_DRIVER=database`, those endpoints keep using `LIKE` as before.
 
-If Meilisearch cannot be reached while the driver is set to `meilisearch` (connection failure, or HTTP 404 / 408 / 502 / 503 / 504), `GlobalSearchService` logs one warning, opens a short circuit (`SEARCH_MEILISEARCH_CIRCUIT_SECONDS`, default 60), and serves the database path for that whole request. While the circuit is open, later searches skip Meilisearch entirely so the warning is not repeated every hit. Auth and misconfiguration errors (HTTP 401 / 403) and other unexpected failures still fail loudly. Artisan sync and reindex stay fail-loud; they do not fall back.
+If Meilisearch cannot be reached while the driver is set to `meilisearch` (connection failure, a call that is not answered within `SEARCH_TIMEOUT` seconds ([When Meilisearch does not answer](#when-meilisearch-does-not-answer)), or HTTP 404 / 408 / 502 / 503 / 504), `GlobalSearchService` logs one warning, opens a short circuit (`SEARCH_MEILISEARCH_CIRCUIT_SECONDS`, default 60), and serves the database path for that whole request. While the circuit is open, later searches skip Meilisearch entirely so the warning is not repeated every hit. Auth and misconfiguration errors (HTTP 401 / 403) and other unexpected failures still fail loudly. Artisan sync and reindex stay fail-loud; they do not fall back.
 
 ## Index settings
 
@@ -118,11 +118,31 @@ Put the `key` it answers with in `MEILISEARCH_KEY`. If the site uses `SCOUT_PREF
 
 **Searching** keeps working: the page falls back to the database (see [Searching](#searching)).
 
-**Saving** keeps working too, because with `SEARCH_DRIVER=meilisearch` Scout indexes a record **on the queue** (`SCOUT_QUEUE` is on unless it is set to `false`; with the database driver there is nothing to index, so it is off). The save returns at once and the job waits for Meilisearch; if it gives up, it ends in the failed jobs. This needs a queue worker running, the same one that sends email (`php artisan metaforger:queue work`, or `listen` while developing), and a record is in the index only once the worker has run its job. Without a worker the records are stored and the jobs wait, and the health card shows the documents that are missing. With `QUEUE_CONNECTION=sync` a job runs inside the request, which is the same as not queueing.
+**Saving** keeps working too, because with `SEARCH_DRIVER=meilisearch` Scout indexes a record **on the queue** (`SCOUT_QUEUE` is on unless it is set to `false`; with the database driver there is nothing to index, so it is off). The save returns at once and the job waits for Meilisearch (at most `SEARCH_CONSOLE_TIMEOUT` seconds a call, 30 by default); if it gives up, it ends in the failed jobs. This needs a queue worker running, the same one that sends email (`php artisan metaforger:queue work`, or `listen` while developing), and a record is in the index only once the worker has run its job. Without a worker the records are stored and the jobs wait, and the health card shows the documents that are missing. With `QUEUE_CONNECTION=sync` a job runs inside the request, which is the same as not queueing.
 
 With **`SCOUT_QUEUE=false`** Scout indexes a record while the request that saved it is handled, so with Meilisearch down the post, FAQ, product or forum reply **is stored and then the request fails** with a connection error. That reaches a member posting a reply as much as an editor publishing a post. The health card notes it while indexing is not on the queue.
 
 Either way, anything saved while Meilisearch was down is missing from the index afterwards. The health card shows the count that is off, and `php artisan metaforger:search:reindex` puts it right. The rebuild sends the documents itself, whatever `SCOUT_QUEUE` says: queued, it would be waiting for Meilisearch to finish what had not been sent, and would say the rebuild was done while the documents were still waiting for a worker.
+
+## When Meilisearch does not answer
+
+A Meilisearch that is down usually refuses the connection at once. One that is **stuck** (out of memory, a disk that has stopped, a firewall that drops packets and does not refuse them) takes the connection and says nothing, and that was worse: Scout's client had no limit on how long it waited, so a request that searched waited for as long as Meilisearch stayed silent and kept a PHP worker the whole time. Searches are made on web requests, so a busy site ran out of workers in seconds. The circuit in [Searching](#searching) could not help, because it opens when a call **fails**, and a call that does not end does not fail. Measured against a server that accepted the connection and never answered: the call was held for the 40 seconds the server was kept, and would have been for ever.
+
+Every call to Meilisearch now has a limit:
+
+| Setting | Default | What it limits |
+|---------|---------|----------------|
+| `SEARCH_TIMEOUT` | 5 | Seconds to wait for an answer on a **web request**: a search, or a save with `SCOUT_QUEUE=false`. An answer takes milliseconds, and every second of waiting is a PHP worker held. |
+| `SEARCH_CONSOLE_TIMEOUT` | 30 | The same for a **queue worker** or an **artisan command** (indexing on the queue, `metaforger:search:reindex`). What they send can be big (a rebuild sends 500 documents in one call unless `--chunk` says otherwise), and nobody is waiting on them. A worker stops a job after 60 seconds ([redis.md](redis.md#the-queue)), so this stays below that. |
+| `SEARCH_CONNECT_TIMEOUT` | 2 | Seconds to make the connection, for both. |
+
+`SEARCH_HEALTH_TIMEOUT` (3) is the health card's own and is not changed. `0` in any of them waits for ever, as before.
+
+A call that runs out of time fails like any call that cannot be answered, with the exception the circuit already counts as "unreachable": **that search is served from the database, the circuit opens for `SEARCH_MEILISEARCH_CIRCUIT_SECONDS`, and the searches after it do not wait for a host that is not answering.** Searches that began before the circuit opened each wait up to `SEARCH_TIMEOUT` seconds, so five seconds is the most a visitor waits, once. A save with `SCOUT_QUEUE=false` fails after the same time with a connection error, as it does when the connection is refused. A queued indexing job fails after `SEARCH_CONSOLE_TIMEOUT` seconds, and is tried again like any failed job.
+
+If your Meilisearch is far away and a rebuild's calls are cut off, raise `SEARCH_CONSOLE_TIMEOUT`. Do not raise `SEARCH_TIMEOUT` to cure it: that is the one a visitor waits for.
+
+Not measured against a real stuck Meilisearch (the live test needs one that answers): 5, 30 and 2 are choices, not figures from a measurement.
 
 ## Deploying
 
@@ -176,3 +196,5 @@ MEILISEARCH_LIVE_HOST=http://127.0.0.1:7700 MEILISEARCH_LIVE_KEY=<the master key
 ```
 
 `tests/Unit/Search/MeilisearchCircuitBreakerTest.php` and `tests/Feature/Search/GlobalSearchMeilisearchFallbackTest.php` cover the open circuit, which failures trigger fallback, and a throwing Scout engine that still returns database-shaped results with a single warning.
+
+`tests/Feature/Search/MeilisearchCallTimeoutTest.php` listens on a local port and never answers (the operating system accepts the connection, then nothing is said, as a stuck server does): the client fails after the limit and not before it, with the host, key and agent Scout would have sent, and the search page is then served from the database with the circuit open. The limits are read off the client Scout's engine is given before any call is made, so a client with no limit fails the test and does not hang it.

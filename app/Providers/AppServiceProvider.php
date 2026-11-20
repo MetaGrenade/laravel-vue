@@ -39,6 +39,7 @@ use App\Support\Billing\SubscriptionManager;
 use App\Support\Frontend\StaffAreaVite;
 use App\Support\Members\EmailIgnoringCaseUserProvider;
 use App\Support\Search\MeilisearchCircuitBreaker;
+use App\Support\Search\MeilisearchHttp;
 use App\Support\Search\SearchHealth;
 use App\Support\Search\SearchTasks;
 use App\Support\Security\EmailChange;
@@ -61,6 +62,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Sanctum\Sanctum;
+use Meilisearch\Client as MeilisearchClient;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -83,7 +85,12 @@ class AppServiceProvider extends ServiceProvider
         // The framework binds Vite as a singleton. This one is told for each request whether to leave the staff area out of what it
         // fetches in the background (PrefetchAssetsForMembers), so it is rebuilt for each request.
         $this->app->scoped(Vite::class, StaffAreaVite::class);
-        // The health check gives up on a silent Meilisearch sooner than the client Scout uses to index and search does.
+        // Scout's own client has no limit on how long it waits, so a Meilisearch that says nothing holds the request that searched for
+        // ever and the circuit breaker never gets a failure to open on. This one is Scout's (same host, key and agent) with limits
+        // (MeilisearchHttp). `scoped`, like the rest that is built from settings: nothing in it belongs to a request, and it costs nothing
+        // to build (no connection is made until a call is).
+        $this->app->scoped(MeilisearchClient::class, fn () => MeilisearchHttp::client());
+        // The health check gives up on a silent Meilisearch sooner (SEARCH_HEALTH_TIMEOUT, 3 seconds) than the client Scout uses does.
         $this->app->bind(SearchHealth::class, fn ($app) => new SearchHealth(SearchHealth::clientFromConfig(), $app->make(MeilisearchCircuitBreaker::class)));
         $this->app->bind(SearchTasks::class, fn () => new SearchTasks(SearchHealth::clientFromConfig()));
     }
