@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Config\EnvNumber;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -69,7 +70,7 @@ return [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
-            'max_files' => env('LOG_DAILY_DAYS', 14),
+            'max_files' => EnvNumber::integer('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
         ],
 

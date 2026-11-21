@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Support\Config\EnvNumber;
 
 return [
     'key' => env('STRIPE_KEY'),
@@ -25,7 +26,7 @@ return [
     'webhook' => [
         'secret' => env('STRIPE_WEBHOOK_SECRET'),
         'cli_secret' => env('STRIPE_CLI_WEBHOOK_SECRET'),
-        'tolerance' => env('STRIPE_WEBHOOK_TOLERANCE', 300),
+        'tolerance' => EnvNumber::integer('STRIPE_WEBHOOK_TOLERANCE', 300),
         'jobs' => [
             'invoice.payment_succeeded' => null,
             'invoice.payment_failed' => null,

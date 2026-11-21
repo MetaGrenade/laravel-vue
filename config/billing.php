@@ -1,9 +1,11 @@
 <?php
 
+use App\Support\Config\EnvNumber;
+
 return [
     'subscription_name' => env('BILLING_SUBSCRIPTION_NAME', 'default'),
     'currency' => strtoupper(env('CASHIER_CURRENCY', 'usd')),
-    'invoice_pagination' => env('BILLING_INVOICES_PER_PAGE', 25),
+    'invoice_pagination' => EnvNumber::integer('BILLING_INVOICES_PER_PAGE', 25),
     'webhooks' => [
         'store_payloads' => env('BILLING_WEBHOOK_STORE', true),
     ],
@@ -51,7 +53,7 @@ return [
     | `api-calls` counts every request made with an API token (see routes/api.php). `retention_months` is how long events are kept.
     */
     'usage' => [
-        'retention_months' => (int) env('BILLING_USAGE_RETENTION_MONTHS', 13),
+        'retention_months' => EnvNumber::integer('BILLING_USAGE_RETENTION_MONTHS', 13),
         'meters' => [
             'api-calls' => [
                 'label' => 'API calls',

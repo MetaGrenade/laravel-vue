@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Config\EnvNumber;
+
 return [
 
     /*
@@ -63,7 +65,7 @@ return [
     */
 
     'keys' => [
-        'max_active' => (int) env('API_KEYS_MAX', 10),
+        'max_active' => EnvNumber::integer('API_KEYS_MAX', 10),
         'expiry_days' => [30, 90, 365],
         'default_expiry_days' => 90,
         'allow_no_expiry' => (bool) env('API_KEYS_ALLOW_NO_EXPIRY', true),
@@ -85,7 +87,7 @@ return [
 
     'sign_in' => [
         'scopes' => array_values(array_filter(array_map('trim', explode(',', (string) env('API_SIGN_IN_SCOPES', 'profile:read'))))),
-        'expiry_days' => env('API_SIGN_IN_EXPIRY_DAYS', 90),
+        'expiry_days' => EnvNumber::integer('API_SIGN_IN_EXPIRY_DAYS', 90),
     ],
 
     /*
@@ -101,7 +103,7 @@ return [
     */
 
     'token_log' => [
-        'retention_days' => (int) env('API_TOKEN_LOG_RETENTION_DAYS', 30),
+        'retention_days' => EnvNumber::integer('API_TOKEN_LOG_RETENTION_DAYS', 30),
     ],
 
 ];

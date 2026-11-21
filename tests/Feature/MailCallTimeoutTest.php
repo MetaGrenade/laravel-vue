@@ -87,10 +87,11 @@ class MailCallTimeoutTest extends TestCase
             'not set: 15 seconds' => [false, '15.0'],
             'set to 30' => ['30', '30.0'],
             'a part of a second' => ['2.5', '2.5'],
-            'empty: PHP\'s own limit' => ['', 'NULL'],
+            // Empty is not 0: a line that is not filled in is the setting not being set (App\Support\Config\EnvNumber).
+            'empty: 15 seconds, like not set' => ['', '15.0'],
+            'not a number: 15 seconds, like not set' => ['soon', '15.0'],
             '0 is PHP\'s own limit, not "no limit"' => ['0', 'NULL'],
             'negative is PHP\'s own limit' => ['-3', 'NULL'],
-            'not a number is PHP\'s own limit' => ['soon', 'NULL'],
         ];
     }
 

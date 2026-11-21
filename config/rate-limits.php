@@ -1,7 +1,9 @@
 <?php
 
+use App\Support\Config\EnvNumber;
+
 return [
-    'blog_comments_per_minute' => env('BLOG_COMMENT_RATE_LIMIT', 5),
+    'blog_comments_per_minute' => EnvNumber::integer('BLOG_COMMENT_RATE_LIMIT', 5),
 
     // How many calls a minute one account may make to each part of the API (docs/api.md, "Limits"). Each is a count of its own: a call
     // to the polls does not use up what the forum has left, and a route that lists two of them counts against both of them once.

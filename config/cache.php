@@ -7,6 +7,7 @@ use App\Models\ForumThread;
 use App\Models\SupportAssignmentRule;
 use App\Models\SupportTeam;
 use App\Models\User;
+use App\Support\Config\EnvNumber;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 
@@ -80,7 +81,7 @@ return [
             'servers' => [
                 [
                     'host' => env('MEMCACHED_HOST', '127.0.0.1'),
-                    'port' => env('MEMCACHED_PORT', 11211),
+                    'port' => EnvNumber::integer('MEMCACHED_PORT', 11211),
                     'weight' => 100,
                 ],
             ],

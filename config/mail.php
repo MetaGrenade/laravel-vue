@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Config\EnvNumber;
+
 return [
 
     /*
@@ -44,14 +46,14 @@ return [
             // none in an empty text ("Unsupported mail transport []").
             'url' => env('MAIL_URL') ?: null,
             'host' => env('MAIL_HOST', '127.0.0.1'),
-            'port' => env('MAIL_PORT', 2525),
+            'port' => EnvNumber::integer('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             // How long the site waits for the SMTP server at each step (to connect, for its greeting, for each reply), in seconds.
             // Unset, PHP's `default_socket_timeout` applies, 60 seconds, and the two emails Laravel sends in the request (to verify an
             // address and to reset a password) hold a PHP worker that long when the server takes the connection and says nothing.
-            // Empty or 0 gives that PHP value back (0 is not "no limit": a socket would give up at once).
-            'timeout' => max(0.0, (float) env('MAIL_TIMEOUT', 15)) ?: null,
+            // 0 gives that PHP value back (0 is not "no limit": a socket would give up at once). Empty is not 0: it is the default, 15.
+            'timeout' => max(0.0, EnvNumber::float('MAIL_TIMEOUT', 15)) ?: null,
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 

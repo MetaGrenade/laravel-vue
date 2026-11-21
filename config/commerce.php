@@ -2,6 +2,7 @@
 
 use App\Payments\Providers\StripeProvider;
 use App\Payments\Providers\TebexProvider;
+use App\Support\Config\EnvNumber;
 
 return [
 
@@ -51,7 +52,7 @@ return [
 
         // How long stock is held for an unpaid order before it is released.
         // Stripe Checkout sessions cannot expire sooner than 30 minutes.
-        'payment_window_minutes' => max(30, (int) env('COMMERCE_PAYMENT_WINDOW', 60)),
+        'payment_window_minutes' => max(30, EnvNumber::integer('COMMERCE_PAYMENT_WINDOW', 60)),
 
         // Most units of one product or variant in a single cart line.
         'max_quantity' => 20,
@@ -76,7 +77,7 @@ return [
         // Largest upload, in kilobytes.
         'max_kilobytes' => 5120,
         // Largest picture, in pixels (width x height). 16 million is a 4000 x 4000 photo.
-        'max_pixels' => (int) env('COMMERCE_IMAGE_MAX_PIXELS', 16_000_000),
+        'max_pixels' => EnvNumber::integer('COMMERCE_IMAGE_MAX_PIXELS', 16_000_000),
         'max_per_product' => 12,
         // The longest side of each kept size, in pixels.
         'sizes' => ['large' => 1600, 'medium' => 800, 'thumb' => 320],
@@ -101,14 +102,14 @@ return [
         'disk' => env('COMMERCE_DOWNLOAD_DISK', 'local'),
         // Largest file, in kilobytes (the default is 100 MB). PHP's upload_max_filesize and
         // post_max_size must allow it too.
-        'max_kilobytes' => max(1, (int) env('COMMERCE_DOWNLOAD_MAX_KB', 102400)),
+        'max_kilobytes' => max(1, EnvNumber::integer('COMMERCE_DOWNLOAD_MAX_KB', 102400)),
         'max_per_product' => 20,
         // How many times a customer can download each file of an order. 0 means no limit.
-        'limit' => max(0, (int) env('COMMERCE_DOWNLOAD_LIMIT', 10)),
+        'limit' => max(0, EnvNumber::integer('COMMERCE_DOWNLOAD_LIMIT', 10)),
         // How many days after payment the downloads stop working. 0 means they never do.
-        'expires_after_days' => max(0, (int) env('COMMERCE_DOWNLOAD_EXPIRY_DAYS', 0)),
+        'expires_after_days' => max(0, EnvNumber::integer('COMMERCE_DOWNLOAD_EXPIRY_DAYS', 0)),
         // How long a link on the order page works. The page makes a fresh one each time it is opened.
-        'link_minutes' => max(1, (int) env('COMMERCE_DOWNLOAD_LINK_MINUTES', 30)),
+        'link_minutes' => max(1, EnvNumber::integer('COMMERCE_DOWNLOAD_LINK_MINUTES', 30)),
     ],
 
     /*
@@ -137,7 +138,7 @@ return [
 
     'wishlist' => [
         // Most products one customer can save.
-        'max_items' => max(1, (int) env('COMMERCE_WISHLIST_MAX', 200)),
+        'max_items' => max(1, EnvNumber::integer('COMMERCE_WISHLIST_MAX', 200)),
     ],
 
     /*
@@ -189,7 +190,7 @@ return [
     |
     */
 
-    'low_stock_threshold' => max(0, (int) env('COMMERCE_LOW_STOCK_THRESHOLD', 5)),
+    'low_stock_threshold' => max(0, EnvNumber::integer('COMMERCE_LOW_STOCK_THRESHOLD', 5)),
 
     /*
     |--------------------------------------------------------------------------

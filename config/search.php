@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Config\EnvNumber;
+
 return [
     // 'database' searches with case-insensitive LIKE and works on MySQL, PostgreSQL and SQLite.
     // 'meilisearch' searches the Scout indexes (blogs, forum threads, FAQs). See docs/search-index.md.
@@ -10,26 +12,26 @@ return [
     ],
 
     'highlight' => [
-        'context_chars' => (int) env('SEARCH_HIGHLIGHT_CONTEXT_CHARS', 80),
+        'context_chars' => EnvNumber::integer('SEARCH_HIGHLIGHT_CONTEXT_CHARS', 80),
     ],
 
     'queries' => [
-        'retention_days' => (int) env('SEARCH_QUERY_RETENTION_DAYS', 90),
-        'aggregation_window_days' => (int) env('SEARCH_QUERY_AGGREGATION_WINDOW_DAYS', 30),
-        'top_queries_limit' => (int) env('SEARCH_TOP_QUERIES_LIMIT', 5),
-        'top_zero_queries_limit' => (int) env('SEARCH_TOP_ZERO_QUERIES_LIMIT', 5),
-        'minimum_length' => (int) env('SEARCH_QUERY_MIN_LENGTH', 2),
+        'retention_days' => EnvNumber::integer('SEARCH_QUERY_RETENTION_DAYS', 90),
+        'aggregation_window_days' => EnvNumber::integer('SEARCH_QUERY_AGGREGATION_WINDOW_DAYS', 30),
+        'top_queries_limit' => EnvNumber::integer('SEARCH_TOP_QUERIES_LIMIT', 5),
+        'top_zero_queries_limit' => EnvNumber::integer('SEARCH_TOP_ZERO_QUERIES_LIMIT', 5),
+        'minimum_length' => EnvNumber::integer('SEARCH_QUERY_MIN_LENGTH', 2),
     ],
 
     // How long `metaforger:search:reindex` waits for Meilisearch to finish the updates it sent before it says the rebuild is done, or that
     // some were refused. Meilisearch does them after it has answered, so a large index needs longer. 0 does not wait (--wait overrides it).
     'reindex' => [
-        'wait_seconds' => (int) env('SEARCH_REINDEX_WAIT', 120),
+        'wait_seconds' => EnvNumber::integer('SEARCH_REINDEX_WAIT', 120),
     ],
 
     // How long the ACP health card and `metaforger:search:health` wait for Meilisearch before they say it cannot be reached.
     'health' => [
-        'timeout_seconds' => (int) env('SEARCH_HEALTH_TIMEOUT', 3),
+        'timeout_seconds' => EnvNumber::integer('SEARCH_HEALTH_TIMEOUT', 3),
     ],
 
     // How long a call to Meilisearch waits for an answer before it is given up on: the client Scout uses to search and to index. Without a
@@ -37,15 +39,15 @@ return [
     // because the call never fails. A web request waits `timeout_seconds`; a queue worker or an artisan command waits `console_timeout_seconds`
     // (a rebuild sends up to 500 documents in one call). 0 waits for ever. See docs/search-index.md.
     'http' => [
-        'timeout_seconds' => (int) env('SEARCH_TIMEOUT', 5),
-        'console_timeout_seconds' => (int) env('SEARCH_CONSOLE_TIMEOUT', 30),
-        'connect_timeout_seconds' => (int) env('SEARCH_CONNECT_TIMEOUT', 2),
+        'timeout_seconds' => EnvNumber::integer('SEARCH_TIMEOUT', 5),
+        'console_timeout_seconds' => EnvNumber::integer('SEARCH_CONSOLE_TIMEOUT', 30),
+        'connect_timeout_seconds' => EnvNumber::integer('SEARCH_CONNECT_TIMEOUT', 2),
     ],
 
     // When SEARCH_DRIVER=meilisearch and the host is unreachable, search falls
     // back to the database for this many seconds without retrying every request.
     'meilisearch_fallback' => [
-        'circuit_seconds' => (int) env('SEARCH_MEILISEARCH_CIRCUIT_SECONDS', 60),
+        'circuit_seconds' => EnvNumber::integer('SEARCH_MEILISEARCH_CIRCUIT_SECONDS', 60),
         'cache_key' => env('SEARCH_MEILISEARCH_CIRCUIT_CACHE_KEY', 'search:meilisearch:circuit_open'),
     ],
 ];

@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Config\EnvNumber;
 use Illuminate\Support\Str;
 
 return [
@@ -32,7 +33,7 @@ return [
     |
     */
 
-    'lifetime' => (int) env('SESSION_LIFETIME', 120),
+    'lifetime' => EnvNumber::integer('SESSION_LIFETIME', 120),
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 

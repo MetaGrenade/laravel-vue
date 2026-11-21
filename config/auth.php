@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Support\Config\EnvNumber;
 
 return [
 
@@ -128,6 +129,6 @@ return [
     |
     */
 
-    'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
+    'password_timeout' => EnvNumber::integer('AUTH_PASSWORD_TIMEOUT', 10800),
 
 ];
