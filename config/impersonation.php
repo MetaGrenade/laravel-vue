@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Config\EnvNumber;
+
 /*
 |--------------------------------------------------------------------------
 | Read-only impersonation ("view as")
@@ -14,7 +16,7 @@
 return [
 
     // How long one view lasts, from the moment it starts. It ends by itself then, and is recorded as expired.
-    'minutes' => (int) env('IMPERSONATION_MINUTES', 30),
+    'minutes' => EnvNumber::integer('IMPERSONATION_MINUTES', 30),
 
     /*
     |--------------------------------------------------------------------------

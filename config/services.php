@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Config\EnvNumber;
+
 return [
 
     /*
@@ -58,8 +60,8 @@ return [
 
         // How long a call to Stripe may wait for an answer, and to make the connection, before it is given up on (App\Payments\Stripe\StripeHttp).
         // The library's own are 80 and 30; a queue worker stops a job after 60. 0 waits for ever.
-        'timeout' => (int) env('STRIPE_TIMEOUT', 15),
-        'connect_timeout' => (int) env('STRIPE_CONNECT_TIMEOUT', 5),
+        'timeout' => EnvNumber::integer('STRIPE_TIMEOUT', 15),
+        'connect_timeout' => EnvNumber::integer('STRIPE_CONNECT_TIMEOUT', 5),
     ],
 
 ];

@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Config\EnvNumber;
+
 $discordEventClassesFromEnv = static function (string $envKey, string $default): array {
     return array_values(array_unique(array_filter(array_map(
         static fn (string $class): string => preg_replace('/\\\\+/', '\\', trim($class)) ?? '',
@@ -31,7 +33,7 @@ return [
 
     'bot_shared_secret' => env('DISCORD_BOT_SHARED_SECRET'),
 
-    'webhook_max_skew_seconds' => (int) env('DISCORD_WEBHOOK_MAX_SKEW', 300),
+    'webhook_max_skew_seconds' => EnvNumber::integer('DISCORD_WEBHOOK_MAX_SKEW', 300),
 
     /*
     |--------------------------------------------------------------------------
@@ -43,7 +45,7 @@ return [
 
     'preserve_unmapped_roles' => (bool) env('DISCORD_PRESERVE_UNMAPPED_ROLES', true),
 
-    'stale_sync_hours' => (int) env('DISCORD_STALE_SYNC_HOURS', 24),
+    'stale_sync_hours' => EnvNumber::integer('DISCORD_STALE_SYNC_HOURS', 24),
 
     'schedule_stale_sync' => (bool) env('DISCORD_SCHEDULE_STALE_SYNC', true),
 
@@ -117,9 +119,9 @@ return [
 
     'moderation_staff_reason_in_embed' => (bool) env('DISCORD_MODERATION_STAFF_REASON_IN_EMBED', false),
 
-    'moderation_reason_excerpt_max' => (int) env('DISCORD_MODERATION_REASON_EXCERPT_MAX', 200),
+    'moderation_reason_excerpt_max' => EnvNumber::integer('DISCORD_MODERATION_REASON_EXCERPT_MAX', 200),
 
-    'moderation_subject_label_max' => (int) env('DISCORD_MODERATION_SUBJECT_LABEL_MAX', 120),
+    'moderation_subject_label_max' => EnvNumber::integer('DISCORD_MODERATION_SUBJECT_LABEL_MAX', 120),
 
     /*
     |--------------------------------------------------------------------------

@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Config\EnvNumber;
+
 /*
 |--------------------------------------------------------------------------
 | The "Get started" checklist (docs/onboarding.md)
@@ -23,7 +25,7 @@ return [
     | what keeps it from appearing to every account that existed before it was built.
     */
 
-    'days' => (int) env('ONBOARDING_DAYS', 30),
+    'days' => EnvNumber::integer('ONBOARDING_DAYS', 30),
 
     /*
     | The steps, in the order they are listed. Take one out to drop it, or add one in `App\Support\Onboarding\Onboarding`.

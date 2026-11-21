@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Config\EnvNumber;
+
 /*
 |--------------------------------------------------------------------------
 | Tebex
@@ -38,8 +40,8 @@ return [
 
     'http' => [
         // Seconds to wait for an answer, and to wait for a connection.
-        'timeout' => max(1, (int) env('TEBEX_HTTP_TIMEOUT', 10)),
-        'connect_timeout' => max(1, (int) env('TEBEX_HTTP_CONNECT_TIMEOUT', 5)),
+        'timeout' => max(1, EnvNumber::integer('TEBEX_HTTP_TIMEOUT', 10)),
+        'connect_timeout' => max(1, EnvNumber::integer('TEBEX_HTTP_CONNECT_TIMEOUT', 5)),
         // A request that fails on the network, with a 5xx or with a 429 is repeated after each of these waits
         // (milliseconds), so it is tried once more than there are entries. Anything else is not retried.
         'retry_backoff_ms' => [500, 1500, 4000],
@@ -104,14 +106,14 @@ return [
     */
 
     'basket' => [
-        'lock_wait_seconds' => max(0, (int) env('TEBEX_BASKET_LOCK_WAIT', 10)),
+        'lock_wait_seconds' => max(0, EnvNumber::integer('TEBEX_BASKET_LOCK_WAIT', 10)),
     ],
 
     'sync' => [
         // How often the scheduler refreshes the local copy of the catalogue, in minutes, when Tebex is configured
         // (it is checked every five minutes, so nothing under five is useful). 0 turns the schedule off: the command
         // and the ACP button still work.
-        'every_minutes' => (int) env('TEBEX_SYNC_EVERY_MINUTES', 60) > 0 ? max(5, (int) env('TEBEX_SYNC_EVERY_MINUTES', 60)) : 0,
+        'every_minutes' => EnvNumber::integer('TEBEX_SYNC_EVERY_MINUTES', 60) > 0 ? max(5, EnvNumber::integer('TEBEX_SYNC_EVERY_MINUTES', 60)) : 0,
         // How many past synchronisations the ACP keeps to show.
         'keep_runs' => 50,
     ],

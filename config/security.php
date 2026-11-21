@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Config\EnvNumber;
+
 return [
 
     /*
@@ -32,7 +34,7 @@ return [
 
     'hsts' => [
         'enabled' => (bool) env('SECURITY_HSTS', env('APP_ENV') === 'production'),
-        'max_age' => (int) env('SECURITY_HSTS_MAX_AGE', 31536000),
+        'max_age' => EnvNumber::integer('SECURITY_HSTS_MAX_AGE', 31536000),
         'include_subdomains' => (bool) env('SECURITY_HSTS_SUBDOMAINS', false),
     ],
 

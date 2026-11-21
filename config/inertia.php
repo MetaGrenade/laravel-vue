@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Config\EnvNumber;
+
 return [
 
     /*
@@ -177,11 +179,11 @@ return [
 
             'path' => storage_path('inertia-devtools'),
 
-            'ttl' => (int) env('INERTIA_DEVTOOLS_TTL_HOURS', 24),
+            'ttl' => EnvNumber::integer('INERTIA_DEVTOOLS_TTL_HOURS', 24),
 
-            'prune_interval' => (int) env('INERTIA_DEVTOOLS_PRUNE_INTERVAL_SECONDS', 300),
+            'prune_interval' => EnvNumber::integer('INERTIA_DEVTOOLS_PRUNE_INTERVAL_SECONDS', 300),
 
-            'limit' => (int) env('INERTIA_DEVTOOLS_LIMIT', 100),
+            'limit' => EnvNumber::integer('INERTIA_DEVTOOLS_LIMIT', 100),
 
         ],
 

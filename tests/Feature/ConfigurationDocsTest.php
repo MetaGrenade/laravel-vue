@@ -213,7 +213,12 @@ class ConfigurationDocsTest extends TestCase
         }
 
         if ($token->is(T_STRING)) {
-            return strtolower($token->text) === 'env';
+            // `EnvNumber::integer('KEY', 5)` is `env('KEY', 5)` for a number that is not 0 when the line is blank (App\Support\Config\EnvNumber).
+            $number = in_array(strtolower($token->text), ['integer', 'float'], true)
+                && ($tokens[$at - 1] ?? null)?->is(T_DOUBLE_COLON)
+                && ($tokens[$at - 2] ?? null)?->text === 'EnvNumber';
+
+            return strtolower($token->text) === 'env' || $number;
         }
 
         return $token->is(T_VARIABLE)

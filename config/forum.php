@@ -1,7 +1,9 @@
 <?php
 
+use App\Support\Config\EnvNumber;
+
 return [
-    'index_cache_ttl' => env('FORUM_INDEX_CACHE_TTL', 300),
+    'index_cache_ttl' => EnvNumber::integer('FORUM_INDEX_CACHE_TTL', 300),
 
     'attachments' => [
         'disk' => env('FORUM_ATTACHMENT_DISK', 'local'),

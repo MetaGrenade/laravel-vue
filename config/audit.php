@@ -10,6 +10,7 @@ use App\Models\Refund;
 use App\Models\SubscriptionPlan;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Support\Config\EnvNumber;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -28,7 +29,7 @@ return [
     |
     */
 
-    'retention_days' => (int) env('AUDIT_RETENTION_DAYS', 0),
+    'retention_days' => EnvNumber::integer('AUDIT_RETENTION_DAYS', 0),
 
     /*
     |--------------------------------------------------------------------------

@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Config\EnvNumber;
+
 return [
 
     /*
@@ -77,7 +79,7 @@ return [
     */
 
     'sitemap' => [
-        'cache_ttl' => (int) env('SEO_SITEMAP_CACHE_TTL', 3600),
+        'cache_ttl' => EnvNumber::integer('SEO_SITEMAP_CACHE_TTL', 3600),
         'max_urls' => 45000,
     ],
 
