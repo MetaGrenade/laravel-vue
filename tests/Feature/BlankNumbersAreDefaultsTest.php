@@ -14,9 +14,47 @@ use Tests\TestCase;
  * lifetime signs nobody in, and for HSTS and a webhook tolerance switches the protection off. Two things hold that in place: every number
  * the config files read goes through the helper (a scan), and a site started with every one of them blank is the same site as one
  * started with every one at its default (the real files, in a child process, so nothing a `.env` on this machine says can answer).
+ *
+ * The exception is a number whose documentation says what an empty line means (BLANK_IS_AN_ANSWER, one setting: `API_SIGN_IN_EXPIRY_DAYS`,
+ * "empty or 0 is no end"). The first version of this rule made every blank the default and so undid that one; each exception is now
+ * written in the config file (`whenBlank:`), listed here, and has to be said in its row of docs/configuration.md.
  */
 class BlankNumbersAreDefaultsTest extends TestCase
 {
+    /**
+     * The settings whose documentation gives an empty line a meaning of its own, and so are not the default when blank: the config
+     * path they end up in, and what the empty line is. A `whenBlank:` in a config file that is not listed here fails a test, and so
+     * does a listed one whose row in docs/configuration.md does not say what an empty line means.
+     *
+     * @var array<string, array{path: string, blank: int}>
+     */
+    private const BLANK_IS_AN_ANSWER = [
+        // "Empty or 0 is no end, where API_KEYS_ALLOW_NO_EXPIRY allows it" (docs/configuration.md, docs/api-keys.md).
+        'API_SIGN_IN_EXPIRY_DAYS' => ['path' => 'api.sign_in.expiry_days', 'blank' => 0],
+    ];
+
+    /**
+     * Every setting a config file reads as a number through the helper, with its default and what it says an empty line is (if it does).
+     *
+     * @return array<string, array{default: string, whenBlank: string|null}>
+     */
+    private function numberCalls(): array
+    {
+        $settings = [];
+
+        foreach (glob(config_path('*.php')) ?: [] as $file) {
+            preg_match_all("/EnvNumber::(?:integer|float)\\('([A-Z][A-Z0-9_]*)',\\s*(-?[0-9][0-9_.]*)(?:,\\s*whenBlank:\\s*(-?[0-9]+))?\\)/", (string) file_get_contents($file), $matches, PREG_SET_ORDER);
+
+            foreach ($matches as $match) {
+                $settings[$match[1]] = ['default' => str_replace('_', '', $match[2]), 'whenBlank' => ($match[3] ?? '') === '' ? null : $match[3]];
+            }
+        }
+
+        ksort($settings);
+
+        return $settings;
+    }
+
     /**
      * Every setting a config file reads as a number through the helper, with its default.
      *
@@ -24,19 +62,7 @@ class BlankNumbersAreDefaultsTest extends TestCase
      */
     private function numberSettings(): array
     {
-        $settings = [];
-
-        foreach (glob(config_path('*.php')) ?: [] as $file) {
-            preg_match_all("/EnvNumber::(?:integer|float)\\('([A-Z][A-Z0-9_]*)',\\s*(-?[0-9][0-9_.]*)\\)/", (string) file_get_contents($file), $matches, PREG_SET_ORDER);
-
-            foreach ($matches as $match) {
-                $settings[$match[1]] = str_replace('_', '', $match[2]);
-            }
-        }
-
-        ksort($settings);
-
-        return $settings;
+        return array_map(fn (array $call) => $call['default'], $this->numberCalls());
     }
 
     /**
@@ -122,6 +148,12 @@ class BlankNumbersAreDefaultsTest extends TestCase
         $atDefaults = $this->flatten($atDefaults['config']);
         $blank = $this->flatten($blank['config']);
 
+        // The settings whose documentation says what an empty line is: that, and nothing else, is what they come out as.
+        foreach (self::BLANK_IS_AN_ANSWER as $answer) {
+            $this->assertSame($answer['blank'], $blank[$answer['path']] ?? null, "{$answer['path']} is not what its documentation says an empty line is");
+            $atDefaults[$answer['path']] = $answer['blank'];
+        }
+
         $differ = [];
         foreach ($blank as $path => $value) {
             if (($atDefaults[$path] ?? null) !== $value) {
@@ -130,6 +162,34 @@ class BlankNumbersAreDefaultsTest extends TestCase
         }
 
         $this->assertSame([], $differ, "These settings are not their default when the line is blank:\n".implode("\n", $differ));
+    }
+
+    #[Test]
+    public function only_the_settings_listed_here_give_an_empty_line_a_meaning_of_its_own(): void
+    {
+        $withAMeaning = array_keys(array_filter($this->numberCalls(), fn (array $call) => $call['whenBlank'] !== null));
+        sort($withAMeaning);
+
+        $listed = array_keys(self::BLANK_IS_AN_ANSWER);
+        sort($listed);
+
+        $this->assertSame($listed, $withAMeaning, 'A setting that says what an empty line means (`whenBlank:`) has to be listed in BLANK_IS_AN_ANSWER with the config path it ends up in, and its documentation has to say so.');
+
+        foreach ($this->numberCalls() as $key => $call) {
+            if ($call['whenBlank'] !== null) {
+                $this->assertSame((string) self::BLANK_IS_AN_ANSWER[$key]['blank'], $call['whenBlank'], "$key: the config file and BLANK_IS_AN_ANSWER disagree about what an empty line is");
+            }
+        }
+    }
+
+    #[Test]
+    public function a_setting_with_a_meaning_for_an_empty_line_says_so_in_the_reference(): void
+    {
+        $page = (string) file_get_contents(base_path('docs/configuration.md'));
+
+        foreach (array_keys(self::BLANK_IS_AN_ANSWER) as $key) {
+            $this->assertMatchesRegularExpression('/^\\| `'.$key.'` \\|[^|]*\\|[^|]*\\b[Ee]mpty\\b/m', $page, "$key gives an empty line a meaning, and its row in docs/configuration.md does not say what it is");
+        }
     }
 
     #[Test]
