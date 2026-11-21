@@ -87,7 +87,8 @@ return [
 
     'sign_in' => [
         'scopes' => array_values(array_filter(array_map('trim', explode(',', (string) env('API_SIGN_IN_SCOPES', 'profile:read'))))),
-        'expiry_days' => EnvNumber::integer('API_SIGN_IN_EXPIRY_DAYS', 90),
+        // An empty line is "no end" (documented, and `0` is the same): the one number whose empty line is an answer and not a mistake.
+        'expiry_days' => EnvNumber::integer('API_SIGN_IN_EXPIRY_DAYS', 90, whenBlank: 0),
     ],
 
     /*
