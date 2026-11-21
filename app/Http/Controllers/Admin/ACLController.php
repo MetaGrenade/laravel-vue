@@ -24,7 +24,7 @@ class ACLController extends Controller
      */
     public function index(Request $request): Response
     {
-        $perPage = (int) $request->get('per_page', 15);
+        $perPage = $this->requestedPerPage($request, 15);
 
         $formatter = DateFormatter::for($request->user());
 

@@ -85,7 +85,7 @@ You do not have to remember all of the above: much of it fails a check. Run them
 | `php artisan lang:check` | a language is missing a key that English has |
 | `MailLanguageTest`, `BrandedMailTest` | an email is not in the recipient's language, or a notification builds a layout of its own or an `app/Mail` folder appears |
 | `ForeignKeyIndexTest` | a foreign key has no index starting with it |
-| `QueryStringShapesTest` | a page answers 500 when a query string name is a list (`?search[]=a`), or code reads text from a request with `(string) $request->query(...)` or `$request->string(...)`, which fail on a list: use `App\Support\Http\RequestText::query()` or `::input()` |
+| `QueryStringShapesTest` | a page answers 500 when a query string name is a list (`?search[]=a`), or code reads text from a request with `(string) $request->query(...)` or `$request->string(...)`, which fail on a list: use `App\Support\Http\RequestText::query()` or `::input()`; or a name that holds bytes that are not UTF-8 (`?search=%FF`) answers 500 or a page with its data empty (`ScrubMalformedInput` replaces them, so a page never sees one); or a page size (`per_page`) that is negative, zero, huge or not a number answers 500 on a list with a row to show (read it with `requestedPerPage()` of `InteractsWithInertiaPagination`, which keeps it between 1 and 100) |
 | `LazyLoadingModeTest` | the test suite runs with lazy loading forbidden, so a relation read for each row of a list fails |
 | `QueryBudgetTest` | one of the pages it lists asks for more queries than its ceiling (add yours to it) |
 | `OctaneSafetyTest` | `app/` gains a static property or a binding kept for the life of the process that the test does not list with a reason |

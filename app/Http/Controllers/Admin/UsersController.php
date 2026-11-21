@@ -42,7 +42,7 @@ class UsersController extends Controller
      */
     public function index(Request $request): Response
     {
-        $perPage = (int) $request->get('per_page', 15);
+        $perPage = $this->requestedPerPage($request, 15);
         $search = trim(RequestText::query($request, 'search', ''));
         $role = trim(RequestText::query($request, 'role', '')) ?: null;
         $verification = $request->query('verification');
