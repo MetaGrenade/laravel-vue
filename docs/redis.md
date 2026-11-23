@@ -45,7 +45,7 @@ Switch the three together or one at a time, they do not depend on each other. If
 
 So `php artisan cache:clear` empties database 1 and nothing else. That is checked, against a real Redis, on every CI run (`clearing the cache leaves the sessions the queue and the locks alone`). If you set `SESSION_CONNECTION` or `REDIS_CACHE_LOCK_CONNECTION` to `cache`, that stops being true.
 
-What stays in the database whatever you choose: failed jobs (`failed_jobs`, so a lost Redis does not lose the record of what failed) and job batches.
+What stays in the database whatever you choose: failed jobs (`failed_jobs`, so a lost Redis does not lose the record of what failed) and job batches. The scheduler deletes the failed jobs that are older than `QUEUE_FAILED_RETENTION_DAYS` (30; `PruneFailedJobs`, 03:30, a worker runs it like any other scheduled job). Nothing in the site makes a job batch, so `job_batches` stays empty; a module that does should schedule `queue:prune-batches` for it.
 
 ## The database cache and what it keeps
 

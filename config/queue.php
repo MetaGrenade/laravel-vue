@@ -123,12 +123,16 @@ return [
     |
     | Supported drivers: "database-uuids", "dynamodb", "file", "null"
     |
+    | `retention_days` is how long the record of a failed job is kept: the daily `PruneFailedJobs` job deletes older ones, and 0 keeps
+    | them for ever. Until it, nothing deleted a row of `failed_jobs`.
+    |
     */
 
     'failed' => [
         'driver' => env('QUEUE_FAILED_DRIVER', 'database-uuids'),
         'database' => env('DB_CONNECTION', 'sqlite'),
         'table' => 'failed_jobs',
+        'retention_days' => EnvNumber::integer('QUEUE_FAILED_RETENTION_DAYS', 30),
     ],
 
 ];

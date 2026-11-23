@@ -126,6 +126,7 @@ These are the settings that are different on a live site from a machine that is 
 | `SQS_QUEUE` | `default` | Its queue. |
 | `SQS_SUFFIX` | — | Added to the end of a queue name. |
 | `QUEUE_FAILED_DRIVER` | `database-uuids` | Where failed jobs are recorded: `database-uuids`, `database`, `dynamodb` or `null`. |
+| `QUEUE_FAILED_RETENTION_DAYS` | `30` | How long the record of a failed job is kept (the job and its stack trace, about 12 KB a row). The daily `PruneFailedJobs` job (03:30) deletes older ones, so it needs the scheduler and a worker; `queue:retry` finds nothing for a job it has deleted. `0` keeps them for ever. A driver that cannot be pruned (`null`) is left alone. |
 
 ## Redis
 
