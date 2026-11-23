@@ -88,6 +88,37 @@ class EnvNumberTest extends TestCase
         $this->assertSame($expected, $this->read($line, fn () => EnvNumber::float(self::KEY, 1.5)));
     }
 
+    /**
+     * @return array<string, array{string|null, int}> the line, and the whole number read with a default of 5 and an empty line meaning 0
+     */
+    public static function settingsWithAMeaningForAnEmptyLine(): array
+    {
+        return [
+            'not there: the default' => [null, 5],
+            'empty: what the setting says it is, not the default' => ['', 0],
+            'only spaces: the same' => ['   ', 0],
+            'words are not an empty line: the default' => ['soon', 5],
+            'the word null: the default' => ['null', 5],
+            '0 is 0' => ['0', 0],
+            'a number' => ['12', 12],
+            'a negative number stays negative' => ['-3', -3],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('settingsWithAMeaningForAnEmptyLine')]
+    public function a_setting_can_say_what_an_empty_line_means_and_only_an_empty_line(?string $line, int $expected): void
+    {
+        $this->assertSame($expected, $this->read($line, fn () => EnvNumber::integer(self::KEY, 5, whenBlank: 0)));
+    }
+
+    #[Test]
+    public function an_empty_line_can_mean_something_other_than_zero(): void
+    {
+        $this->assertSame(7, $this->read('', fn () => EnvNumber::integer(self::KEY, 5, whenBlank: 7)));
+        $this->assertSame(-1, $this->read('', fn () => EnvNumber::integer(self::KEY, 5, whenBlank: -1)));
+    }
+
     #[Test]
     public function the_default_is_given_back_as_it_was_written_in_the_file_that_asks(): void
     {
