@@ -1,8 +1,8 @@
 # Indexes
 
-Every foreign key starts an index, on every database the app supports, and a test fails when a new one does not. Before this, MySQL and MariaDB had them and PostgreSQL and SQLite did not. Four lists have an index for the order they are shown in, too ([the order of the lists](#the-order-of-the-lists)), and the log of requests made with an API key has two for the questions asked of it ([the API request log](#the-api-request-log)).
+Every foreign key starts an index, on every database the app supports, and a test fails when a new one does not. Before this, MySQL and MariaDB had them and PostgreSQL and SQLite did not. Four lists have an index for the order they are shown in, too ([the order of the lists](#the-order-of-the-lists)), and the log of requests made with an API key has two for the questions asked of it ([the API request log](#the-api-request-log)). The bell in the header has one, for a member's unread notifications ([the notifications bell](#the-notifications-bell)).
 
-> **Status:** in place. Three migrations: `2026_11_10_000000_index_foreign_keys.php` added the missing foreign key indexes, `2026_11_11_000000_index_the_lists.php` added the four for the lists, and `2026_11_09_000002_index_the_api_request_log.php` added the two for the log (dated before the first on purpose, [see below](#how-the-two-indexes-were-shaped)). `ForeignKeyIndexTest`, `ListOrderIndexesTest` and `ApiRequestLogIndexesTest` (in `tests/Feature/Database`) run with the rest of the suite on SQLite, MySQL and PostgreSQL. Not built: indexes for the leaderboard, the top threads by views and the other lists left out on purpose, and a check that no index goes unused. They are listed at the end.
+> **Status:** in place. Four migrations: `2026_11_10_000000_index_foreign_keys.php` added the missing foreign key indexes, `2026_11_11_000000_index_the_lists.php` added the four for the lists, `2026_11_09_000002_index_the_api_request_log.php` added the two for the log (dated before the first on purpose, [see below](#how-the-two-indexes-were-shaped)), and `2026_11_23_000000_index_the_unread_notifications.php` added the one for the bell. `ForeignKeyIndexTest`, `ListOrderIndexesTest`, `ApiRequestLogIndexesTest` and `UnreadNotificationsIndexTest` (in `tests/Feature/Database`) run with the rest of the suite on SQLite, MySQL and PostgreSQL. Not built: indexes for the leaderboard, the top threads by views and the other lists left out on purpose, and a check that no index goes unused. They are listed at the end.
 
 ## Why
 
@@ -183,6 +183,48 @@ MySQL and MariaDB get no index, and are not asked the second question. The `LOWE
 
 `tests/Feature/Database/LowercaseEmailIndexTest.php` checks that the index is there on the two databases that need it and not on the others, that the migration rolls back and forward (twice over, so an index built by hand first, `CREATE INDEX CONCURRENTLY users_lower_email_index ON users (LOWER(email))`, is left alone), and, on SQLite, that the query the lookup runs is answered by the index and not by reading the table.
 
+## The notifications bell
+
+Every page a signed-in member opens asks the `notifications` table two questions about that member: how many they have not read (`read_at IS NULL`), and the newest ten of those (`HandleInertiaRequests`, the `notifications` prop of the header). The only index was the one Laravel makes for `notifiable_type, notifiable_id`, which finds the member's rows and not the unread ones among them. The bell shows unread notifications only, and nothing lists one that has been read, but nothing deletes a read one either, so both questions read every notification the member has ever had, and the second sorted them all to take ten.
+
+`2026_11_23_000000_index_the_unread_notifications.php` makes one index:
+
+| Index | Serves |
+|-------|--------|
+| `notifications (notifiable_type, notifiable_id, read_at, created_at)` | a member's unread notifications as one stretch of the index, already in the order of `created_at`: the count, and the newest ten |
+
+### What it measured
+
+MariaDB 11.4 in a database made for the run: 382,105 notifications (3,000 members with 100 each, and four members of the kinds below), `ANALYZE TABLE` before each reading, the median of 15 runs of the two queries the header asks, as Eloquent asks them. Two runs agreed to within 2 ms:
+
+| Member | The count and the newest ten, before | After |
+|--------|--------------------------------------|-------|
+| 40,000 read, 40 unread | 134 ms (52 + 82) | 0.8 ms (0.29 + 0.48) |
+| 40,000 unread (never reads them) | 137 ms (54 + 83) | 8.4 ms (7.8 + 0.64) |
+| 2,000 read, 10 unread | 10.5 ms (5.0 + 5.6) | 0.9 ms (0.33 + 0.60) |
+| 50 read, 5 unread | 0.9 ms | 0.9 ms |
+
+A member pays that on every page they open. The cost grows with the member's own history and with the table: on 110,000 rows the member with 40,000 read notifications paid 85 ms (17 + 68) and on 382,000 rows 134, because with that many rows to look up one by one MariaDB chose to read the table. A member with a few dozen notifications pays nothing either way, which is why nobody saw it.
+
+### What it costs
+
+- **Writes.** 100,000 rows inserted in batches of 1,000 took 2.72 s without the index and 3.82 s with it (the median of three alternating runs: 40% more). One row at a time, which is what a notification sent while a request is served costs, 0.99 ms and 1.01 ms.
+- **Space.** 31.6 MB of index on the 382,105 rows (49.8 MB of indexes became 81.4 MB, beside 205 MB of rows): about 83 bytes a row. Nothing deletes a read notification yet, so the table still only grows.
+- **The migration.** 0.5 s on those rows (MariaDB). PostgreSQL was not measured here (no Docker); [Running it on a live PostgreSQL database](#running-it-on-a-live-postgresql-database) has the statement to run first without the lock.
+
+### How it was shaped
+
+- **The equalities first, the time last.** The member (`notifiable_type`, `notifiable_id`) and `read_at IS NULL` are equalities to MariaDB and SQLite (their plans show the index searched on the first three columns and read in the order of the fourth, with no sort), so the unread notifications of a member are one stretch of the index, in the order of `created_at`, and the newest ten are the end of it. MySQL is the same family as MariaDB and was not run here; PostgreSQL is [left alone below](#left-alone-in-the-bell). The index without `created_at` answered the count (0.26 ms) and still sorted the unread ones for the newest ten: 70 ms for the member who never reads, measured before the last column was added, 0.7 ms after.
+- **The header asked for `latest()` twice.** `$user->notifications()` is already newest first (`HasDatabaseNotifications`), and the header added a second `latest()`, so the ORDER BY said `created_at desc, created_at desc`. SQLite reads the repeat as a second thing to sort, and sorted the rows for it even with the index in order; the repeat is gone, and the rows are the same.
+- **`limit(10)` on a relation is not a `LIMIT`.** Eloquent runs it as a `row_number() over (partition by notifiable_id order by created_at desc)` in a derived table, so the plan of a `SELECT ... LIMIT 10` written by hand says nothing about it. `UnreadNotificationsIndexTest` replays the queries the header really asks (a signed-in page, the queries listened to) and reads their SQLite plan: they must use the index and sort nothing.
+- **The index Laravel made for the member is left where it is.** It is a prefix of this one, so it is only a little cost on every write; it is the framework's own, and taking it away is a change of its own. The new one has a name Laravel would not give (what it gives for four columns is 68 bytes, and PostgreSQL keeps 63), so an index somebody made before is theirs: when one starts with these four columns, whatever it is called, the migration makes none, and `down()` drops only `notifications_unread_by_time`.
+
+### Left alone in the bell
+
+- **A member who never reads still pays 8 ms for the count**: a count reads every row it counts, and 40,000 unread rows are 40,000 index entries. "Mark all as read" ends it, and nothing deletes an unread notification, because the count in the header is what the member sees.
+- **Read notifications are not deleted.** Nothing shows one, so they are only in the way; that is a change of its own (a retention, as for the [failed jobs](configuration.md) and the [request log](#the-api-request-log)).
+- **PostgreSQL.** Not measured (no Docker here). It finds the member's unread rows through the index for the count, which is the part that read every row. For the newest ten it may not take `read_at IS NULL` for an equality when it looks for an order, and then it sorts the member's unread rows (not the read ones): nothing for a member who reads what they get, as much as the unread ones for one who never does. If that shows in `EXPLAIN` on a large site, the thing to try is a partial index, `(notifiable_type, notifiable_id, created_at) WHERE read_at IS NULL`, which PostgreSQL and SQLite have and MySQL and MariaDB do not. The guard test reads the plan on SQLite only; on the other databases it checks the schema (the columns and their order).
+
 ## Dropping a column on SQLite
 
 SQLite refuses to drop a column that an index uses (`error in index ... after drop column`), so a migration that removes a foreign key column drops the index on it first, and so does one that removes a column the list indexes use (`created_at`, `status`, `is_pinned` and the rest). The migration tests that roll an older migration back by hand do what `migrate:rollback` does: the newer migration comes off first. They call `Tests\Support\ForeignKeyIndexes::takeOff()` before and `putBack()` after (`CouponMigrationsTest` is the pattern). PostgreSQL drops the indexes of a dropped column by itself.
@@ -199,6 +241,12 @@ The migration skips a column that something already starts, so it does not repea
 
 ```sql
 CREATE INDEX CONCURRENTLY forum_posts_created_at_index ON forum_posts (created_at);
+```
+
+The index for the bell is the one to build first on a site with a large `notifications` table (it is the table that every signed-in page reads); the migration makes none when an index starts with those four columns:
+
+```sql
+CREATE INDEX CONCURRENTLY notifications_unread_by_time ON notifications (notifiable_type, notifiable_id, read_at, created_at);
 ```
 
 ## What is not covered
