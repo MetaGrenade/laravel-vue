@@ -8,7 +8,7 @@ How a notification reaches a member, what the bell in the header does with it, a
 
 | Channel | What the member sees | Called in Settings |
 |---|---|---|
-| `database` | A line in the bell, stored until it is read or dismissed | In-app |
+| `database` | A line in the bell, stored until it is dismissed, or read and then [kept 30 days](#how-long-a-notice-is-kept) | In-app |
 | `mail` | An email, to a verified address only | Email |
 | `broadcast` | The same line, pushed to an open browser so it appears without a reload | Browser alerts |
 
@@ -66,10 +66,20 @@ When an alert is pushed over the websocket, the header adds it at the top withou
 
 An id that is not one of the member's stored notifications is **not an error**: the request changes nothing and the page comes back. That happens for an alert that was only pushed (the member turned the notice in the site off but kept the browser alert), for one dismissed in another tab, and for somebody else's id, which is answered exactly like one that does not exist. So is text that is not shaped like an id at all: the column is a `uuid`, PostgreSQL refuses to compare it with anything else (a 500), so the controller only looks up what is UUID-shaped (`NotificationBellTest` runs this on every database CI uses). It used to answer 404, and the bell showed that as an error dialog.
 
+## How long a notice is kept
+
+The bell shows the notices that have not been read, and no page lists one that has, so a notice that was read is a row nobody can see. `PruneReadNotifications` runs every night at 04:00 and deletes the ones that were **read** more than `NOTIFICATIONS_READ_RETENTION_DAYS` days ago (30; `0` keeps them for ever). It needs the scheduler and a worker, like the other nightly jobs ([the queue](redis.md#the-queue)).
+
+- **A notice that has not been read is never deleted**, however old: it is in the bell, and its count is on every page. A member who never opens the bell keeps all of theirs; that is the count's [8 ms for 40,000](indexes.md#left-alone-in-the-bell), and "Mark all as read" ends it.
+- **The 30 days count from when it was read**, not from when it was made. A notice from last month that a member reads today is not theirs to lose tonight.
+- **Dismissing deletes at once** (the button in the bell), as before.
+- **The job reads the table, and there is no index for it.** The question is "read before this date", and `notifications` has no index that starts with `read_at`. Measured on MariaDB 11.4 with 1,000,000 notifications (one run each): the nightly run that deletes 20,000 took 2.0 s, and a second connection inserting a notice every 20 ms was held up 0.43 s at the worst; with an index on `read_at` it took 0.37 s and 0.08 s. That index was not made: it costs 52 MB on those rows (231.9 to 283.6 MB), 46% more time for 100,000 rows inserted in batches (6.2 s to 9.0 s) and 6% for one at a time (4.3 ms to 4.6 ms), and it made the first night, deleting 800,000, slower (22.6 s without, 36.4 s with, because every deleted row has one more index to leave). A full scan grows with the table and I measured only this size; a site with tens of millions of rows that sees the job hold up writes can add `create index notifications_read_at_index on notifications (read_at)` itself (on PostgreSQL, `CREATE INDEX CONCURRENTLY`).
+
 ## What the tests hold in place
 
 | Test | Where |
 |---|---|
+| The retention (30 days, none at 0 or below, the boundary, counted in days, from when it was read, a setting missing from the config file); a notice that has not been read is never deleted; a backlog of more than one chunk (5,300); every member loses only what they read and the bell is what it was; the job is scheduled at 04:00 | `tests/Feature/Housekeeping/ReadNotificationsTest.php` |
 | The two parts share one id; every member gets an id of their own; the id in the browser alert is the stored row's, and its fields are at the top of the push; the three buttons, for a notice that is stored, not stored and somebody else's | `tests/Feature/Notifications/NotificationBellTest.php` |
 | The same for the support desk and the data export | `SupportTicketNotificationTest`, `DataExportTest` |
 | A big group becomes jobs of a hundred with every member in one; nobody to tell queues nothing; a job is not tried twice; each member is told by their own choices; the settings of a group are one query; one member who cannot be told does not stop the rest; a member who is gone is skipped | `tests/Feature/Notifications/NotifyMembersTest.php` |

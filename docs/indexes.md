@@ -209,7 +209,7 @@ A member pays that on every page they open. The cost grows with the member's own
 ### What it costs
 
 - **Writes.** 100,000 rows inserted in batches of 1,000 took 2.72 s without the index and 3.82 s with it (the median of three alternating runs: 40% more). One row at a time, which is what a notification sent while a request is served costs, 0.99 ms and 1.01 ms.
-- **Space.** 31.6 MB of index on the 382,105 rows (49.8 MB of indexes became 81.4 MB, beside 205 MB of rows): about 83 bytes a row. Nothing deletes a read notification yet, so the table still only grows.
+- **Space.** 31.6 MB of index on the 382,105 rows (49.8 MB of indexes became 81.4 MB, beside 205 MB of rows): about 83 bytes a row. A notification that has been read is deleted 30 days later ([How long a notice is kept](notifications.md#how-long-a-notice-is-kept)), so the table is bounded by the unread ones and a month of read ones.
 - **The migration.** 0.5 s on those rows (MariaDB). PostgreSQL was not measured here (no Docker); [Running it on a live PostgreSQL database](#running-it-on-a-live-postgresql-database) has the statement to run first without the lock.
 
 ### How it was shaped
@@ -222,7 +222,7 @@ A member pays that on every page they open. The cost grows with the member's own
 ### Left alone in the bell
 
 - **A member who never reads still pays 8 ms for the count**: a count reads every row it counts, and 40,000 unread rows are 40,000 index entries. "Mark all as read" ends it, and nothing deletes an unread notification, because the count in the header is what the member sees.
-- **Read notifications are not deleted.** Nothing shows one, so they are only in the way; that is a change of its own (a retention, as for the [failed jobs](configuration.md) and the [request log](#the-api-request-log)).
+- **Read notifications are deleted by a job of their own**, 30 days after they were read (`PruneReadNotifications`, [notifications.md](notifications.md#how-long-a-notice-is-kept)). It reads the table and has no index of its own: `read_at` is not the first column of the one above, and an index that starts with it was measured and left out, with the numbers, in that page.
 - **PostgreSQL.** Not measured (no Docker here). It finds the member's unread rows through the index for the count, which is the part that read every row. For the newest ten it may not take `read_at IS NULL` for an equality when it looks for an order, and then it sorts the member's unread rows (not the read ones): nothing for a member who reads what they get, as much as the unread ones for one who never does. If that shows in `EXPLAIN` on a large site, the thing to try is a partial index, `(notifiable_type, notifiable_id, created_at) WHERE read_at IS NULL`, which PostgreSQL and SQLite have and MySQL and MariaDB do not. The guard test reads the plan on SQLite only; on the other databases it checks the schema (the columns and their order).
 
 ## Dropping a column on SQLite
