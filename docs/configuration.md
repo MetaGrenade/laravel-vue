@@ -52,6 +52,7 @@ These are the settings that are different on a live site from a machine that is 
 | `BLOG_COMMENT_RATE_LIMIT` | `5` | How many blog comments one signed-in person (or one address, when not signed in) may post in a minute. |
 | `IMPERSONATION_MINUTES` | `30` | How long one read-only view as a customer lasts, from the moment it starts ([impersonation.md](impersonation.md)). |
 | `AUDIT_RETENTION_DAYS` | `0` | How many days the admin audit log is kept. `0` keeps it for ever ([audit-log.md](audit-log.md)). |
+| `NOTIFICATIONS_READ_RETENTION_DAYS` | `30` | How many days a notification that has been read is kept, counted from when it was read. The daily `PruneReadNotifications` job (04:00) deletes older ones, so it needs the scheduler and a worker. `0` keeps them for ever. One that has not been read is never deleted ([notifications.md](notifications.md#how-long-a-notice-is-kept)). |
 | `ONBOARDING_ENABLED` | `true` | Whether a new customer's dashboard shows the "Get started" checklist ([onboarding.md](onboarding.md)). |
 | `ONBOARDING_DAYS` | `30` | For how many days after an account is made the checklist is shown. `0` shows it for as long as there is something left to do. |
 | `MODERATION_CONTACT` | — | Where a member can ask about a warning or a ban: an email address or a web address. It is added to the emails they are sent and to what a banned member is told when they try to sign in ([moderation.md](moderation.md)). |

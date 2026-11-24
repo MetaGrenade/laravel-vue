@@ -27,6 +27,7 @@ use App\Jobs\PruneAuditLogs;
 use App\Jobs\PruneDataExports;
 use App\Jobs\PruneExpiredCacheEntries;
 use App\Jobs\PruneFailedJobs;
+use App\Jobs\PruneReadNotifications;
 use App\Jobs\PruneSearchQueryLogs;
 use App\Jobs\PruneTokenLogs;
 use App\Jobs\PruneUsageEvents;
@@ -148,6 +149,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('auth:clear-resets')->dailyAt('03:00');
         // The record of a job that failed (the job and its stack trace): nothing in Laravel deletes one, so it is kept 30 days by default.
         $schedule->job(new PruneFailedJobs)->dailyAt('03:30');
+        // A notification that has been read is a row nobody can see (the bell shows the ones that have not been read): kept 30 days after it was read.
+        $schedule->job(new PruneReadNotifications)->dailyAt('04:00');
         // A database cache deletes a row that has run out only when its key is asked for again: every failed sign-in leaves two rows of the
         // rate limiter that are never asked for again. (Redis and files drop them by themselves; with those this finds no table to clean.)
         $schedule->job(new PruneExpiredCacheEntries)->hourly();
