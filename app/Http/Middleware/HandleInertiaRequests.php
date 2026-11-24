@@ -121,7 +121,9 @@ class HandleInertiaRequests extends Middleware
             // Set while a staff member is viewing as this customer (docs/impersonation.md): the bar at the top of every page.
             'impersonation' => fn () => app(Impersonation::class)->banner($request),
             'notifications' => fn () => $user ? (function () use ($user, $formatter) {
-                $unreadQuery = $user->unreadNotifications()->latest();
+                // The relation is already newest first (`HasDatabaseNotifications::notifications()`); a second `latest()` repeats the
+                // term in the ORDER BY, and SQLite sorts the rows for the repeat even when the index delivers them in order.
+                $unreadQuery = $user->unreadNotifications();
 
                 $unreadCount = (clone $unreadQuery)->count();
 
