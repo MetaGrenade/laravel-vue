@@ -26,6 +26,7 @@ use App\Jobs\MonitorSupportTicketSlas;
 use App\Jobs\PruneAuditLogs;
 use App\Jobs\PruneDataExports;
 use App\Jobs\PruneExpiredCacheEntries;
+use App\Jobs\PruneFailedJobs;
 use App\Jobs\PruneSearchQueryLogs;
 use App\Jobs\PruneTokenLogs;
 use App\Jobs\PruneUsageEvents;
@@ -145,6 +146,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Password reset tokens expire after an hour but nothing deletes them (Laravel only does it when this is run): the address of a
         // member who asked and never used it, or who has since deleted their account, would stay in `password_reset_tokens` for ever.
         $schedule->command('auth:clear-resets')->dailyAt('03:00');
+        // The record of a job that failed (the job and its stack trace): nothing in Laravel deletes one, so it is kept 30 days by default.
+        $schedule->job(new PruneFailedJobs)->dailyAt('03:30');
         // A database cache deletes a row that has run out only when its key is asked for again: every failed sign-in leaves two rows of the
         // rate limiter that are never asked for again. (Redis and files drop them by themselves; with those this finds no table to clean.)
         $schedule->job(new PruneExpiredCacheEntries)->hourly();
