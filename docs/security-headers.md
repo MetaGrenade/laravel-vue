@@ -22,6 +22,12 @@ A response that is not HTML, such as the sitemap, the web manifest, or `security
 
 `style-src` is `'self'` and `'unsafe-inline'`, and nothing else. Vue sets styles on elements, and those have no nonce. Removing the inline exception would break the pages that do that. Scripts do not get the same exception: a script needs the nonce. The check in CI compares that whole source list, so a later host or a wildcard fails the check. The Vite dev server is added only while it is running.
 
+## The API reference page
+
+`/api/docs` has the policy every page has: it names no other host and needs no exception. Swagger UI is part of the build (`resources/js/api-docs.ts`, the `swagger-ui-dist` package at an exact version), so its script and styles come from the site, its script tag carries the nonce, and the page has no script written into it. The few styles written into the page are covered by `'unsafe-inline'`. Swagger UI's online validator is switched off (`validatorUrl: null`): left alone it asks `validator.swagger.io` for a badge and tells it the address of the site.
+
+`tests/Feature/ApiDocsPageTest.php` checks that every script has the nonce, that everything the page loads is the site's own and that the policy is the home page's. The [browser suite](e2e-tests.md) checks that the page is drawn with nothing refused. Neither covers the validator, which Swagger UI never asks about a site on `localhost`.
+
 ## Adding a third-party host
 
 A script, frame or connection to another host has to be named in `config/security.php` (or it is added for the Vite dev server, the broadcasting host, and Tebex's checkout frame when that checkout is embedded). Set `CSP_REPORT_ONLY=true` first and read the browser console.

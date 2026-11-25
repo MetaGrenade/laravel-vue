@@ -30,6 +30,7 @@ The project's own packages (`metagrenade/metaforge-discord`) are not third-party
 - **`exceptions`**: a package under a licence that is not allowed, one by one, each with the licence it is an exception for and the reason. The exception stops matching when the package changes its licence, so a new licence is a new decision. An exception for a package that is no longer shipped fails the check, so none stays behind.
 - **`aliases`**: names old packages use for a licence (`Apache 2.0` for `Apache-2.0`).
 - **`fallbackTexts`**: for a package that ships no licence file. The copyright line is copied from where the package's authors state it (`source`), and the text is the standard MIT text the script holds. Only MIT has one; another licence needs the script to learn its text.
+- **`bundledNotices`**: for a package that has other people's code built into its own files and gives their notices in a file of its own, which its metadata does not name. The entry is the file's name in the package, and the notices show it whole. Swagger UI (`swagger-ui-dist`, the page at `/api/docs`) is the one today. A file that is not there, or an entry for a package that is no longer shipped, fails the check.
 - **`assets`**: fonts and images, which no lock file lists. An asset can name `licenceTextFile`, a path in the project to the text of its licence: the notices then hold that text (once, shared with any other asset or package that has the same text) instead of only an address. A file that is missing, or has nothing in it but a copyright line, fails the check.
 
 A package under a licence that is neither allowed nor excepted fails `npm run licences:check` with its name, version and licence. **A new licence is not something to add to the list to make CI green.** Weak copyleft (LGPL, MPL, EPL) can be fine when the library is used as installed and unmodified, and strong copyleft (GPL, AGPL) is not compatible with shipping this project under MIT. Decide, write the reason, and put it in `exceptions` if the answer is yes.
@@ -75,6 +76,7 @@ When the check says the file is out of date, run `npm run licences:notices` and 
 - which npm packages count as shipped: `devDependencies` are out, a package's own copy of a dependency is found before the one at the top, an optional peer the project installed for itself is not brought by the package, and a dependency that is not locked is reported;
 - a licence that is not allowed fails with its name; an exception holds for the licence it was written for and not for the one the package moves to; a stale entry in the policy fails;
 - a missing install names the command to run; a package without a licence file fails until the policy holds its text;
+- the notices of bundled code: shown whole, their copyright lines not put on the package that bundles them, a file that is not there is a failure, and this project's policy names Swagger UI's, which the notices hold;
 - which lines are copyright lines: the usual shapes are taken out, the licence's own words about copyright and its template stay, and so do the numbered clauses of the Apache licence;
 - the notices: shared texts, per-package copyright lines, two versions under two licences in one row, a `|` in a copyright line, a text that contains backticks, the same file in any input order, no versions in it;
 - the command: `--write` makes the file, a package that came, went or changed its text fails the check by name, Windows line endings are accepted, and a failed audit writes nothing;
@@ -85,6 +87,6 @@ Each of 14 changes to the script (an unconditional "allowed", `OR` taking the la
 ## What this does not do
 
 - It trusts what a package says about itself. A package that names MIT and ships a different text in its `LICENSE` is not noticed; the text is shown in the notices as the package ships it.
-- It does not check the licence of a package's own dependencies that it bundles into its files (code vendored inside a package). The npm and Composer metadata does not say.
+- It does not check the licence of a package's own dependencies that it bundles into its files (code vendored inside a package). The npm and Composer metadata does not say. Where the package lists their notices, `bundledNotices` puts that list in the notices, as complete as the package made it; nothing reads the licences it names.
 - Trademarks are not a licence matter: the logos of the technologies on the home page are drawn from Simple Icons (CC0), but the marks belong to their owners. They are shown to say what the site is built with.
 - It is not legal advice. Have a lawyer read it if the licence matters commercially (see the licence recommendation in [ROADMAP-v1.0.0.md](ROADMAP-v1.0.0.md)).

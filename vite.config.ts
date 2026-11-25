@@ -9,7 +9,8 @@ import { defineConfig } from 'vite';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.ts'],
+            // `api-docs.ts` is the API reference page (Swagger UI): an entry of its own, so no other page loads it.
+            input: ['resources/css/app.css', 'resources/js/app.ts', 'resources/js/api-docs.ts'],
             ssr: 'resources/js/ssr.ts',
             refresh: true,
             // Fonts are downloaded at build time and served from the app's own

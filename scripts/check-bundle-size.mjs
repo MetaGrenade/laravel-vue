@@ -77,13 +77,14 @@ export function measure(buildDir) {
     // The middle page: a change to the layout or a shared component moves it, where a change to one page does not.
     const typical = pages.length > 0 ? pages[Math.floor(pages.length / 2)].bytes : 0;
 
-    // Every script the build made, loaded at once or on demand, so a heavy library imported lazily is still seen.
-    const largestChunk = Object.values(manifest)
-        .filter((chunk) => chunk.file.endsWith('.js'))
-        .map((chunk) => ({ file: chunk.file.replace(/^assets\//, ''), bytes: gzipped(chunk.file) }))
-        .reduce((largest, chunk) => (chunk.bytes > largest.bytes ? chunk : largest), { file: '', bytes: 0 });
+    // Every script the build made, loaded at once or on demand, so a heavy library imported lazily is still seen. Heaviest first, each
+    // with its name in the manifest (the source file for an entry, which stays the same when the hash in the file name changes).
+    const scripts = Object.entries(manifest)
+        .filter(([, chunk]) => chunk.file.endsWith('.js'))
+        .map(([key, chunk]) => ({ key, file: chunk.file.replace(/^assets\//, ''), bytes: gzipped(chunk.file) }))
+        .sort((a, b) => b.bytes - a.bytes);
 
-    return { initial: { js: total(initialFiles, 'js'), css: total(initialFiles, 'css') }, typical, largestChunk, pages };
+    return { initial: { js: total(initialFiles, 'js'), css: total(initialFiles, 'css') }, typical, scripts, pages };
 }
 
 /**
@@ -94,10 +95,11 @@ export function measure(buildDir) {
 export function check(measured, budget) {
     const problems = [];
     const overrides = budget.page.overrides ?? {};
+    const scriptOverrides = budget.chunk.overrides ?? {};
 
-    for (const [name, override] of Object.entries(overrides)) {
+    for (const [name, override] of [...Object.entries(overrides), ...Object.entries(scriptOverrides)]) {
         if (!Number.isInteger(override.limit) || override.limit <= 0 || typeof override.why !== 'string' || override.why.trim() === '') {
-            throw new Error(`The budget for ${name} needs a limit (bytes) and why it is allowed more than the other pages.`);
+            throw new Error(`The budget for ${name} needs a limit (bytes) and why it is allowed more than the others.`);
         }
     }
 
@@ -108,9 +110,16 @@ export function check(measured, budget) {
         if (used > limit) problems.push(`${what} is ${bytes(used)} B gzipped, over the ${bytes(limit)} B it is allowed.`);
     }
 
-    if (measured.largestChunk.bytes > budget.chunk.max) {
+    // Every script is held to the limit for any one, or to its own where it has one.
+    for (const script of measured.scripts) {
+        const own = scriptOverrides[script.key];
+        const limit = own?.limit ?? budget.chunk.max;
+        if (script.bytes <= limit) continue;
+
         problems.push(
-            `${measured.largestChunk.file} is ${bytes(measured.largestChunk.bytes)} B gzipped, over the ${bytes(budget.chunk.max)} B any one script is allowed.`,
+            own
+                ? `${script.key} (${script.file}) is ${bytes(script.bytes)} B gzipped, over the ${bytes(limit)} B it is allowed.`
+                : `${script.file} is ${bytes(script.bytes)} B gzipped, over the ${bytes(limit)} B any one script is allowed.`,
         );
     }
 
@@ -133,6 +142,11 @@ export function check(measured, budget) {
     const built = new Set(measured.pages.map((page) => page.name));
     for (const name of Object.keys(overrides)) {
         if (!built.has(name)) problems.push(`The budget has a limit for ${name}, which is not a page any more. Remove it.`);
+    }
+
+    const builtScripts = new Set(measured.scripts.map((script) => script.key));
+    for (const name of Object.keys(scriptOverrides)) {
+        if (!builtScripts.has(name)) problems.push(`The budget has a limit for the script ${name}, which is not built any more. Remove it.`);
     }
 
     return problems;
@@ -160,9 +174,15 @@ function main(argv) {
     console.log('Front-end size (gzipped bytes)');
     console.log(`  ${bytes(measured.initial.js).padStart(9)} of ${bytes(budget.initial.js).padStart(9)}  JavaScript every page loads`);
     console.log(`  ${bytes(measured.initial.css).padStart(9)} of ${bytes(budget.initial.css).padStart(9)}  stylesheet every page loads`);
-    console.log(
-        `  ${bytes(measured.largestChunk.bytes).padStart(9)} of ${bytes(budget.chunk.max).padStart(9)}  largest script (${measured.largestChunk.file})`,
-    );
+    const scriptOverrides = budget.chunk.overrides ?? {};
+    const largest = measured.scripts.find((script) => !scriptOverrides[script.key]);
+    if (largest) {
+        console.log(`  ${bytes(largest.bytes).padStart(9)} of ${bytes(budget.chunk.max).padStart(9)}  largest script (${largest.file})`);
+    }
+    for (const script of measured.scripts.filter((one) => scriptOverrides[one.key])) {
+        const { limit } = scriptOverrides[script.key];
+        console.log(`  ${bytes(script.bytes).padStart(9)} of ${bytes(limit).padStart(9)}  ${script.key}, a script with a limit of its own`);
+    }
     console.log(`  ${bytes(measured.typical).padStart(9)} of ${bytes(budget.page.typical).padStart(9)}  what the typical page adds to those`);
     console.log(`\nWhat each of the ${measured.pages.length} pages adds to the shared bundle; the ones closest to their limit:`);
     console.log(closest(measured, budget, 8).join('\n'));

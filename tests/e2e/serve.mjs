@@ -45,6 +45,9 @@ const env = {
     // host, so a cart added in one request would be missing from the next.
     SESSION_DOMAIN: 'null',
     SESSION_SECURE_COOKIE: 'false',
+    // The API takes a request from these hosts for the site itself and lets the session answer it. The suite's own address has to be
+    // one, whatever .env lists.
+    SANCTUM_STATEFUL_DOMAINS: `127.0.0.1:${port}`,
     SESSION_DRIVER: 'database',
     CACHE_STORE: 'database',
     QUEUE_CONNECTION: 'database',

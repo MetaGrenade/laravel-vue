@@ -41,6 +41,7 @@ There are two browser suites. They share the server script and the browser, and 
 | A member | Comments on a blog post |
 | A member | Opens a support ticket and sees it in the list |
 | A member | Is refused the admin area with a 403 on a page of the site |
+| A member | Opens the API reference (`/api/docs`): it is drawn with nothing refused by the content security policy and nothing asked of another site, and **Try it out** on the profile, with no key typed, sends no cookie and is answered `401` in JSON, while the same address asked with the member's cookies answers `200`. The test gives the page a small specification of its own, so it neither writes `storage/app/api-docs/openapi.json` nor depends on one written for another address. Sending the cookies, or leaving `Accept` at anything, fails it ([api.md](api.md#try-it-out)) |
 | A visitor | Puts a product in the cart, changes how many, takes it out again and reaches checkout |
 | A visitor | Orders a free download without paying: no payment provider is involved, and the order is shown as paid |
 | An administrator | Opens the admin area and finds a member |
@@ -82,7 +83,7 @@ A failed test leaves a screenshot and a trace in `test-results/e2e` (`npx playwr
 - **The database is built from nothing at every start** (`migrate:fresh` and the seeder) in a file in `database/` named by the config, and it refuses any other name. The `.env` database is never reached, whatever `.env` says, and two things make sure of it:
   - A cached configuration (`php artisan config:cache`) is read instead of `.env` and of every setting the script makes, so `migrate:fresh` would run against the database it names. The script points the configuration, route and event caches at files that never exist, so the application reads its settings from the source, as in a new checkout.
   - Before anything is dropped, the script asks Laravel which database it will use (`php artisan db:show --json`) and stops, without touching anything, unless that is the suite's own file. This holds for whatever else may one day override the settings.
-- **Nothing leaves the machine.** Mail goes to the array driver, broadcasting to the log, Stripe's keys are blank and search uses the database. The session cookie is not pinned to a domain, because the server is `http://127.0.0.1`.
+- **Nothing leaves the machine.** Mail goes to the array driver, broadcasting to the log, Stripe's keys are blank and search uses the database. The session cookie is not pinned to a domain, because the server is `http://127.0.0.1`, and that address is the one the API takes for the site itself (`SANCTUM_STATEFUL_DOMAINS`), whatever `.env` lists.
 - **The server's output is a file**, because PHP's built-in server writes a line for every request.
 - The built-in server answers one request at a time, so a click can wait behind the scripts a page asks for after it has drawn (`Vite::prefetch`, which only a signed-in user's page has, see [bundle-budget.md](bundle-budget.md)). The expectations wait 15 seconds for that; the whole suite takes about a minute.
 
