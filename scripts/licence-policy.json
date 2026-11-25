@@ -55,6 +55,9 @@
             "source": "https://github.com/garycourt/murmurhash-js#license-mit"
         }
     },
+    "bundledNotices": {
+        "npm:swagger-ui-dist": "swagger-ui-es-bundle.js.LICENSE.txt"
+    },
     "assets": [
         {
             "name": "Outfit (headings)",

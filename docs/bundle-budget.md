@@ -16,7 +16,7 @@ Sizes are **gzipped bytes**, which is what every host can send (brotli is smalle
 |---|---|---|---|
 | JavaScript every page loads | The app entry and everything it imports statically | 101,205 | 112,000 |
 | Stylesheet every page loads | `resources/css/app.css` | 26,463 | 29,500 |
-| Largest script | Any one script the build makes, loaded at once or on demand | 140,533 | 155,000 |
+| Largest script | Any one script the build makes, loaded at once or on demand, apart from one that [has a limit of its own](#a-script-that-is-allowed-more) | 140,533 | 155,000 |
 | The typical page | What the middle page of the 136 adds to the first two (its own chunk, its stylesheet, the chunks it shares with other pages such as the layout), counted once | 81,365 | 89,500 |
 | Any one page | The same for each page | 110,000 or its own limit | |
 
@@ -37,6 +37,14 @@ A page that needs a heavy library has a limit of its own in `scripts/bundle-budg
 | `acp/CommerceProductEdit.vue` | 122,000 | Options, variants, prices and pictures on one page |
 
 A limit for a page that no longer exists fails the check, so the file does not collect old entries, and a limit without a reason is refused.
+
+### A script that is allowed more
+
+| Script | Limit | Why |
+|---|---|---|
+| `resources/js/api-docs.ts` | 461,000 | Swagger UI (419 kB): the API reference at `/api/docs`, one third-party bundle in an entry of its own, which no other page loads and no member's browser fetches ahead of time |
+
+A script's limit is under `chunk.overrides` in the same file, named as the build's manifest names it (the source file, for an entry), so a new build, which changes the name of the built file, does not lose it. It raises the limit of that script and of no other. As for a page, a limit with no reason is refused and one for a script that is not built any more fails.
 
 ### The editor on the thread page
 
@@ -71,7 +79,7 @@ npm run bundle:check   # prints the numbers and the pages closest to their limit
 npm run bundle:test    # tests of the check itself (node:test, no dependencies)
 ```
 
-`bundle:test` builds small fake builds and checks that the check finds what it should: a dynamic import is not counted as loaded, a shared chunk is counted once, the layout moving the typical page fails, a limit at exactly the size passes and one byte under fails, an old limit fails.
+`bundle:test` builds small fake builds and checks that the check finds what it should: a dynamic import is not counted as loaded, a shared chunk is counted once, the layout moving the typical page fails, a limit at exactly the size passes and one byte under fails, a script with a limit of its own is held to it and raises no other, an old limit fails.
 
 ## What it does not do
 

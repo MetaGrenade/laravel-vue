@@ -4,7 +4,13 @@
         "css": 29500
     },
     "chunk": {
-        "max": 155000
+        "max": 155000,
+        "overrides": {
+            "resources/js/api-docs.ts": {
+                "limit": 461000,
+                "why": "Swagger UI (419 kB gzipped): the API reference at /api/docs, one third-party bundle that no other page loads."
+            }
+        }
     },
     "page": {
         "typical": 89500,

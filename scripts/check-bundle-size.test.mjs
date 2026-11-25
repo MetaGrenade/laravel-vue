@@ -79,7 +79,7 @@ function fixture() {
 function budgetFor(measured, page = {}) {
     return {
         initial: { js: measured.initial.js, css: measured.initial.css },
-        chunk: { max: measured.largestChunk.bytes },
+        chunk: { max: measured.scripts[0].bytes },
         page: { typical: measured.typical, default: measured.pages[0].bytes, overrides: {}, ...page },
     };
 }
@@ -112,8 +112,18 @@ describe('measure', () => {
         const other = measured.pages.find((page) => page.name === 'Other.vue');
 
         assert.equal(other.bytes, gz('Other.js') + gz('layout.js') + gz('shared.js'));
-        assert.equal(measured.largestChunk.file, 'lazy.js');
-        assert.equal(measured.largestChunk.bytes, gz('lazy.js'));
+        assert.equal(measured.scripts[0].file, 'lazy.js');
+        assert.equal(measured.scripts[0].bytes, gz('lazy.js'));
+        assert.equal(measured.scripts[0].key, '_lazy', 'a script is named as the manifest names it, which a new build does not change');
+    });
+
+    test('only scripts are held to the limit for a script, not a stylesheet the build made on its own', () => {
+        const files = measure(fixture()).scripts.map((one) => one.file);
+
+        assert.deepEqual(
+            files.filter((file) => !file.endsWith('.js')),
+            [],
+        );
     });
 
     test('pages are listed heaviest first, with their largest chunks', () => {
@@ -167,6 +177,46 @@ describe('check', () => {
         budget.chunk.max -= 1;
 
         assert.match(check(measured, budget).join('\n'), /lazy\.js .* any one script/);
+    });
+
+    test('a script with a limit of its own is held to it, not to the limit for any one', () => {
+        const measured = measure(fixture());
+        const budget = budgetFor(measured);
+        budget.chunk = { max: gz('lazy.js') - 1, overrides: { _lazy: { limit: gz('lazy.js'), why: 'A viewer.' } } };
+
+        assert.deepEqual(check(measured, budget), []);
+
+        budget.chunk.overrides._lazy.limit -= 1;
+        const problems = check(measured, budget);
+
+        assert.equal(problems.length, 1);
+        assert.match(problems[0], /^_lazy \(lazy\.js\) is /);
+    });
+
+    test('a limit of its own for one script raises it for no other, and every script over is named', () => {
+        const measured = measure(fixture());
+        const budget = budgetFor(measured);
+        // editor.js and vendor.js are over the limit for any one; lazy.js, the largest, has a limit of its own.
+        budget.chunk = { max: gz('vendor.js') - 1, overrides: { _lazy: { limit: gz('lazy.js'), why: 'A viewer.' } } };
+
+        const problems = check(measured, budget);
+
+        assert.equal(problems.length, 2);
+        assert.match(problems[0], /^editor\.js .* any one script/);
+        assert.match(problems[1], /^vendor\.js .* any one script/);
+    });
+
+    test('a limit for a script that is not built any more fails, and one with no reason is refused', () => {
+        const measured = measure(fixture());
+        const budget = budgetFor(measured);
+        budget.chunk.overrides = { 'resources/js/gone.ts': { limit: 5000, why: 'It was heavy.' } };
+
+        assert.match(check(measured, budget).join('\n'), /script resources\/js\/gone\.ts, which is not built any more/);
+
+        budget.chunk.overrides = { _lazy: { limit: 90000, why: ' ' } };
+        assert.throws(() => check(measured, budget), /_lazy .* why/);
+        budget.chunk.overrides = { _lazy: { why: 'A viewer.' } };
+        assert.throws(() => check(measured, budget), /_lazy .* limit/);
     });
 
     test('the typical page growing fails even though no single page is over its own limit', () => {
@@ -235,6 +285,17 @@ describe('the command', () => {
 
         assert.equal(result.status, 0, result.stderr);
         assert.match(result.stdout, /Within budget/);
+    });
+
+    test('says which script has a limit of its own, and which of the others is the largest', () => {
+        const dir = fixture();
+        const budget = budgetFor(measure(dir));
+        budget.chunk = { max: gz('editor.js'), overrides: { _lazy: { limit: gz('lazy.js'), why: 'A viewer.' } } };
+        const result = run(dir, budget);
+
+        assert.equal(result.status, 0, result.stderr);
+        assert.match(result.stdout, /largest script \(editor\.js\)/);
+        assert.match(result.stdout, /_lazy, a script with a limit of its own/);
     });
 
     test('exits 1 and names what is over, and how to raise it on purpose, when it is not', () => {

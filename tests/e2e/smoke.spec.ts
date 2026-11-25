@@ -838,6 +838,53 @@ test.describe('members', () => {
         expect(response?.status()).toBe(403);
         await expect(page.getByText('403').first()).toBeVisible();
     });
+
+    test('the API reference is drawn, and its Try it out is not answered for whoever is signed in', async ({ page, baseURL }) => {
+        await signIn(page, member.email);
+
+        // The site writes its specification to a file once, with the address in APP_URL at that moment, and Try it out calls that
+        // address. The test gives a small one of its own, so it neither writes that file nor depends on one written for another address.
+        await page.route('**/api/docs/openapi.json', (route) =>
+            route.fulfill({
+                json: {
+                    openapi: '3.0.3',
+                    info: { title: 'The API', version: '1' },
+                    servers: [{ url: '/api' }],
+                    paths: { '/v1/profile': { get: { summary: 'Your profile', responses: { 200: { description: 'OK' } } } } },
+                },
+            }),
+        );
+        await page.addInitScript(() => {
+            const refused: string[] = [];
+            Object.assign(window, { refused });
+            document.addEventListener('securitypolicyviolation', (event) => refused.push(`${event.violatedDirective} ${event.blockedURI}`));
+        });
+        const elsewhere: string[] = [];
+        page.on('request', (request) => {
+            if (request.url().startsWith('http') && new URL(request.url()).origin !== new URL(baseURL!).origin) {
+                elsewhere.push(request.url());
+            }
+        });
+
+        await page.goto('/api/docs');
+        await page
+            .getByRole('button', { name: /\/v1\/profile/ })
+            .first()
+            .click();
+        await page.getByRole('button', { name: 'Try it out' }).click();
+        const answered = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/profile');
+        await page.getByRole('button', { name: 'Execute' }).click();
+        const response = await answered;
+
+        // No key was typed, so the API refuses, although the browser is signed in: the same address asked with its cookies answers.
+        expect(response.status()).toBe(401);
+        expect(await response.request().headerValue('cookie')).toBeNull();
+        expect(await page.evaluate(async () => (await fetch('/api/v1/profile', { headers: { Accept: 'application/json' } })).status)).toBe(200);
+        await expect(page.getByText('Unauthenticated.')).toBeVisible();
+
+        expect(await page.evaluate(() => (window as unknown as { refused: string[] }).refused)).toEqual([]);
+        expect(elsewhere).toEqual([]);
+    });
 });
 
 test.describe('shop', () => {

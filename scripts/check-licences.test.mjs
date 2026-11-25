@@ -475,6 +475,41 @@ describe('the notices', () => {
         assert.match(notices, /\[LGPL-2\.1\]\(#exceptions\)/);
     });
 
+    test('what a package says about code built into it is shown whole, and its copyright lines are not put on the package', () => {
+        const bundled = policy({ bundledNotices: { 'npm:left': 'left.js.LICENSE.txt' } });
+        // As a package ships it: Windows line endings and a space left at the end of a line.
+        const text = '/*!\r\n\tCopyright (c) 2018 Somebody Else.\r\n\tMIT licensed  \r\n*/\r\n';
+        const root = base({ policyFile: bundled, extra: { 'node_modules/left/left.js.LICENSE.txt': text } });
+        const result = collect(root, bundled);
+        const notices = renderNotices(result.packages, bundled);
+
+        assert.deepEqual(result.problems, []);
+        assert.match(notices, /^### Notices of bundled code \([0-9a-f]{6}\)$/m);
+        assert.match(notices, /Used by 1 package: left\.\n\n```\n\/\*!\n\tCopyright \(c\) 2018 Somebody Else\.\n\tMIT licensed\n\*\/\n```/);
+        // The row of the package keeps its own line, and its licence is still shown.
+        assert.match(
+            notices,
+            /\| \[left\][^\n]*\| MIT \| Copyright \(c\) 2020 Left Co \| \[text\]\([^)]+\), \[text\]\(#text-notices-of-bundled-code-/,
+        );
+    });
+
+    test('a notice file of bundled code that is not there, or is named for a package that is not shipped, is a problem', () => {
+        const missing = policy({ bundledNotices: { 'npm:left': 'gone.LICENSE.txt', 'npm:removed': 'x.txt' } });
+        const problems = problemsOf(base({ policyFile: missing }), missing);
+
+        assert.equal(problems.length, 2);
+        assert.match(problems[0], /npm:left: gone\.LICENSE\.txt, named in `bundledNotices`, is not in the package/);
+        assert.match(problems[1], /`bundledNotices` for npm:removed, which is not shipped/);
+    });
+
+    test('the project names the notices of the code built into Swagger UI, and the file is in the notices', () => {
+        const root = fileURLToPath(new URL('..', import.meta.url));
+        const { bundledNotices } = JSON.parse(readFileSync(join(root, 'scripts/licence-policy.json'), 'utf8'));
+
+        assert.equal(bundledNotices['npm:swagger-ui-dist'], 'swagger-ui-es-bundle.js.LICENSE.txt');
+        assert.match(readFileSync(join(root, 'THIRD-PARTY-NOTICES.md'), 'utf8'), /react-dom\.production\.min\.js/);
+    });
+
     test('a pipe in a copyright line does not break the table, and a fence is longer than any run of backticks in a text', () => {
         const root = base({ extra: { 'node_modules/left/LICENSE': 'Copyright (c) 2020 A | B\n\nUse ```code``` freely.\n' } });
         const notices = renderNotices(found(root).packages, policy());

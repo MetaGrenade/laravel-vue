@@ -2,7 +2,7 @@
 
 A JSON API under `/api/v1`. Anyone can read the public content (blog posts and their comments, forum threads, polls). With an API key a script can act as the person the key belongs to: comment, post in the forum, open a support ticket, vote. This page is how to call it, what comes back and what limits to expect. Every endpoint's inputs and outputs are in the **OpenAPI document** ([below](#the-openapi-document)); how keys are made, limited and revoked is [api-keys.md](api-keys.md).
 
-> **Status:** written after using the API as a client against a throwaway copy of the site (its own database, `APP_DEBUG=false`): signing in and out, reading the lists, the profile, commenting, reacting, editing and deleting a comment, following a post, starting a thread, replying, editing a post, marking a solution, locking, pinning and deleting a thread as staff, opening a ticket, and then every kind of error and the rate limit. **Not done by hand:** a poll vote, a ticket reply, closing, reopening and rating a ticket, an attachment download, reporting a comment (only its refusal was seen), publishing and unpublishing a thread; they are covered by the automated API tests only. `tests/Feature/ApiReferenceDocsTest.php` keeps [the endpoint table](#every-endpoint) equal to the routes and the OpenAPI document equal to the routes. Three things do not work as the code says they should; they are under [Known problems](#known-problems-in-10).
+> **Status:** written after using the API as a client against a throwaway copy of the site (its own database, `APP_DEBUG=false`): signing in and out, reading the lists, the profile, commenting, reacting, editing and deleting a comment, following a post, starting a thread, replying, editing a post, marking a solution, locking, pinning and deleting a thread as staff, opening a ticket, and then every kind of error and the rate limit. **Not done by hand:** a poll vote, a ticket reply, closing, reopening and rating a ticket, an attachment download, reporting a comment (only its refusal was seen), publishing and unpublishing a thread; they are covered by the automated API tests only. `tests/Feature/ApiReferenceDocsTest.php` keeps [the endpoint table](#every-endpoint) equal to the routes and the OpenAPI document equal to the routes. **The page at `/api/docs`** was opened in Chrome and its Try it out used, signed in to the site and not: reading the posts, signing in, reading the profile and signing out.
 
 ## The short version
 
@@ -36,7 +36,15 @@ curl -X POST https://your-site/api/v1/blogs/a-first-post/comments \
 - It is public and the same for everyone, so it is sent with `Cache-Control: public, max-age=3600` and an `ETag` ([http-caching.md](http-caching.md)).
 - Each operation's required scope is read from the routes when it is written, so the document cannot say a scope the API does not ask for. A test also fails when the document and the routes list different operations.
 
-`/api/docs` is a page that shows the same document with Swagger UI. It is blank on a default install ([Known problems](#known-problems-in-10)); use the JSON in a tool of your own.
+`/api/docs` is a page that shows the same document with Swagger UI, which is built with the site: the page loads nothing from another address ([security-headers.md](security-headers.md#the-api-reference-page)).
+
+### Try it out
+
+**Try it out** on that page sends a real request to the site, so a write writes.
+
+- **It is answered for the key you give under Authorize, and for nothing else.** The browser's cookies are left out, so being signed in to the site in the same browser gives the page nothing: without a key, a call that needs one is answered `401`. Make a key in **Settings → API keys**, or with `POST /api/v1/auth/token` on the page itself.
+- **It calls the address the document carries** (`APP_URL` when it was written). Open the page at that address. From another one (with `www.` and without, `http` and `https`) the browser blocks the calls.
+- **Over plain `http` it may not be able to write.** Where the site's name is in `SANCTUM_STATEFUL_DOMAINS` and is not a localhost address, a call that writes is refused with `419 CSRF token mismatch`; reading works. `.env.example` lists local names only, but with the setting left out the host of `APP_URL` is in the list. A request from a page of a listed name is taken for the site itself and has to show that no other site sent it: a browser says so (`Sec-Fetch-Site`) only over HTTPS and on localhost, and otherwise it takes the CSRF token of a session, which the page does not send. Serve the site over HTTPS, take the name out of the list (an API key does not need it, [configuration.md](configuration.md)), or use `curl`.
 
 ## Signing in and keys
 
@@ -162,12 +170,6 @@ A request that fails on the server (a `5xx`) or is told to slow down (a `429`) d
 
 The API answers any origin: it sends `Access-Control-Allow-Origin: *` and answers a preflight `OPTIONS`. That is Laravel's default, as the site has no `config/cors.php`. A key is a bearer token, not a cookie, so a page on another site can use it only if it holds the key. If that is more than you want, add a `config/cors.php` with the origins you allow.
 
-## Known problems in 1.0
-
-Found while writing this page. They are code, not documentation, and each has a task to fix it. When one is fixed, this section loses its line.
-
-1. **`/api/docs` is blank.** The page loads Swagger UI from a CDN with a script that has no nonce, and the site's Content Security Policy blocks all three, so the page stays empty. `/api/docs/openapi.json` works.
-
 ## Testing
 
-`tests/Feature/ApiReferenceDocsTest.php` reads the table above and fails for a route that is not in it, a row for a route that does not exist, a scope that is not the one the route asks for, a section that is not the route's, and an OpenAPI document that does not describe exactly the `/api/v1` routes. `tests/Feature/Api/` holds the tests of the behaviour: `TokenScopesTest`, `OpenApiScopesTest`, `AuthTokenTest`, `ApiKeyAuthenticationTest`, `TokenQuotaTest`, `ApiRateLimitsTest` (each per-minute limit is a count of its own), one for each area (`BlogApiTest`, `ForumWriteApiTest`, `PollApiTest`, `SupportApiTest`), and `UserNicknameApiTest` (what a user looks like in an author, the profile and the sign-in answer). `tests/Feature/RouteThrottlesTest.php` fails for a route that is throttled with bare numbers (`throttle:20,1`) or by a name that is not a limiter.
+`tests/Feature/ApiReferenceDocsTest.php` reads the table above and fails for a route that is not in it, a row for a route that does not exist, a scope that is not the one the route asks for, a section that is not the route's, and an OpenAPI document that does not describe exactly the `/api/v1` routes. `tests/Feature/Api/` holds the tests of the behaviour: `TokenScopesTest`, `OpenApiScopesTest`, `AuthTokenTest`, `ApiKeyAuthenticationTest`, `TokenQuotaTest`, `ApiRateLimitsTest` (each per-minute limit is a count of its own), one for each area (`BlogApiTest`, `ForumWriteApiTest`, `PollApiTest`, `SupportApiTest`), and `UserNicknameApiTest` (what a user looks like in an author, the profile and the sign-in answer). `tests/Feature/ApiDocsPageTest.php` and one test of the [browser suite](e2e-tests.md) cover the page at `/api/docs`. `tests/Feature/RouteThrottlesTest.php` fails for a route that is throttled with bare numbers (`throttle:20,1`) or by a name that is not a limiter.

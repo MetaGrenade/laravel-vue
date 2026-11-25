@@ -298,6 +298,20 @@ export function collect(root, policy) {
             problems.push(`${key} has no licence file. Add its text to \`fallbackTexts\` in ${POLICY_FILE}, with where it was read.`);
         }
 
+        // A package that has other people's code built into its files may give their notices in a file of its own, which its metadata
+        // does not name. The policy names it (`bundledNotices`), and the notices show it whole.
+        const bundled = policy.bundledNotices?.[key];
+
+        if (bundled) {
+            const path = join(dir, bundled);
+
+            if (existsSync(path)) {
+                texts.push({ file: bundled, kind: 'bundled', text: readFileSync(path, 'utf8') });
+            } else {
+                problems.push(`${key}: ${bundled}, named in \`bundledNotices\`, is not in the package.`);
+            }
+        }
+
         packages.push({ ecosystem, name, version, licence, expression, excepted, texts, reason: excepted ? exception.reason : null });
     };
 
@@ -328,6 +342,7 @@ export function collect(root, policy) {
         ['exceptions', Object.keys(policy.exceptions ?? {})],
         ['fallbackTexts', Object.keys(policy.fallbackTexts ?? {})],
         ['firstParty', [...ownPackages]],
+        ['bundledNotices', Object.keys(policy.bundledNotices ?? {})],
     ]) {
         for (const key of keys) {
             if (!shipped(key)) problems.push(`${POLICY_FILE} has an entry in \`${section}\` for ${key}, which is not shipped. Remove it.`);
@@ -366,6 +381,19 @@ export function splitText(text) {
     };
 }
 
+/**
+ * The notices of bundled code are other people's: their copyright lines stay beside the code they are about, in the text, and are not
+ * put in the row of the package that bundles it.
+ */
+const keptWhole = (text) => ({
+    copyright: [],
+    body: text
+        .split('\n')
+        .map((line) => line.replace(/\s+$/, ''))
+        .join('\n')
+        .trim(),
+});
+
 const hashOf = (body) => createHash('sha1').update(body.toLowerCase().replace(/\s+/g, ' ').trim()).digest('hex').slice(0, 6);
 const slug = (text) =>
     text
@@ -374,6 +402,9 @@ const slug = (text) =>
         .replace(/^-|-$/g, '');
 const cell = (text) => text.replace(/\|/g, '\\|').replace(/\n/g, ' ');
 const fenceFor = (body) => '`'.repeat(Math.max(3, ...[...body.matchAll(/`+/g)].map((run) => run[0].length + 1)));
+
+/** What a text that is not a package's licence is headed with. */
+const TEXT_LABELS = { notice: 'Notice', bundled: 'Notices of bundled code' };
 
 const LINKS = {
     composer: (name) => `https://packagist.org/packages/${name}`,
@@ -393,7 +424,11 @@ export function renderNotices(packages, policy) {
         line.licences.add(one.licence ?? one.expression);
 
         // The licence belongs to the text, not to the row: a row that names two licences has a text under each.
-        for (const text of one.texts) line.parts.push({ ...text, ...splitText(text.text), licence: one.licence ?? one.expression });
+        for (const text of one.texts) {
+            const read = text.kind === 'bundled' ? keptWhole(text.text) : splitText(text.text);
+
+            line.parts.push({ ...text, ...read, licence: one.licence ?? one.expression });
+        }
 
         lines.set(key, line);
     }
@@ -411,7 +446,7 @@ export function renderNotices(packages, policy) {
             const key = hashOf(part.body);
             const group = groups.get(key) ?? {
                 key,
-                label: part.kind === 'notice' ? 'Notice' : part.licence,
+                label: TEXT_LABELS[part.kind] ?? part.licence,
                 body: part.body,
                 members: new Set(),
             };
@@ -523,7 +558,7 @@ export function renderNotices(packages, policy) {
         '',
         '## Licence texts',
         '',
-        'Each text appears once, without the copyright lines, which are in the tables above next to the package they belong to (for a font or an image, in its notice).',
+        'Each text appears once, without the copyright lines, which are in the tables above next to the package they belong to (for a font or an image, in its notice). The notices a package gives for code built into its files are shown as the package gives them.',
     );
 
     for (const group of ordered) {
