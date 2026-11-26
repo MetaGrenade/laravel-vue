@@ -61,6 +61,7 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Cashier\Cashier;
 use Laravel\Sanctum\Sanctum;
 use Meilisearch\Client as MeilisearchClient;
 
@@ -71,6 +72,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Before Cashier boots and registers them: the site has its own Stripe webhook and keeps only Cashier's payment page
+        // (routes/cashier.php).
+        Cashier::ignoreRoutes();
+
         // A worker that serves many requests (Octane) or many jobs (queue:work) builds a `singleton` once and keeps it. These two hold
         // nothing that belongs to a request, so that is safe. Anything that holds the container, the session or a value read from the
         // database is `scoped` instead (docs/octane.md); tests/Unit/OctaneSafetyTest.php fails on a new one that is not listed.

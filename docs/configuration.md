@@ -343,7 +343,7 @@ Subscriptions and the shop's Stripe checkout are [billing.md](billing.md) and [c
 | `BILLING_API_OVERAGE` | `block` | What happens at the allowance: `block` refuses the request with a 429, `allow` goes on counting (for when you bill the extra yourself). |
 | `CASHIER_CURRENCY` | `usd` | The currency of subscriptions. `COMMERCE_CURRENCY` follows it when it is not set. |
 | `CASHIER_CURRENCY_LOCALE` | `en` | The language money is written in on invoices. |
-| `CASHIER_PATH` | `billing` | The path prefix of Cashier's own routes. |
+| `CASHIER_PATH` | `billing` | The path prefix of Cashier's payment confirmation page (`/billing/payment/{id}`), the one route of Cashier's the site has. It does not move Stripe's webhook, which is `/stripe/webhook`. |
 | `CASHIER_MODEL` | the model `App\Models\User` | The billable model. Do not change it. |
 | `CASHIER_PAYMENT_NOTIFICATION` | none | The notification sent to a customer when a renewal needs them to confirm the payment with their bank: the name of a notification class, for example `Laravel\Cashier\Notifications\ConfirmPayment`, which emails a link to Cashier's confirmation page. Unset, nobody is sent anything (the failed payment is dealt with by `invoice.payment_failed` in any case). Anything that is not the name of an existing class, such as `true`, sends nothing and writes a warning to the log. |
 | `CASHIER_LOGGER` | — | A log channel for Cashier's own messages. |

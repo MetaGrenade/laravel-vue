@@ -200,7 +200,7 @@ class SecurityHeadersTest extends TestCase
         $this->assertHeadersWithoutPolicy($response);
     }
 
-    public function test_only_laravels_and_cashiers_own_routes_go_without_the_policy(): void
+    public function test_only_laravels_own_routes_and_cashiers_payment_page_go_without_the_policy(): void
     {
         $outside = collect(Route::getRoutes()->getRoutes())
             ->reject(fn ($route) => array_intersect(['web', 'api'], $route->middleware()) !== [])
@@ -211,7 +211,7 @@ class SecurityHeadersTest extends TestCase
             ->all();
 
         // A route here is answered without the content security policy: a page of the site's own belongs in the `web` group.
-        $this->assertSame(['billing/payment/{id}', 'billing/webhook', 'storage/{path}', 'up'], $outside);
+        $this->assertSame(['billing/payment/{id}', 'storage/{path}', 'up'], $outside);
     }
 
     private function assertGuardedPage(TestResponse $response): void

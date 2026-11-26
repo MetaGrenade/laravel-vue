@@ -21,7 +21,7 @@ What the application does not send has them only if the web server adds them: th
 
 A page also gets a content security policy with a fresh nonce on each response. Inline scripts in the page carry that nonce. `object-src` is `none` and `base-uri` is `'self'`.
 
-It goes on an HTML answer from a route in the `web` or `api` group, and on the error page of an address no route has. An answer that is not HTML, such as the sitemap, the web manifest, `security.txt` or the API's JSON, does not get it. Nor does a route outside those two groups. Those are Laravel's and Cashier's own, and two of them are pages the policy would break:
+It goes on an HTML answer from a route in the `web` or `api` group, and on the error page of an address no route has. An answer that is not HTML, such as the sitemap, the web manifest, `security.txt` or the API's JSON, does not get it. Nor does a route outside those two groups. Those are Laravel's own and Cashier's payment page, and two of them are pages the policy would break:
 
 | Address | What the policy would refuse |
 |---|---|
