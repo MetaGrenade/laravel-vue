@@ -25,7 +25,7 @@ Putting a site on a server and keeping it there, in the order you will need them
 - [Performance](performance.md): how fast a guest's page starts to answer, how to measure it on your own site, and what the number depends on.
 - [Documents and caching](http-caching.md): the files that are the same for everyone, and the headers that let a cache keep them.
 - [How the site protects itself](security.md): what is done about security without being asked, from cleaned user content to rate limits, and where each part is written up.
-- [Security headers](security-headers.md): the headers every page carries and how to add a host to the Content Security Policy.
+- [Security headers](security-headers.md): the headers every answer carries and how to add a host to the Content Security Policy.
 - [Reporting a vulnerability](security-contact.md): how a security problem is reported in private.
 
 ## Make it yours

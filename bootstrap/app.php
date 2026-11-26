@@ -61,9 +61,14 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->encryptCookies(except: ['appearance']);
 
-        // First of all, before anything reads the query string or the form: bytes that are not UTF-8 cannot be put in a JSON response or
-        // an Inertia page, and nothing after this would have to think about them.
+        // Before anything reads the query string or the form: bytes that are not UTF-8 cannot be put in a JSON response or an Inertia
+        // page, and nothing after this would have to think about them.
         $middleware->prepend(ScrubMalformedInput::class);
+
+        // The outermost of all (added after the line above, it runs before it). An answer that never reaches a route's own middleware
+        // carries the security headers too: an address no route has, a record that is not there, a visitor sent to sign in, the
+        // maintenance page.
+        $middleware->prepend(SecurityHeaders::class);
 
         $middleware->api(
             prepend: [
@@ -82,7 +87,6 @@ return Application::configure(basePath: dirname(__DIR__))
             append: [
                 // A session ends when the account's password changes (see the priority list below for where it runs).
                 AuthenticateSession::class,
-                SecurityHeaders::class,
                 PreventBannedUser::class,
                 EnsureSiteIsAvailable::class,
                 HandleAppearance::class,

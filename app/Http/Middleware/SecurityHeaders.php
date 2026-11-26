@@ -5,12 +5,16 @@ namespace App\Http\Middleware;
 use App\Payments\Tebex\TebexCheckoutMode;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Vite;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Adds security headers (and a nonce-based Content Security Policy) to web
- * responses. Configure in config/security.php.
+ * Adds security headers to every answer, and a nonce-based Content Security Policy
+ * to the site's own pages. Configure in config/security.php.
+ *
+ * It is the outermost global middleware (bootstrap/app.php), so an answer that never
+ * reaches a route's own middleware gets them too.
  */
 class SecurityHeaders
 {
@@ -42,7 +46,7 @@ class SecurityHeaders
             $response->headers->set('Strict-Transport-Security', $value);
         }
 
-        if ($cspEnabled && $this->isHtml($response)) {
+        if ($cspEnabled && $this->isHtml($response) && $this->takesThePolicy($request)) {
             $header = config('security.csp.report_only') ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
 
             $response->headers->set($header, $this->policy());
@@ -121,5 +125,19 @@ class SecurityHeaders
     private function isHtml(Response $response): bool
     {
         return str_contains((string) $response->headers->get('Content-Type'), 'text/html');
+    }
+
+    /**
+     * Whether the policy was written for this page: one of the site's own, or the error page of an address no route has.
+     *
+     * A route outside the `web` and `api` groups is Laravel's or a package's, with a page that loads what it likes: the
+     * health check takes its styles from other hosts, and the script of Cashier's page, where a customer confirms a
+     * payment, has no nonce. The policy would break both.
+     */
+    private function takesThePolicy(Request $request): bool
+    {
+        $route = $request->route();
+
+        return ! $route instanceof Route || array_intersect(['web', 'api'], $route->middleware()) !== [];
     }
 }

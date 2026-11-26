@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Http\Middleware\EnsureSiteIsAvailable;
 use App\Http\Middleware\RefuseImpossibleIds;
-use App\Http\Middleware\SecurityHeaders;
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
 use App\Models\SystemSetting;
@@ -180,7 +179,6 @@ class PublicDocumentsTest extends TestCase
             EncryptCookies::class,
             EnsureSiteIsAvailable::class,
             RefuseImpossibleIds::class,
-            SecurityHeaders::class,
             SubstituteBindings::class,
         ];
         sort($kept);
