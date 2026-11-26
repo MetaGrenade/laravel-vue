@@ -14,7 +14,7 @@ class StoreForumBoardRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'forum_category_id' => ['required', 'exists:forum_categories,id'],
+            'forum_category_id' => ['required', 'integer', 'exists:forum_categories,id'],
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:forum_boards,slug'],
             'description' => ['nullable', 'string', 'max:255'],

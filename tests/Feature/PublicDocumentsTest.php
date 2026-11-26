@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Middleware\EnsureSiteIsAvailable;
+use App\Http\Middleware\RefuseImpossibleIds;
 use App\Http\Middleware\SecurityHeaders;
 use App\Models\ForumBoard;
 use App\Models\ForumCategory;
@@ -178,6 +179,7 @@ class PublicDocumentsTest extends TestCase
             AddQueuedCookiesToResponse::class,
             EncryptCookies::class,
             EnsureSiteIsAvailable::class,
+            RefuseImpossibleIds::class,
             SecurityHeaders::class,
             SubstituteBindings::class,
         ];

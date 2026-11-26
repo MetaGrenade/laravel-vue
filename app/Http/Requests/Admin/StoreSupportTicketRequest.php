@@ -32,8 +32,8 @@ class StoreSupportTicketRequest extends FormRequest
             'subject' => 'required|string|max:255',
             'body' => 'required|string|max:16000',
             'priority' => 'in:low,medium,high',
-            'support_ticket_category_id' => 'nullable|exists:support_ticket_categories,id',
-            'user_id' => 'nullable|exists:users,id',
+            'support_ticket_category_id' => 'nullable|integer|exists:support_ticket_categories,id',
+            'user_id' => 'nullable|integer|exists:users,id',
             // add any other fields
         ];
     }

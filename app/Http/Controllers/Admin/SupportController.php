@@ -776,7 +776,7 @@ class SupportController extends Controller
     public function assignTicket(Request $request, SupportTicket $ticket): RedirectResponse
     {
         $validated = $request->validate([
-            'assigned_to' => ['nullable', 'exists:users,id'],
+            'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
         $assignedTo = $validated['assigned_to'] ?? null;

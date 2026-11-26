@@ -17,7 +17,7 @@ class UpdateForumBoardRequest extends FormRequest
         $boardId = $this->route('board')?->id;
 
         return [
-            'forum_category_id' => ['required', 'exists:forum_categories,id'],
+            'forum_category_id' => ['required', 'integer', 'exists:forum_categories,id'],
             'title' => ['required', 'string', 'max:255'],
             'slug' => [
                 'nullable',

@@ -13,6 +13,7 @@ use App\Http\Middleware\LogTokenActivity;
 use App\Http\Middleware\MeterUsage;
 use App\Http\Middleware\PrefetchAssetsForMembers;
 use App\Http\Middleware\PreventBannedUser;
+use App\Http\Middleware\RefuseImpossibleIds;
 use App\Http\Middleware\ScrubMalformedInput;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
@@ -71,6 +72,7 @@ return Application::configure(basePath: dirname(__DIR__))
             append: [
                 PreventBannedUser::class,
                 ApplyImpersonation::class,
+                RefuseImpossibleIds::class,
             ]
         );
 
@@ -91,6 +93,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 UpdateLastActivity::class,
                 AuditAdminActions::class,
                 ApplyImpersonation::class,
+                RefuseImpossibleIds::class,
             ]
         );
 
@@ -122,6 +125,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // log heard of them, and a refusal is exactly what it is for. It still comes after authentication, which is earlier in the list:
         // somebody who is not signed in is not recorded.
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: AuditAdminActions::class);
+
+        // An address with no number where a record's number goes is "not found" before anything looks it up (a server error on
+        // PostgreSQL otherwise). Added after the three above, it lands after them: they treat it as any record that is not there.
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: RefuseImpossibleIds::class);
 
         // A read-only view as a customer makes the request the customer's, so everything after it (the sign-in check, throttles that
         // are per person, the route bindings, the pages) sees the customer: it goes right before authentication, which is the first
