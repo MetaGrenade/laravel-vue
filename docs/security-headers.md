@@ -1,10 +1,10 @@
 # Security headers
 
-Every page sent by the web middleware carries a set of headers from `App\Http\Middleware\SecurityHeaders`. The values live in `config/security.php`.
+Every answer the application gives carries a set of headers from `App\Http\Middleware\SecurityHeaders`. The values live in `config/security.php`.
 
 > **Status:** checked on every CI run (SQLite, MySQL 8 and PostgreSQL 16).
 
-## What a page sends
+## What every answer sends
 
 - `X-Content-Type-Options: nosniff`, so a browser does not guess a file type.
 - `X-Frame-Options: SAMEORIGIN` and a content security policy `frame-ancestors 'self'`, so another site cannot put a page of this one in a frame.
@@ -12,9 +12,23 @@ Every page sent by the web middleware carries a set of headers from `App\Http\Mi
 - `Permissions-Policy` with the camera, microphone, location and browsing topics switched off.
 - `Cross-Origin-Opener-Policy: same-origin-allow-popups`, so a payment window can still open.
 - `Strict-Transport-Security` only when the request is HTTPS and `SECURITY_HSTS` is on (it is on in production). `SECURITY_HSTS_SUBDOMAINS` adds `includeSubDomains`. It is left off until every subdomain is served over HTTPS.
-- A content security policy with a fresh nonce on each response. Inline scripts in the page carry that nonce. `object-src` is `none` and `base-uri` is `'self'`.
 
-A response that is not HTML, such as the sitemap, the web manifest, or `security.txt`, still gets the other headers. It does not get the content security policy.
+The middleware is the outermost global one (`bootstrap/app.php`), so an answer that never reaches a route's own middleware has them too: an address no route has, a record that is not there, a visitor sent to sign in, a form whose token has run out, a request over its limit, the maintenance page, every answer of the API and Laravel's health address.
+
+What the application does not send has them only if the web server adds them: the files in `public/` (the built scripts and styles, and uploads served through `public/storage`), and the page `php artisan down --render` writes beforehand, which is shown without starting the application.
+
+## The content security policy
+
+A page also gets a content security policy with a fresh nonce on each response. Inline scripts in the page carry that nonce. `object-src` is `none` and `base-uri` is `'self'`.
+
+It goes on an HTML answer from a route in the `web` or `api` group, and on the error page of an address no route has. An answer that is not HTML, such as the sitemap, the web manifest, `security.txt` or the API's JSON, does not get it. Nor does a route outside those two groups. Those are Laravel's and Cashier's own, and two of them are pages the policy would break:
+
+| Address | What the policy would refuse |
+|---|---|
+| `/up` | Laravel's health page takes its styles from other hosts. |
+| `/billing/payment/{id}` | Cashier's page, where a customer confirms a payment with their bank: its script is written into the page with no nonce. |
+
+`SecurityHeadersTest` lists the routes outside the two groups, so a new one is noticed. A page of your own belongs in the `web` group.
 
 `CSP_REPORT_ONLY=true` sends the policy as `Content-Security-Policy-Report-Only` instead, so a change can be tried without blocking the page. `CSP_ENABLED=false` turns the policy off. The other headers stay.
 
@@ -34,4 +48,4 @@ A script, frame or connection to another host has to be named in `config/securit
 
 ## Testing
 
-`tests/Feature/SecurityHeadersTest.php` loads the home page and checks each header, the nonce on the scripts, and the frame and base rules. The style rule is compared source for source with `'self'` and `'unsafe-inline'`. It checks that HTTPS sends strict transport security and HTTP does not, including the subdomain form. It checks the sitemap and the web manifest keep the other headers and omit the policy. `.github/workflows/tests.yml` runs that file with the rest of the suite on SQLite, MySQL 8 and PostgreSQL 16.
+`tests/Feature/SecurityHeadersTest.php` loads the home page and checks each header, the nonce on the scripts, and the frame and base rules. The style rule is compared source for source with `'self'` and `'unsafe-inline'`. It checks that HTTPS sends strict transport security and HTTP does not, including the subdomain form. It checks the sitemap and the web manifest keep the other headers and omit the policy. It asks for the answers no route's own middleware sees (an unknown address, a method an address does not take, a missing record, a visitor sent to sign in, a form without its token, a request over its limit, maintenance, a form too big to read) and expects the headers and the policy on each, and for the API, the health page and Cashier's payment page, which get the headers alone. It lists the routes outside the `web` and `api` groups. `.github/workflows/tests.yml` runs that file with the rest of the suite on SQLite, MySQL 8 and PostgreSQL 16.

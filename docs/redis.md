@@ -124,7 +124,7 @@ Then six things that are particular to this app:
    ```php
    Gate::define('viewHorizon', fn ($user) => $user->hasRole('admin'));
    ```
-4. **Give the dashboard the page's nonce.** `SecurityHeaders` sends a Content Security Policy with a nonce on every HTML response in the `web` group ([security-headers.md](security-headers.md)), and Horizon's pages are in that group. Horizon puts no nonce on its scripts and styles unless it is given one, and a script without it is blocked. Its hook is `Horizon::cspNonce()`, called from a middleware that is listed after `web` in the `middleware` option of `config/horizon.php`, so that the nonce `SecurityHeaders` made for the request exists:
+4. **Give the dashboard the page's nonce.** `SecurityHeaders` sends a Content Security Policy with a nonce on every HTML page of a route in the `web` group ([security-headers.md](security-headers.md)), and Horizon's pages are in that group. Horizon puts no nonce on its scripts and styles unless it is given one, and a script without it is blocked. Its hook is `Horizon::cspNonce()`, called from a middleware that is listed after `web` in the `middleware` option of `config/horizon.php`, so that the nonce `SecurityHeaders` made for the request exists:
 
    ```php
    public function handle(Request $request, Closure $next): Response

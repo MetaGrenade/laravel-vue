@@ -39,7 +39,7 @@ There is also the command line (`php artisan list` shows the site's own commands
 
 ## A page request
 
-Before any of it, a global middleware, **`ScrubMalformedInput`**, replaces bytes that are not valid UTF-8 in the query string and the form body with `?` (`?search=%FF` is a link typed by hand, an old page in another encoding or a scanner, never a browser). A JSON response or an Inertia page that echoes such text back cannot be encoded, so without it the live search answered 500 and a dozen lists came back with their page data empty, a blank screen.
+Before any of it, two global middleware of the site run, and so they see every request, the API's included. The outermost, **`SecurityHeaders`**, puts the security headers on every answer, and a Content Security Policy with a nonce on the site's pages ([security-headers.md](security-headers.md)): an address no route has and a visitor sent to sign in get them too. Inside it, **`ScrubMalformedInput`** replaces bytes that are not valid UTF-8 in the query string and the form body with `?` (`?search=%FF` is a link typed by hand, an old page in another encoding or a scanner, never a browser). A JSON response or an Inertia page that echoes such text back cannot be encoded, so without it the live search answered 500 and a dozen lists came back with their page data empty, a blank screen.
 
 Laravel does not run a route's middleware in the order they were listed: some are moved by a **priority list**, and `bootstrap/app.php` adds six to it. This is the order a page request goes through (`app('router')->gatherRouteMiddleware($route)` prints it for any route):
 
@@ -54,7 +54,6 @@ Laravel does not run a route's middleware in the order they were listed: some ar
 
 | Middleware | What it does |
 |---|---|
-| `SecurityHeaders` | The security headers, and a Content Security Policy with a nonce ([security-headers.md](security-headers.md)). |
 | `PreventBannedUser` | Ends the session of a member who has been banned. |
 | `EnsureSiteIsAvailable` | Maintenance mode, as set in the admin area. |
 | `HandleAppearance` | Light, dark or the system's, from the `appearance` cookie (the one cookie that is not encrypted). |

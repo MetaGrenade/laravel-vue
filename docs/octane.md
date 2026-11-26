@@ -47,7 +47,7 @@ Looked at and left as they are:
 | `PreferenceOptions::$timezoneOptions`, `$localeOptions` | PHP's list of time zones and ICU's list of locales (each named in its own language, not the request's): the same for every request. |
 | `Ownership::$owners`, `$newRecordOwner` | Set once when teams plug in (1.1), and given the user each time. The tests flush them. |
 | `SetLocale` | Sets the app's locale and Carbon's for each web request, and Octane resets both for each request, so an API request does not inherit the last page's. |
-| The CSP nonce | `SecurityHeaders` asks `Vite` for a new one on every web request, and Octane calls `Vite::flush()` for each. |
+| The CSP nonce | `SecurityHeaders` asks `Vite` for a new one on every request, and Octane calls `Vite::flush()` for each. |
 | Impersonation | The user is swapped for the request and put back before the session is saved; Octane also resets the authentication state between requests. |
 | `config()` | Nothing writes to the configuration while serving a request. |
 | `URL::forceHttps()`, rate limiters, gates, observers | Set up once at boot, and they hold no request: closures take the request or user they are given. |
