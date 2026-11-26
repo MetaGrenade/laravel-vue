@@ -5,10 +5,16 @@ namespace Tests;
 use App\Support\Ownership;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Foundation\Testing\WithCachedRoutes;
 
 abstract class TestCase extends BaseTestCase
 {
-    use CreatesApplication;
+    // The route files are read for the first application of a run, and every later one is given the same routes compiled, which is
+    // what a deployed site runs with after `php artisan optimize`. Were they read afresh for every test, PHP would keep part of
+    // each compile until the run ends, and the suite would run into its memory limit (docs/development.md, "Memory of a test run").
+    // The framework puts the cache in place inside its own createApplication(), so this class must not have one of its own
+    // (tests/Feature/SuiteRouteCacheTest).
+    use WithCachedRoutes;
 
     /** @var list<string> The relations this test loaded one model at a time out of several, as "Model::relation". */
     protected array $lazyLoads = [];

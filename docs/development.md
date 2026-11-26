@@ -111,6 +111,20 @@ Then point `.env` at them. Unless `DB_DATABASE` and `DB_PASSWORD` are set in `.e
 
 Checking your work (`vendor/bin/pint`, `composer analyse`, `php artisan test`, `npm run lint:check`, `npm run types:check`, `npm run format:check` and the rest) is in [CONTRIBUTING.md](../CONTRIBUTING.md#checks). Tests use an in-memory SQLite database whatever `.env` says, so they never touch your data.
 
+## Memory of a test run
+
+The whole suite runs in one PHP process, and `phpunit.xml` allows it 512 MB. PHP keeps part of every file it compiles until the process ends, so a file that is compiled again for every test is paid for thousands of times. The route files were such files: they left about 31 KB behind for every test that boots the application. `Tests\TestCase` therefore uses Laravel's `WithCachedRoutes`: the route files are read for the first application of a run, and every later one is given the same routes compiled, as a site has them after `php artisan optimize`.
+
+For a test that means:
+
+- A route the test registers itself is tried only when no route of the application matches the request, so give it an address of its own.
+- A compiled route that was given no name has a made-up one (`generated::…`). A deployed site does the same, so code must not take "has a name" to mean "was named".
+- Changing configuration before an application is built does not change which routes it has.
+
+[`tests/Feature/SuiteRouteCacheTest.php`](../tests/Feature/SuiteRouteCacheTest.php) fails when a later application is not given the compiled routes, or when those differ from what the route files declare. The framework puts the cache in place in its own `createApplication()`, so `Tests\TestCase` must not define one.
+
+The weekly `stability` job gives the memory of each of its runs in its annotations.
+
 ## Tools used
 
 [Laravel](https://laravel.com/docs/13.x), [Vue](https://vuejs.org/guide/quick-start.html), [Inertia](https://inertiajs.com/docs/v3/getting-started/index), the [Vue starter kit](https://laravel.com/docs/13.x/starter-kits#vue), [Tailwind CSS](https://tailwindcss.com/docs), [shadcn-vue](https://www.shadcn-vue.com/), [Lucide icons](https://lucide.dev/icons/), [Vue Sonner](https://vue-sonner.vercel.app/), [Tiptap](https://tiptap.dev/docs/editor/getting-started/install/vue3) and the [Stripe CLI](https://docs.stripe.com/stripe-cli).

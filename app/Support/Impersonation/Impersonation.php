@@ -199,7 +199,18 @@ class Impersonation
      */
     public static function identify(Route $route): string
     {
-        return $route->getName() ?? $route->uri();
+        return self::nameOf($route) ?? $route->uri();
+    }
+
+    /**
+     * The name the route files give a route, if they give one. Caching the routes (`php artisan route:cache`, which `optimize`
+     * runs) makes one up, starting `generated::`, for every route that has none.
+     */
+    private static function nameOf(Route $route): ?string
+    {
+        $name = $route->getName();
+
+        return $name === null || str_starts_with($name, 'generated::') ? null : $name;
     }
 
     /**
@@ -268,8 +279,10 @@ class Impersonation
      */
     private function page(Request $request): array
     {
+        $route = $request->route();
+
         return [
-            'route' => $request->route()?->getName(),
+            'route' => $route === null ? null : self::nameOf($route),
             'method' => $request->method(),
             'path' => '/'.ltrim($request->path(), '/'),
         ];
