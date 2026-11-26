@@ -22,7 +22,7 @@ class StoreTokenRequest extends FormRequest
             'abilities' => ['required', 'array'],
             'abilities.*' => ['string', Rule::in([Scopes::FULL, ...app(Scopes::class)->keys()])],
             'expires_at' => ['nullable', 'date', 'after:now'],
-            'user_id' => ['required', 'exists:users,id'],
+            'user_id' => ['required', 'integer', 'exists:users,id'],
             'hourly_quota' => ['nullable', 'integer', 'min:1', 'max:2147483647'],
             'daily_quota' => ['nullable', 'integer', 'min:1', 'max:2147483647'],
         ];

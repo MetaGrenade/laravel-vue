@@ -54,7 +54,7 @@ class PricingController extends Controller
         $user = $request->user();
 
         $data = Validator::make($request->all(), [
-            'plan_id' => ['required', 'exists:subscription_plans,id'],
+            'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
             'email' => [
                 $user ? 'sometimes' : 'required',
                 'email',
@@ -109,7 +109,7 @@ class PricingController extends Controller
         }
 
         $data = Validator::make($request->all(), [
-            'plan_id' => ['required', 'exists:subscription_plans,id'],
+            'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
             'promotion_code' => ['required', 'string', 'max:64'],
         ])->validate();
 
@@ -129,7 +129,7 @@ class PricingController extends Controller
         }
 
         $data = Validator::make($request->all(), [
-            'plan_id' => ['required', 'exists:subscription_plans,id'],
+            'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
             'payment_method' => ['required', 'string'],
             'promotion_code' => ['nullable', 'string', 'max:64'],
         ])->validate();

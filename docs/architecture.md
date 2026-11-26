@@ -41,15 +41,16 @@ There is also the command line (`php artisan list` shows the site's own commands
 
 Before any of it, a global middleware, **`ScrubMalformedInput`**, replaces bytes that are not valid UTF-8 in the query string and the form body with `?` (`?search=%FF` is a link typed by hand, an old page in another encoding or a scanner, never a browser). A JSON response or an Inertia page that echoes such text back cannot be encoded, so without it the live search answered 500 and a dozen lists came back with their page data empty, a blank screen.
 
-Laravel does not run a route's middleware in the order they were listed: some are moved by a **priority list**, and `bootstrap/app.php` adds five to it. This is the order a page request goes through (`app('router')->gatherRouteMiddleware($route)` prints it for any route):
+Laravel does not run a route's middleware in the order they were listed: some are moved by a **priority list**, and `bootstrap/app.php` adds six to it. This is the order a page request goes through (`app('router')->gatherRouteMiddleware($route)` prints it for any route):
 
 1. Laravel's own: cookies, the session, the forgery check.
 2. **`AuthenticateSession`**: ends a session that was started with a password the account no longer has, which is how a password change signs the other browsers out ([two-factor.md](two-factor.md#browser-sessions)). It has to run before the next step: it checks the person the session belongs to, and after the swap that would be the customer, so a staff member would be signed out as soon as a view began.
 3. **`ApplyImpersonation`**: when staff are viewing the site as a customer, the request becomes the customer's. It is placed right before the sign-in check, which is the first thing that asks who is there.
 4. **`Authenticate`**, on a route that needs a signed-in person.
 5. **`AuditAdminActions`**: writes a change made under `acp/` to the audit log ([audit-log.md](audit-log.md)). It comes before the record is looked up so that a change that is refused, or names a record that is not there, is recorded too.
-6. **`SubstituteBindings`**: the record an address names is looked up.
-7. The site's own, in the order `bootstrap/app.php` lists them:
+6. **`RefuseImpossibleIds`**: an address with something other than a record's number where the number goes (`/acp/users/abc`, or twenty digits) is "not found", before anything asks the database. MySQL, MariaDB and SQLite find nothing for such a value, but PostgreSQL answers it with an error. The parameters it knows are those of a record found by its number (the model casts that column to a whole number) and those a controller takes as an `int`.
+7. **`SubstituteBindings`**: the record an address names is looked up.
+8. The site's own, in the order `bootstrap/app.php` lists them:
 
 | Middleware | What it does |
 |---|---|
@@ -63,9 +64,9 @@ Laravel does not run a route's middleware in the order they were listed: some ar
 | `AddLinkHeadersForPreloadedAssets` | Laravel's own preload headers. |
 | `UpdateLastActivity` | Notes when a member was last seen. |
 
-7. What the route itself lists after that: on an admin page `role:` and `can:`.
+9. What the route itself lists after that: on an admin page `role:` and `can:`.
 
-Because the record is looked up in step 5, before the language is set and before the page's shared data is built, a page for a record that is not there is made without them; `ErrorPages` hands the error page its own strings for that reason ([error-pages.md](error-pages.md)).
+Because the record is looked up in step 7, before the language is set and before the page's shared data is built, a page for a record that is not there is made without them; `ErrorPages` hands the error page its own strings for that reason ([error-pages.md](error-pages.md)).
 
 Then the route runs: its own middleware (`auth`, `can:`, `role:`, `verified`, `section.enabled:`, `entitled`, `translations:`), a form request that validates, the controller, and `Inertia::render('Area/Page', $props)`. The page is the Vue file `resources/js/pages/Area/Page.vue`. The **first visit** is a whole HTML page with the page's data in it; every visit after that is a request for JSON that swaps the page without a reload. With `INERTIA_SSR_ENABLED=true` the first visit's HTML is drawn by a Node process, as the deployment guide says ([deployment.md](deployment.md#server-side-rendering-optional)); it is off by default.
 
@@ -73,17 +74,18 @@ A refused or failed visit (`401`, `402`, `403`, `404`, `419`, `429`, `500` and `
 
 ## An API request
 
-The `api` group puts Sanctum's stateful check first (a call from the site's own pages, with a session, works as that person) and appends `PreventBannedUser` and `ApplyImpersonation`. For a route the order Laravel runs, printed for a ticket, a thread-moderation and the profile route, is:
+The `api` group puts Sanctum's stateful check first (a call from the site's own pages, with a session, works as that person) and appends `PreventBannedUser`, `ApplyImpersonation` and `RefuseImpossibleIds`. For a route the order Laravel runs, printed for a ticket, a thread-moderation and the profile route, is:
 
 1. `EnsureFrontendRequestsAreStateful`, then `ApplyImpersonation`.
 2. **`auth:sanctum`**: is there a valid key.
 3. The route's own **`throttle:`** limits.
 4. **`usage:api-calls`**: the account's monthly allowance.
 5. **`scope:`**: the key's scope.
-6. **`SubstituteBindings`**: only now is the record the address names looked up.
-7. `PreventBannedUser`, **`section.enabled:`**, **`token.throttle`** (the key's own hourly and daily limit), **`token.activity`** (the key's log) and, where a route needs one, `role:`.
+6. **`RefuseImpossibleIds`**: something other than a number where the record's number goes is "not found", as on a page.
+7. **`SubstituteBindings`**: only now is the record the address names looked up.
+8. `PreventBannedUser`, **`section.enabled:`**, **`token.throttle`** (the key's own hourly and daily limit), **`token.activity`** (the key's log) and, where a route needs one, `role:`.
 
-So the allowance and the scope are decided before the record is looked up, which is why a key cannot find out what exists. The key's own limit, its log and the staff role are decided after it. The key's activity log therefore misses what is turned away before step 7: a missing record and a request over the route's rate limit were seen not to be written to it, and by the same order a scope refusal is not either. [api.md](api.md) is the reference and [api-keys.md](api-keys.md) the keys.
+So the allowance and the scope are decided before the record is looked up, which is why a key cannot find out what exists. The key's own limit, its log and the staff role are decided after it. The key's activity log therefore misses what is turned away before step 8: a missing record and a request over the route's rate limit were seen not to be written to it, and by the same order a scope refusal is not either. [api.md](api.md) is the reference and [api-keys.md](api-keys.md) the keys.
 
 ## Where the code is
 

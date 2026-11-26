@@ -33,9 +33,9 @@ class UpdateSupportTicketRequest extends FormRequest
             'body' => 'sometimes|required|string|max:16000',
             'status' => 'sometimes|required|in:open,pending,closed',
             'priority' => 'in:low,medium,high',
-            'assigned_to' => 'nullable|exists:users,id',
-            'user_id' => 'sometimes|nullable|exists:users,id',
-            'support_ticket_category_id' => 'sometimes|nullable|exists:support_ticket_categories,id',
+            'assigned_to' => 'nullable|integer|exists:users,id',
+            'user_id' => 'sometimes|nullable|integer|exists:users,id',
+            'support_ticket_category_id' => 'sometimes|nullable|integer|exists:support_ticket_categories,id',
             // etc...
         ];
     }

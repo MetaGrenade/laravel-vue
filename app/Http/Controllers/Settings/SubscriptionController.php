@@ -106,7 +106,7 @@ class SubscriptionController extends Controller
     public function promotionCode(Request $request, PromotionCodes $codes): JsonResponse
     {
         $data = Validator::make($request->all(), [
-            'plan_id' => ['required', 'exists:subscription_plans,id'],
+            'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
             'promotion_code' => ['required', 'string', 'max:64'],
         ])->validate();
 
@@ -118,7 +118,7 @@ class SubscriptionController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = Validator::make($request->all(), [
-            'plan_id' => ['required', 'exists:subscription_plans,id'],
+            'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
             'payment_method' => ['required', 'string'],
             'promotion_code' => ['nullable', 'string', 'max:64'],
         ])->validate();

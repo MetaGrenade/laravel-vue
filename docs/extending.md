@@ -69,6 +69,7 @@ Each row is a job and where its recipe is. Where there is a page, that page is t
 A few rules the table does not repeat:
 
 - **Name every route you want Vue to link to.** The browser only knows the named routes it is sent (`route('name')`), and a visitor who is not staff is not sent `acp.*`. Do not give a public page an `acp.` name.
+- **Take a record in an address as its model, or its number as an `int`.** `RefuseImpossibleIds` then answers "not found" to anything that is not a number, which PostgreSQL would answer with an error. A number a controller takes as a `string` and looks up by itself is not covered.
 - **Never settle an order because a buyer came back.** An order is settled by the provider's webhook, or by asking the provider what happened (`reconcile`, which the return page does when the webhook is late). The address a buyer returns to proves nothing ([payments.md](payments.md)).
 - **Write `user_id` to record who acted, not to decide who may see.** On a record an account pays for or a team could share, that decision goes through the policy ([ownership.md](ownership.md#rules-for-new-code)).
 - **A word on a screen is a key.** `vue/no-bare-strings-in-template` warns about English in the Vue files that have been converted; it lists them by name in `eslint.config.js`, so add a file there when you convert it (and your own new files, if you want the warning).
@@ -85,6 +86,8 @@ You do not have to remember all of the above: much of it fails a check. Run them
 | `php artisan lang:check` | a language is missing a key that English has |
 | `MailLanguageTest`, `BrandedMailTest` | an email is not in the recipient's language, or a notification builds a layout of its own or an `app/Mail` folder appears |
 | `ForeignKeyIndexTest` | a foreign key has no index starting with it |
+| `IdRulesAreIntegersTest` | a rule looks a record up by its number (`exists:users,id`) without `integer` before it, which sends whatever was typed to the database |
+| `ImpossibleIdsTest` | an address that takes a record's number answers `abc`, or a number too long for a database, with anything but a `404`, or puts it in a query |
 | `BlankNumbersAreDefaultsTest` | a config file reads a number as `(int) env('KEY', 5)`, `(float) env(...)` or `env('KEY', 5)`: a blank `KEY=` is then 0 (or an empty text), which for a timeout is no limit and for `retry_after` runs a job twice. Read it with `App\Support\Config\EnvNumber::integer('KEY', 5)` (or `::float()`): nothing, an empty value and anything that is not a number give the default |
 | `QueryStringShapesTest` | a page answers 500 when a query string name is a list (`?search[]=a`), or code reads text from a request with `(string) $request->query(...)` or `$request->string(...)`, which fail on a list: use `App\Support\Http\RequestText::query()` or `::input()`; or a name that holds bytes that are not UTF-8 (`?search=%FF`) answers 500 or a page with its data empty (`ScrubMalformedInput` replaces them, so a page never sees one); or a page size (`per_page`) that is negative, zero, huge or not a number answers 500 on a list with a row to show (read it with `requestedPerPage()` of `InteractsWithInertiaPagination`, which keeps it between 1 and 100) |
 | `LazyLoadingModeTest` | the test suite runs with lazy loading forbidden, so a relation read for each row of a list fails |
