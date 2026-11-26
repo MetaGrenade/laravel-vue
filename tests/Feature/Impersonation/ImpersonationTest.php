@@ -16,6 +16,7 @@ use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Foundation\Testing\CachedState;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -400,6 +401,33 @@ class ImpersonationTest extends TestCase
             ->assertJson(['message' => 'Live updates are not available while you are viewing as somebody.']);
 
         $this->assertSame([], $this->entries()->all());
+    }
+
+    #[Test]
+    public function with_cached_routes_an_address_with_no_name_is_still_found_by_its_address(): void
+    {
+        // `php artisan route:cache` (part of `optimize`, which a deployed site runs) makes up a name for each route that has none.
+        // The suite's cache is made the same way, and is put in place here so that it does not matter which test ran first.
+        $this->app['router']->setCompiledRoutes(CachedState::$cachedRoutes);
+
+        $admin = $this->admin();
+        $customer = $this->customer();
+
+        // Listed in `background`: turned away, and not written down.
+        $this->viewing($admin, $customer)
+            ->postJson('/broadcasting/auth', ['socket_id' => '1234.5678', 'channel_name' => 'private-App.Models.User.'.$customer->id])
+            ->assertForbidden()
+            ->assertJson(['message' => 'Live updates are not available while you are viewing as somebody.']);
+        $this->assertSame([], $this->entries()->all());
+
+        // Listed in `viewable`: the settings address, and what the settings page loads as it opens.
+        $this->viewing($admin, $customer)->get('/settings')->assertRedirect('/settings/profile');
+        $this->viewing($admin, $customer)->getJson('/discord/user/notification-preferences')->assertOk();
+
+        $this->assertSame(
+            [['impersonation.viewed', null, '/settings'], ['impersonation.viewed', null, '/discord/user/notification-preferences']],
+            $this->entries()->map(fn (AuditLog $entry): array => [$entry->event, $entry->meta['route'], $entry->meta['path']])->all(),
+        );
     }
 
     #[Test]
