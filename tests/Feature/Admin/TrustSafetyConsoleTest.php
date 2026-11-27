@@ -85,7 +85,7 @@ class TrustSafetyConsoleTest extends TestCase
 
         $response = $this->actingAs($agent)->patch(route('acp.trust-safety.exports.update', $export), [
             'status' => DataExport::STATUS_COMPLETED,
-            'file_path' => 'exports/export.zip',
+            'file_path' => "exports/user-{$export->user_id}-1.zip",
             'failure_reason' => '',
             'completed_at' => '2024-07-10T12:00',
         ]);
@@ -95,7 +95,7 @@ class TrustSafetyConsoleTest extends TestCase
         $export->refresh();
 
         $this->assertSame(DataExport::STATUS_COMPLETED, $export->status);
-        $this->assertSame('exports/export.zip', $export->file_path);
+        $this->assertSame("exports/user-{$export->user_id}-1.zip", $export->file_path);
         $this->assertNull($export->failure_reason);
         $this->assertNotNull($export->completed_at);
         $this->assertTrue($export->completed_at->equalTo(Carbon::parse('2024-07-10T12:00:00')));

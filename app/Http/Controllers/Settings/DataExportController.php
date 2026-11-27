@@ -43,7 +43,7 @@ class DataExportController extends Controller
             abort(403);
         }
 
-        // A path that is not a file of the exports directory is one staff saved before they were held to that: it is not served.
+        // A path that is not this member's own export file is one staff saved before they were held to that: it is not served.
         if ($export->status !== DataExport::STATUS_COMPLETED || ! $export->file_path || ! $export->namesAnExportFile()) {
             abort(404);
         }

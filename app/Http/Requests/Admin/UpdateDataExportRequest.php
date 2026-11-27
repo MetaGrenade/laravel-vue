@@ -18,9 +18,9 @@ class UpdateDataExportRequest extends FormRequest
     {
         return [
             'status' => ['required', Rule::in(DataExport::STATUSES)],
-            // The member downloads whatever this names, and PruneDataExports deletes it: so it has to be a file in the exports directory
-            // and not another file on the private disk (a support attachment, a forum attachment, a digital product).
-            'file_path' => ['nullable', 'string', 'max:255', 'regex:'.DataExport::pathPattern()],
+            // The member downloads whatever this names, and PruneDataExports deletes it: so it has to be that member's own export, and
+            // not somebody else's or another file on the private disk (a support attachment, a forum attachment, a digital product).
+            'file_path' => ['nullable', 'string', 'max:255', 'regex:'.DataExport::pathPattern($this->memberId())],
             'failure_reason' => ['nullable', 'string', 'max:16000'],
             'completed_at' => ['nullable', 'date'],
         ];
@@ -30,7 +30,18 @@ class UpdateDataExportRequest extends FormRequest
     {
         return [
             'file_path.required' => 'A file path is required when marking an export as completed.',
+            'file_path.regex' => "The path has to name this member's own export file, starting with ".DataExport::filePrefix($this->memberId()).'.',
         ];
+    }
+
+    /**
+     * Whose export is being changed.
+     */
+    private function memberId(): int
+    {
+        $export = $this->route('export');
+
+        return $export instanceof DataExport ? (int) $export->user_id : 0;
     }
 
     protected function prepareForValidation(): void

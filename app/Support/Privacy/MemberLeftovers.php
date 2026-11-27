@@ -56,8 +56,8 @@ class MemberLeftovers
     {
         $files = [];
 
-        // Only a file of the exports directory: a row can name any file on the private disk if staff saved it before they were held to
-        // that, and that file is not the member's (DataExport::namesAnExportFile()).
+        // Only the member's own export files: a row can name somebody else's, or any file on the private disk, if staff saved it before
+        // they were held to that (DataExport::namesAnExportFile()).
         foreach (DataExport::query()->where('user_id', $user->getKey())->whereNotNull('file_path')->cursor() as $export) {
             if ($export->namesAnExportFile()) {
                 $files[] = ['disk' => 'local', 'path' => (string) $export->file_path];

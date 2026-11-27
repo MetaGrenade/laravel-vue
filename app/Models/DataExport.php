@@ -67,20 +67,33 @@ class DataExport extends Model
     }
 
     /**
-     * The pattern a path has to match to be the file of an export: a file directly in the exports directory.
-     *
-     * Staff could once save any string as the path (any file on the private disk: a support attachment, a product download), and the
-     * row of such an export is still in the database of a site that upgraded. So this is asked of the path that is STORED, wherever
-     * the site opens, serves or deletes it, and not only of what staff type now (UpdateDataExportRequest).
+     * How the path of every export file of one member begins. The dash ends the number, so that member 4's files are not member 42's.
      */
-    public static function pathPattern(): string
+    public static function filePrefix(int $userId): string
     {
-        return '#^'.preg_quote(self::DIRECTORY, '#').'/[A-Za-z0-9][A-Za-z0-9._-]*$#D';
+        return self::DIRECTORY."/user-{$userId}-";
     }
 
+    /**
+     * The pattern a path has to match to be the file of one member's export: a file directly in the exports directory, named for
+     * that member.
+     *
+     * Staff could once save any string as the path (another member's export, or any file on the private disk: a support attachment,
+     * a product download), and the row of such an export is still in the database of a site that upgraded. So this is asked of the
+     * path that is STORED, wherever the site offers, serves or deletes it, and not only of what staff type now
+     * (UpdateDataExportRequest).
+     */
+    public static function pathPattern(int $userId): string
+    {
+        return '#^'.preg_quote(self::filePrefix($userId), '#').'[A-Za-z0-9._-]+$#D';
+    }
+
+    /**
+     * Whether the path names an export file of the member this export is for.
+     */
     public function namesAnExportFile(): bool
     {
-        return is_string($this->file_path) && preg_match(self::pathPattern(), $this->file_path) === 1;
+        return is_string($this->file_path) && preg_match(self::pathPattern((int) $this->user_id), $this->file_path) === 1;
     }
 
     public function isReady(): bool
@@ -122,8 +135,8 @@ class DataExport extends Model
             return;
         }
 
-        // Only a file of the exports directory is deleted. A path saved before staff were held to that (any private file) is forgotten by
-        // the row and its file is left alone: PruneDataExports calls this for every expired row, with nobody looking.
+        // Only the member's own export file is deleted. Any other path, saved before staff were held to that, is forgotten by the row and
+        // its file is left alone: PruneDataExports calls this for every expired row, with nobody looking.
         if ($this->namesAnExportFile() && Storage::disk('local')->exists($this->file_path)) {
             Storage::disk('local')->delete($this->file_path);
         }

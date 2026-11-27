@@ -80,7 +80,7 @@ class DataExportTest extends TestCase
             ->for($user)
             ->completed()
             ->create([
-                'file_path' => 'exports/test.zip',
+                'file_path' => "exports/user-{$user->id}-test.zip",
             ]);
 
         Storage::disk('local')->put($export->file_path, 'contents');
@@ -264,7 +264,7 @@ class DataExportTest extends TestCase
             ->for($user)
             ->completed()
             ->create([
-                'file_path' => 'exports/expired.zip',
+                'file_path' => "exports/user-{$user->id}-expired.zip",
                 'completed_at' => now()->subMinutes(DataExport::DOWNLOAD_TTL_MINUTES + 1),
             ]);
 
@@ -277,7 +277,7 @@ class DataExportTest extends TestCase
             ->where('exports.0.download_url', null)
         );
 
-        Storage::disk('local')->assertMissing('exports/expired.zip');
+        Storage::disk('local')->assertMissing("exports/user-{$user->id}-expired.zip");
 
         $this->assertDatabaseHas('data_exports', [
             'id' => $export->id,
@@ -296,7 +296,7 @@ class DataExportTest extends TestCase
             ->for($user)
             ->completed()
             ->create([
-                'file_path' => 'exports/expired.zip',
+                'file_path' => "exports/user-{$user->id}-expired.zip",
                 'completed_at' => now()->subMinutes(DataExport::DOWNLOAD_TTL_MINUTES + 1),
             ]);
 
@@ -312,7 +312,7 @@ class DataExportTest extends TestCase
             ->get($signedUrl)
             ->assertStatus(410);
 
-        Storage::disk('local')->assertMissing('exports/expired.zip');
+        Storage::disk('local')->assertMissing("exports/user-{$user->id}-expired.zip");
 
         $this->assertDatabaseHas('data_exports', [
             'id' => $export->id,

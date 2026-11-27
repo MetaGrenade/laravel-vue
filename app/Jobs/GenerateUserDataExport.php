@@ -75,7 +75,7 @@ class GenerateUserDataExport implements ShouldQueue
             $disk = Storage::disk('local');
             $disk->makeDirectory(DataExport::DIRECTORY);
 
-            $relativePath = sprintf('%s/user-%d-%s.zip', DataExport::DIRECTORY, $user->id, now()->format('Ymd_His'));
+            $relativePath = DataExport::filePrefix($user->id).now()->format('Ymd_His').'.zip';
 
             $this->archive($user, $disk->path($relativePath));
 

@@ -190,7 +190,7 @@ class AdminTimesTest extends TestCase
 
         $this->patch(route('acp.trust-safety.exports.update', $export), [
             'status' => DataExport::STATUS_COMPLETED,
-            'file_path' => 'exports/export.zip',
+            'file_path' => "exports/user-{$export->user_id}-1.zip",
             'failure_reason' => '',
             'completed_at' => self::MOMENT,
         ])->assertSessionHasNoErrors();
@@ -228,7 +228,7 @@ class AdminTimesTest extends TestCase
 
         $this->patch(route('acp.trust-safety.exports.update', $export), [
             'status' => DataExport::STATUS_COMPLETED,
-            'file_path' => 'exports/export.zip',
+            'file_path' => "exports/user-{$export->user_id}-1.zip",
             'completed_at' => null,
         ])->assertSessionHasNoErrors();
 
