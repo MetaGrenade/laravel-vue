@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\RestrictDiscordAdminChanges;
 use App\Support\Config\EnvNumber;
 
 $discordEventClassesFromEnv = static function (string $envKey, string $default): array {
@@ -79,7 +80,9 @@ return [
 
     'admin_route_prefix' => env('DISCORD_ADMIN_ROUTE_PREFIX', 'discord/admin'),
 
-    'admin_middleware' => ['web', 'auth', 'verified', 'role:admin|editor|moderator', 'can:system.acp.view'],
+    // The package puts every one of its staff routes behind this list. Looking needs system.acp.view; the last entry asks more of a
+    // change (docs/discord-companion.md).
+    'admin_middleware' => ['web', 'auth', 'verified', 'role:admin|editor|moderator', 'can:system.acp.view', RestrictDiscordAdminChanges::class],
 
     'user_route_prefix' => env('DISCORD_USER_ROUTE_PREFIX', 'discord/user'),
 

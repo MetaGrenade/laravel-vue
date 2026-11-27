@@ -255,6 +255,26 @@ Laravel Cashier adds a webhook of its own at `/billing/webhook` (under `CASHIER_
 
 If a site that was open to the public had Stripe keys and no `STRIPE_WEBHOOK_SECRET`, compare the rows of `subscriptions` with the subscriptions in the Stripe Dashboard: one that Stripe does not know was not made by Stripe.
 
+### Staff permissions and the administrator role
+
+Somebody without the `admin` role could use a permission you had given them on an administrator. With `users.acp.edit`, `users.acp.update`, `tokens.acp.create` or `acl.acp.edit` alone they could become one or act as one, and so could anybody with `system.acp.view` through a Discord mapping, where the Discord bot is connected. `users.acp.delete` and `acl.acp.delete` could delete the account or the role. The role seeder gives all of these to `admin` only, so a site that never handed one out was not open to this.
+
+Now only an administrator can give the role, or change the role, an administrator's account or API keys, or a Discord mapping of the role ([acp-permissions.md](acp-permissions.md#what-only-an-administrator-can-do)). A change on the Discord admin pages also needs `system.acp.edit`. Nothing has to be run.
+
+**If somebody who was not an administrator ever held one of those permissions, check** that nothing was changed:
+
+1. Who has the `admin` role:
+
+   ```bash
+   php artisan tinker
+   >>> App\Models\User::role('admin')->get(['id', 'nickname', 'email']);
+   ```
+
+2. Each administrator's email address and linked sign-ins (**Admin → Users → Edit**) and API keys (**Admin → Tokens**).
+3. **Admin → Discord mappings**: a mapping of `admin` made earlier is still there and still works. Delete it unless you meant it.
+4. **Admin → Access control**: the roles still have their own names.
+5. The [audit log](audit-log.md) has what was changed under `/acp`. Changes to Discord mappings were never recorded.
+
 ### Nicknames and email addresses that differ only by case
 
 MySQL and MariaDB compare text without regard to case, so on them `Ada` and `ada` were already the same nickname and `Ada@Example.com` and `ada@example.com` the same address. SQLite and PostgreSQL compare exactly, so on them the check for "already taken" let both through: two members whose names differ only by case (one can pass for the other, `Admin` and `admin`), or two accounts for one mailbox.
@@ -338,6 +358,7 @@ Behaviour that was different in an earlier build and is different now. The CHANG
 | **An address with something added to a record's number answers `404`.** | `42abc`, `42-old-title`, `42.`, `+42` or a space beside the number opened record 42 on some databases (most of them were a 500 on PostgreSQL). Only digits are a record's number now, on every database, and a form field that picks a record by its number answers `422` for what is not a whole number. | Nothing, unless links of your own add something to a number: take it off ([Something other than a number](#something-other-than-a-number-where-a-records-number-goes)). |
 | **Every answer carries the security headers.** | Unknown addresses, missing records, redirects to sign in, the maintenance page of `php artisan down` and the API had none of them. | Nothing, unless your web server adds the same headers to the application's answers: take them out there ([Security headers on every answer](#security-headers-on-every-answer)). |
 | **Stripe's deliveries to `/billing/webhook` fail.** | The webhook that Laravel Cashier adds by itself is switched off: with no signing secret set, it applied unsigned events. | Point the endpoint in Stripe at `/stripe/webhook` ([Stripe events sent to `/billing/webhook`](#stripe-events-sent-to-billingwebhook)). |
+| **Only an administrator can touch the administrator role and administrators' accounts. A change on the Discord admin pages needs `system.acp.edit`.** | Permissions meant for one part of the admin area could be used to become an administrator, or to take one's place. | If you ever gave such a permission to somebody else, check who is an administrator, and the Discord mappings ([Staff permissions and the administrator role](#staff-permissions-and-the-administrator-role)). |
 | **New colours, type and logo.** | The interface, the logo and every icon in `public/` follow the MetaForger design. | If you changed any of them, read [theming.md](theming.md) before you check out the new code. |
 
 ## If you changed the code

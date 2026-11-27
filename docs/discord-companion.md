@@ -29,7 +29,17 @@ Run the gateway bot from [MetaForge-DiscordBot/bot](https://github.com/MetaGrena
 | ACP sync status / manual sync / DLQ | `/acp/discord/sync` |
 | User Discord notification opt-in | `/settings/discord-notifications` |
 
-JSON APIs are provided by the package under `/discord/admin/*` and `/discord/user/notification-preferences`, protected by `config/discord.php` middleware (`web`, `auth`, `verified`, and `system.acp.view` for admin).
+JSON APIs are provided by the package under `/discord/admin/*` and `/discord/user/notification-preferences`, protected by the middleware lists in `config/discord.php` (see below for the admin one).
+
+### Who can change what
+
+The admin routes need a member of staff with `system.acp.view`. That is enough to open the two admin pages and read their lists. **Every change needs `system.acp.edit`**: adding, changing or deleting a mapping, syncing a user, and retrying failures.
+
+A mapping with **sync from Discord** on gives its site role to any member whose linked Discord account is given the Discord role it names. So **only an administrator can add, change or delete a mapping of the `admin` role**, and for anybody else the page does not offer that role. Think about who can hand out the mapped Discord role on your server: for the site, they hand out the site role.
+
+Both rules are `App\Http\Middleware\RestrictDiscordAdminChanges`, the last entry of `admin_middleware`. The package runs the list it finds there, so if you published your own `config/discord.php` or changed the list, keep that entry.
+
+These changes are **not** in the [audit log](audit-log.md), which records writes under `/acp` only.
 
 ### Sync dead-letter queue (operators)
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AttachSocialAccountRequest;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\Security\Administrators;
 use App\Support\Security\SignInMethods;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,8 @@ class UserSocialAccountController extends Controller
     public function store(AttachSocialAccountRequest $request, User $user): RedirectResponse
     {
         Gate::authorize('users.acp.update');
+        // A provider linked to an account signs in as it.
+        Administrators::authorizeAccount($request->user(), $user);
 
         $data = $request->validated();
 
@@ -52,6 +55,7 @@ class UserSocialAccountController extends Controller
     public function destroy(Request $request, User $user, SocialAccount $socialAccount): RedirectResponse
     {
         Gate::authorize('users.acp.update');
+        Administrators::authorizeAccount($request->user(), $user);
 
         if ($socialAccount->user_id !== $user->getKey()) {
             abort(Response::HTTP_NOT_FOUND);
