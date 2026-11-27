@@ -16,11 +16,28 @@ An administrator has every permission. An editor or a moderator needs the permis
 
 The **dashboard** is for any staff member (`admin`, `editor` or `moderator`). The member bulk action is one route that can verify, warn, ban or delete, so it checks each action in the controller. Blog revisions stay on the blog policy, outside this staff group. Commerce, billing, polls, legal pages, system settings and the audit log already named their permissions.
 
+## What only an administrator can do
+
+A permission opens its own part of the admin area. It is not a way to become an administrator, or to take one's place. Whatever permissions somebody else holds, only an administrator can:
+
+- **give an account the `admin` role** (**Admin → Users → Edit**);
+- **change an administrator's account**: edit it (which is also where a role is taken away), verify its email address or delete it, one at a time or in the bulk action, and link or unlink a sign-in provider (Google, Discord...);
+- **make, change, revoke or delete an administrator's API key** (**Admin → Tokens**). A key acts as its account, and whoever makes it is shown it;
+- **change the `admin` role**: rename it, delete it, change its permissions, or give another role its name, in any spelling the database reads as the same;
+- **add, change or delete a Discord mapping of the `admin` role** ([discord-companion.md](discord-companion.md#who-can-change-what)).
+
+Anybody else is told which of these it was, and the [audit log](audit-log.md) records the attempt as *denied* (the Discord pages are not in the log).
+
+Warnings, bans, content clean-up and turning two-factor off go further: only an administrator can use them on **any** member of staff ([moderation.md](moderation.md), [two-factor.md](two-factor.md)). Nobody can [view the site as](impersonation.md) one.
+
 ## Not built
 
+- **A limit on the other roles and permissions.** Somebody with `users.acp.edit` can give an account any role except `admin`, their own account included, and can edit another editor's or moderator's account. Somebody with `acl.acp.edit` can give any role except `admin` any permission, `tokens.*` and `system.*` among them. Hand those two out only to somebody you would trust with nearly all of the admin area.
 - **A change to who an administrator is.** An administrator still has every permission.
 - **A permission of its own for the dashboard.** Any staff member can open it.
 
 ## Testing
 
 `tests/Feature/Admin/AcpAuthorizationTest.php`: an editor with no extra permission can open the dashboard and cannot open the other areas, view opens only its own area, and deleting a role or a token needs delete. `tests/Feature/Admin/ForumReportsTest.php`: viewing a report can mark it reviewed, and locking a thread or deleting a reply needs those permissions.
+
+`tests/Feature/Admin/AdministratorProtectionTest.php`: somebody holding every permission, without the role, changes nothing about an administrator, and an administrator still can. It also lists every admin write that names an account, an API key or a role, so a new one fails the test until it is put in a list. `tests/Feature/Discord/DiscordAdminChangesTest.php` is the same for the Discord pages.

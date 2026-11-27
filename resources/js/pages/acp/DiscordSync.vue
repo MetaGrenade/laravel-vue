@@ -14,6 +14,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { type BreadcrumbItem } from '@/types';
 import { discordAdminApi, type DiscordSyncFailure, type DiscordSyncStatus } from '@/lib/discord-api';
 
+// Starting a sync or a retry changes things, which looking at this page does not allow. The server says whether this person may.
+defineProps<{ canEdit: boolean }>();
+
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Discord sync', href: '/acp/discord/sync' }];
 
 const status = ref<DiscordSyncStatus | null>(null);
@@ -226,7 +229,7 @@ onMounted(load);
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card v-if="canEdit">
                     <CardHeader>
                         <CardTitle>Manual user sync</CardTitle>
                         <CardDescription>Queue a job by default, or run immediately with dry-run support.</CardDescription>
@@ -280,7 +283,7 @@ onMounted(load);
                                         All
                                     </Button>
                                 </div>
-                                <div class="flex flex-wrap items-end gap-2 sm:ml-auto">
+                                <div v-if="canEdit" class="flex flex-wrap items-end gap-2 sm:ml-auto">
                                     <div class="flex flex-col gap-1">
                                         <Label for="retry-limit" class="text-xs">Batch limit</Label>
                                         <Input id="retry-limit" v-model="retryLimit" class="w-24" inputmode="numeric" />
@@ -296,7 +299,7 @@ onMounted(load);
                             <Table v-else-if="displayedFailures.length">
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead class="w-10">
+                                        <TableHead v-if="canEdit" class="w-10">
                                             <Checkbox
                                                 aria-label="Select all failures on this page"
                                                 :model-value="allVisibleFailuresSelected"
@@ -315,7 +318,7 @@ onMounted(load);
                                 </TableHeader>
                                 <TableBody>
                                     <TableRow v-for="failure in displayedFailures" :key="failure.id">
-                                        <TableCell>
+                                        <TableCell v-if="canEdit">
                                             <Checkbox
                                                 :aria-label="`Select failure ${failure.id}`"
                                                 :model-value="selectedFailureIds.includes(failure.id)"

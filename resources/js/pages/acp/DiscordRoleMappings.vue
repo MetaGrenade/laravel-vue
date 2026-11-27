@@ -14,12 +14,18 @@ import { type BreadcrumbItem } from '@/types';
 import { discordAdminApi, type DiscordGuildRole, type DiscordRoleMapping } from '@/lib/discord-api';
 
 const props = defineProps<{
+    /** Whether the server will take changes from this person. */
+    canEdit: boolean;
     spatieRoles: string[];
+    /** Roles whose mappings this person may look at and not change. */
+    lockedRoles: string[];
     /** Whether DISCORD_GUILD_ID and DISCORD_BOT_TOKEN are set; when they are not there is nothing to ask Discord for. */
     discordConfigured: boolean;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Discord role mappings', href: '/acp/discord/role-mappings' }];
+
+const canChange = (mapping: DiscordRoleMapping) => props.canEdit && !props.lockedRoles.includes(mapping.spatie_role_name);
 
 const mappings = ref<DiscordRoleMapping[]>([]);
 const discordRoles = ref<DiscordGuildRole[]>([]);
@@ -109,7 +115,7 @@ onMounted(loadData);
 
         <AdminLayout>
             <div class="flex flex-col gap-6">
-                <Card>
+                <Card v-if="canEdit">
                     <CardHeader>
                         <CardTitle>Add mapping</CardTitle>
                         <CardDescription>
@@ -160,6 +166,7 @@ onMounted(loadData);
                     <CardHeader>
                         <CardTitle>Current mappings</CardTitle>
                         <CardDescription v-if="loading">Loading…</CardDescription>
+                        <CardDescription v-else-if="!canEdit">Changing these needs the system.acp.edit permission.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Table v-if="!loading && mappings.length">
@@ -180,6 +187,7 @@ onMounted(loadData);
                                         <Switch
                                             :aria-label="`Sync ${mapping.spatie_role_name} to Discord`"
                                             :model-value="mapping.sync_to_discord"
+                                            :disabled="!canChange(mapping)"
                                             @update:model-value="(value: boolean) => updateMapping(mapping, { sync_to_discord: value })"
                                         />
                                     </TableCell>
@@ -187,11 +195,14 @@ onMounted(loadData);
                                         <Switch
                                             :aria-label="`Sync ${mapping.spatie_role_name} from Discord`"
                                             :model-value="mapping.sync_from_discord"
+                                            :disabled="!canChange(mapping)"
                                             @update:model-value="(value: boolean) => updateMapping(mapping, { sync_from_discord: value })"
                                         />
                                     </TableCell>
                                     <TableCell class="text-right">
-                                        <Button variant="destructive" size="sm" @click="deleteMapping(mapping)">Delete</Button>
+                                        <Button v-if="canChange(mapping)" variant="destructive" size="sm" @click="deleteMapping(mapping)">
+                                            Delete
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             </TableBody>

@@ -10,6 +10,7 @@ use App\Http\Requests\Admin\UpdatePermissionRequest;
 use App\Http\Requests\Admin\UpdateRoleRequest;
 use App\Support\Audit\Audit;
 use App\Support\Localization\DateFormatter;
+use App\Support\Security\Administrators;
 use Illuminate\Http\Request;
 use Inertia\Response;
 use Spatie\Permission\Models\Permission;
@@ -108,6 +109,8 @@ class ACLController extends Controller
      */
     public function storeRole(StoreRoleRequest $request)
     {
+        Administrators::authorizeRole($request->user(), $request->validated('name'));
+
         $role = Role::query()->create($request->validated());
         app(Audit::class)->tracking($role, 'permissions', fn () => $role->syncPermissions($request->permissions ?? []));
 
@@ -119,6 +122,9 @@ class ACLController extends Controller
      */
     public function updateRole(UpdateRoleRequest $request, Role $role)
     {
+        // The role as it is, and the name it is about to have: the app knows an administrator by the role's name.
+        Administrators::authorizeRole($request->user(), $role->name, $request->validated('name'));
+
         $role->update($request->validated());
         app(Audit::class)->tracking($role, 'permissions', fn () => $role->syncPermissions($request->permissions ?? []));
 
@@ -128,8 +134,10 @@ class ACLController extends Controller
     /**
      * Delete a Role.
      */
-    public function destroyRole(Role $role)
+    public function destroyRole(Request $request, Role $role)
     {
+        Administrators::authorizeRole($request->user(), $role->name);
+
         $role->delete();
 
         return back()->with('success', 'Role deleted.');

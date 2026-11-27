@@ -127,6 +127,8 @@ Sanctum's own `sanctum.expiration` (in minutes, `null` by default) still applies
 
 Revoking in the ACP now really revokes. **Restoring** a revoked token (clearing the revocation in the edit dialog) makes it work again.
 
+**An administrator's keys are for an administrator to handle.** A key acts as its account, and whoever makes it is shown it. Somebody else with `tokens.acp.create`, `.edit` or `.delete` cannot make a key for an administrator, or change, revoke or delete one of theirs; with `.view` they still see them in the list ([acp-permissions.md](acp-permissions.md#what-only-an-administrator-can-do)).
+
 ## The request log
 
 Every request made with a key is a row in `token_logs`: the route and method, the key's name, whether it worked and the HTTP status, the address and browser it came from, the fields of the request (cleaned: passwords and tokens left out, long text cut at 500 characters), the answer when it is JSON, how long it took, and the error if there was one. Staff read it in **Admin → Tokens**: the list (filtered by key, status and date, a row opens in full) and each key's calls in the last hour and the last day. A key's hourly and daily limits are counted from it ([limiting a key](#limiting-a-key)).
@@ -189,7 +191,7 @@ Run `php artisan api:docs` after deploying, so the generated OpenAPI document (c
 ## Not built
 
 - **A key rotating itself over the API.** A leaked key could renew itself for ever, so rotation needs the person's own session. A service that must renew without a person should sign in again (`POST /api/v1/auth/token`) when its key is about to end.
-- **A password prompt on Admin → Tokens.** Staff can make a key of any scope for any member there, with the `tokens.acp.create` permission and nothing else, so a staff session that was left open could make one. Asking staff again before the sensitive things they can do is a decision about the whole staff area, not about keys.
+- **A password prompt on Admin → Tokens.** Staff can make a key of any scope for any member there (an administrator's only if they are one), with the `tokens.acp.create` permission and nothing else, so a staff session that was left open could make one. Asking staff again before the sensitive things they can do is a decision about the whole staff area, not about keys.
 - **A way through the password prompt for members who have no password.** A made-up `…@oauth.local` address is not asked, and a member with a real address who never chose a password has to set one first with **Forgot your password?**.
 - **Opting out of the email**, or choosing another channel. It is a security notice, sent by email always.
 - **Two-factor authentication on `POST /api/v1/auth/token`.** It takes a password only, so an account with two-factor authentication can make a key without a code. Keys made on the settings page are made from a signed-in session, which has been through it.
@@ -199,4 +201,4 @@ Run `php artisan api:docs` after deploying, so the generated OpenAPI document (c
 
 ## Testing
 
-`tests/Feature/Api/ApiKeyAuthenticationTest.php` (revoked, expired), `TokenScopesTest.php` (every route, order of middleware, behaviour), `AuthTokenTest.php` (the same rules as Settings, the defaults), `OpenApiScopesTest.php`; `tests/Feature/Settings/ApiKeysTest.php`, `ApiKeysExportTest.php`, `ApiKeyNotificationTest.php`, `ApiKeyRotationTest.php`, `ApiKeyLimitsTest.php` and `ApiKeyPasswordTest.php` (the password, the shared count of guesses); `tests/Feature/Admin/TokenScopesAcpTest.php`; `tests/Feature/Database/PersonalAccessTokenRotationMigrationTest.php`.
+`tests/Feature/Api/ApiKeyAuthenticationTest.php` (revoked, expired), `TokenScopesTest.php` (every route, order of middleware, behaviour), `AuthTokenTest.php` (the same rules as Settings, the defaults), `OpenApiScopesTest.php`; `tests/Feature/Settings/ApiKeysTest.php`, `ApiKeysExportTest.php`, `ApiKeyNotificationTest.php`, `ApiKeyRotationTest.php`, `ApiKeyLimitsTest.php` and `ApiKeyPasswordTest.php` (the password, the shared count of guesses); `tests/Feature/Admin/TokenScopesAcpTest.php`, `AdministratorProtectionTest.php` (an administrator's keys); `tests/Feature/Database/PersonalAccessTokenRotationMigrationTest.php`.

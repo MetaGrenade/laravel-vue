@@ -18,6 +18,7 @@ use App\Support\Localization\BrowserTime;
 use App\Support\Localization\DateFormatter;
 use App\Support\Members\StaffUserSearch;
 use App\Support\Search\LikePattern;
+use App\Support\Security\Administrators;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -205,6 +206,9 @@ class TokenController extends Controller
 
         $user = User::findOrFail($data['user_id']);
 
+        // A key acts as the account it is made for, and whoever makes it is shown it.
+        Administrators::authorizeAccount($request->user(), $user);
+
         $newToken = $user->createToken(
             $data['name'],
             array_values(array_unique($data['abilities'])),
@@ -231,6 +235,8 @@ class TokenController extends Controller
      */
     public function update(UpdateTokenRequest $request, PersonalAccessToken $token)
     {
+        Administrators::authorizeAccount($request->user(), $token->tokenable);
+
         $data = $request->validated();
 
         $token->forceFill([
@@ -263,6 +269,7 @@ class TokenController extends Controller
     public function revoke(Request $request, PersonalAccessToken $token)
     {
         abort_unless($request->user()->can('tokens.acp.edit'), 403);
+        Administrators::authorizeAccount($request->user(), $token->tokenable);
 
         if (is_null($token->revoked_at)) {
             $token->forceFill([
@@ -277,8 +284,10 @@ class TokenController extends Controller
     /**
      * Delete a token.
      */
-    public function destroy(PersonalAccessToken $token)
+    public function destroy(Request $request, PersonalAccessToken $token)
     {
+        Administrators::authorizeAccount($request->user(), $token->tokenable);
+
         $token->delete();
 
         return redirect()->route('acp.tokens.index')

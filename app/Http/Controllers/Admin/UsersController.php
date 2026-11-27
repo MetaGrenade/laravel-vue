@@ -20,6 +20,7 @@ use App\Support\Moderation\Moderation;
 use App\Support\Moderation\ModerationRefused;
 use App\Support\OAuth\OAuthProviders;
 use App\Support\Search\LikePattern;
+use App\Support\Security\Administrators;
 use App\Support\Security\SignInMethods;
 use App\Support\Security\TwoFactorReset;
 use Carbon\Carbon;
@@ -245,6 +246,9 @@ class UsersController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user)
     {
+        Administrators::authorizeAccount($request->user(), $user);
+        Administrators::authorizeGrant($request->user(), $request->roles ?? []);
+
         $user->update($request->validated());
         app(Audit::class)->tracking($user, 'roles', fn () => $user->syncRoles($request->roles ?? []));
 
@@ -258,6 +262,7 @@ class UsersController extends Controller
     public function destroy(User $user, SubscriptionManager $subscriptions)
     {
         Gate::authorize('users.acp.delete');
+        Administrators::authorizeAccount(request()->user(), $user);
 
         if (! $this->deleteEndingSubscriptions($user, $subscriptions)) {
             return back()->with('error', "{$user->nickname} was not deleted: their subscription could not be cancelled at Stripe, so it may still be charging them. Nothing was changed; try again in a few minutes.");
@@ -272,6 +277,8 @@ class UsersController extends Controller
      */
     public function verify(User $user)
     {
+        Administrators::authorizeAccount(request()->user(), $user);
+
         $this->markVerified($user, now());
 
         return redirect()->route('acp.users.index')
@@ -312,6 +319,7 @@ class UsersController extends Controller
         // The order the ids were sent in. A database may return a where-in list in any order, and the
         // message that names the first few people who were not deleted depends on this order.
         $users = User::query()
+            ->with('roles')
             ->whereIn('id', $ids)
             ->get()
             ->sortBy(function (User $user) use ($ids): int {
@@ -328,7 +336,8 @@ class UsersController extends Controller
         $now = now();
         $updatedCount = 0;
         $notDeleted = [];
-        // Members a moderator may not ban, unban or clear out (themselves, staff, an administrator), with why.
+        // Members who may not be banned, unbanned or cleared out (oneself, staff, an administrator), or verified or deleted (an
+        // administrator, by somebody who is not one), with why.
         $refused = [];
         // What came down, for all of them.
         $taken = new ContentTakenDown;
@@ -338,6 +347,13 @@ class UsersController extends Controller
 
         foreach ($users as $user) {
             $changed = false;
+
+            // Banning and clearing out have a rule of their own (Moderation), which covers all staff.
+            if (in_array($action, ['verify', 'delete'], true) && ! Administrators::mayChange($request->user(), $user)) {
+                $refused[] = "{$user->nickname} (".Administrators::ACCOUNT.')';
+
+                continue;
+            }
 
             switch ($action) {
                 case 'verify':
@@ -457,6 +473,8 @@ class UsersController extends Controller
             $what = match ($action) {
                 'ban' => $takeDown ? 'banned or cleared out' : 'banned',
                 'cleanup' => 'cleared out',
+                'verify' => 'verified',
+                'delete' => 'deleted',
                 default => 'unbanned',
             };
 
