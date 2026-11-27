@@ -15,8 +15,8 @@ class DiscordController extends Controller
     {
         abort_unless($request->user()?->can('system.acp.view'), 403);
 
-        // The administrator role is for an administrator to map (RestrictDiscordAdminChanges refuses anybody else).
-        $locked = Administrators::is($request->user()) ? [] : [Administrators::ROLE];
+        // A role somebody could not give themselves is not theirs to map either (RestrictDiscordAdminChanges refuses it).
+        $locked = Administrators::rolesNotGivenBy($request->user());
 
         return Inertia::render('acp/DiscordRoleMappings', [
             // Asked here, where an administrator is allowed everything: the permission names the browser is given do not say so.

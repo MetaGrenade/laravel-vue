@@ -49,7 +49,7 @@ It reaches the forum, the blog and the shop, so it is its **own permission**, `u
 
 ## Who can be moderated
 
-Nobody can moderate themselves. **An administrator cannot be banned at all** (take the role away first). **A member of staff** (`admin`, `editor`, `moderator`) **can only be warned or banned by an administrator.** The page says which applies when the buttons are not available.
+Nobody can moderate themselves. **An administrator cannot be banned at all** (take the role away first). **A [staff account](acp-permissions.md#what-only-an-administrator-can-do)** (an `admin`, `editor` or `moderator`, or anybody with a permission of the admin area) **can only be warned or banned by an administrator.** The page says which applies when the buttons are not available.
 
 ## What the member is told
 

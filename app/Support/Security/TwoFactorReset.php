@@ -5,7 +5,6 @@ namespace App\Support\Security;
 use App\Models\User;
 use App\Notifications\TwoFactorWasReset;
 use App\Support\Audit\Audit;
-use App\Support\Routing\ZiggyRouteGroup;
 use Illuminate\Http\Request;
 use Throwable;
 
@@ -36,7 +35,7 @@ class TwoFactorReset
             return 'You cannot reset your own two-factor here. Turn it off in Settings → Security, which asks for your password.';
         }
 
-        if ($member->hasAnyRole(ZiggyRouteGroup::STAFF_ROLES) && ! $actor->hasRole('admin')) {
+        if (Staff::is($member) && ! $actor->hasRole('admin')) {
             return 'Only an administrator can reset two-factor for a member of staff.';
         }
 

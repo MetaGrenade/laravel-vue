@@ -40,13 +40,23 @@ class ACLController extends Controller
             ->paginate($perPage, ['*'], 'permissions_page')
             ->withQueryString();
 
+        // What somebody who is not an administrator cannot take away is whatever somebody has (App\Support\Security\Administrators).
+        $administrator = Administrators::is($request->user());
+        $rolesInUse = $administrator ? [] : Administrators::rolesInUse($roles->getCollection()->modelKeys());
+        $permissionsInUse = $administrator ? [] : Administrators::permissionsInUse($permissions->getCollection()->modelKeys());
+
         $roleItems = $roles->getCollection()
-            ->map(function (Role $role) use ($formatter) {
+            ->map(function (Role $role) use ($formatter, $administrator, $rolesInUse) {
+                $staffRole = ! $administrator && Administrators::isStaffRole($role->name);
+
                 return [
                     'id' => $role->id,
                     'name' => $role->name,
                     'guard_name' => $role->guard_name,
                     'created_at' => $formatter->iso($role->created_at),
+                    'can_edit' => ! $staffRole,
+                    // Deleting it, or taking a permission off it.
+                    'can_take_away' => ! $staffRole && ! in_array($role->id, $rolesInUse, true),
                     'permissions' => $role->permissions
                         ->map(fn (Permission $permission) => [
                             'id' => $permission->id,
@@ -61,12 +71,13 @@ class ACLController extends Controller
             ->all();
 
         $permissionItems = $permissions->getCollection()
-            ->map(function (Permission $permission) use ($formatter) {
+            ->map(function (Permission $permission) use ($formatter, $permissionsInUse) {
                 return [
                     'id' => $permission->id,
                     'name' => $permission->name,
                     'guard_name' => $permission->guard_name,
                     'created_at' => $formatter->iso($permission->created_at),
+                    'can_delete' => ! in_array($permission->id, $permissionsInUse, true),
                 ];
             })
             ->values()
@@ -83,17 +94,21 @@ class ACLController extends Controller
                 'data' => $permissionItems,
             ], $this->inertiaPagination($permissions)),
             'availablePermissions' => $availablePermissions,
+            // An administrator renames roles and permissions; everybody else gives only the permissions named here (null: any).
+            'canRename' => $administrator,
+            'grantable' => Administrators::permissionsGivenBy($request->user()),
         ]);
     }
 
     /**
      * Show the form for creating a new blog post.
      */
-    public function createRole()
+    public function createRole(Request $request)
     {
-        $permissions = Permission::orderBy('name')->get(['id', 'name', 'guard_name']);
-
-        return inertia('acp/ACLRoleCreate', compact('permissions'));
+        return inertia('acp/ACLRoleCreate', [
+            'permissions' => Permission::orderBy('name')->get(['id', 'name', 'guard_name']),
+            'grantable' => Administrators::permissionsGivenBy($request->user()),
+        ]);
     }
 
     /**
@@ -109,10 +124,10 @@ class ACLController extends Controller
      */
     public function storeRole(StoreRoleRequest $request)
     {
-        Administrators::authorizeRole($request->user(), $request->validated('name'));
+        Administrators::authorizeNewRole($request->user(), $request->validated('name'), $request->permissions ?? []);
 
         $role = Role::query()->create($request->validated());
-        app(Audit::class)->tracking($role, 'permissions', fn () => $role->syncPermissions($request->permissions ?? []));
+        app(Audit::class)->tracking($role, 'permissions', fn () => $role->syncPermissions($this->permissionsNamed($request->permissions ?? [], $role->guard_name)));
 
         return redirect()->route('acp.acl.index')->with('success', 'Role created.');
     }
@@ -122,11 +137,16 @@ class ACLController extends Controller
      */
     public function updateRole(UpdateRoleRequest $request, Role $role)
     {
-        // The role as it is, and the name it is about to have: the app knows an administrator by the role's name.
-        Administrators::authorizeRole($request->user(), $role->name, $request->validated('name'));
+        Administrators::authorizeRoleChange(
+            $request->user(),
+            $role,
+            $request->validated('name'),
+            $request->validated('guard_name'),
+            $request->permissions ?? [],
+        );
 
         $role->update($request->validated());
-        app(Audit::class)->tracking($role, 'permissions', fn () => $role->syncPermissions($request->permissions ?? []));
+        app(Audit::class)->tracking($role, 'permissions', fn () => $role->syncPermissions($this->permissionsNamed($request->permissions ?? [], $role->guard_name)));
 
         return back()->with('success', 'Role updated.');
     }
@@ -136,7 +156,7 @@ class ACLController extends Controller
      */
     public function destroyRole(Request $request, Role $role)
     {
-        Administrators::authorizeRole($request->user(), $role->name);
+        Administrators::authorizeRoleDeletion($request->user(), $role);
 
         $role->delete();
 
@@ -158,6 +178,8 @@ class ACLController extends Controller
      */
     public function updatePermission(UpdatePermissionRequest $request, Permission $permission)
     {
+        Administrators::authorizePermissionChange($request->user());
+
         $permission->update($request->validated());
 
         return back()->with('success', 'Permission updated.');
@@ -166,10 +188,24 @@ class ACLController extends Controller
     /**
      * Delete a Permission.
      */
-    public function destroyPermission(Permission $permission)
+    public function destroyPermission(Request $request, Permission $permission)
     {
+        Administrators::authorizePermissionDeletion($request->user(), $permission);
+
         $permission->delete();
 
         return back()->with('success', 'Permission deleted.');
+    }
+
+    /**
+     * The permissions with these names. Spatie is handed the permissions, not the names: it takes a name shaped like a UUID or a ULID
+     * for a permission's number (App\Rules\NotShapedLikeAnId).
+     *
+     * @param  array<int, string>  $names
+     * @return array<int, \Spatie\Permission\Contracts\Permission>
+     */
+    private function permissionsNamed(array $names, string $guard): array
+    {
+        return array_map(fn (string $name) => Permission::findByName($name, $guard), $names);
     }
 }

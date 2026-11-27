@@ -85,6 +85,8 @@ interface Token {
     daily_quota?: number | null;
     hourly_usage?: number;
     daily_usage?: number;
+    /** A staff account's key, which only an administrator changes. */
+    locked: boolean;
 }
 
 interface TokenLog {
@@ -1013,8 +1015,11 @@ const lastUsedDisplay = (value?: string | null) => {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent>
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator v-if="editTokens" />
-                                                        <DropdownMenuGroup v-if="editTokens">
+                                                        <p v-if="token.locked" class="px-2 py-1.5 text-xs text-muted-foreground">
+                                                            A staff key: only an administrator changes it.
+                                                        </p>
+                                                        <DropdownMenuSeparator v-if="editTokens && !token.locked" />
+                                                        <DropdownMenuGroup v-if="editTokens && !token.locked">
                                                             <DropdownMenuItem @click.prevent="openEditDialog(token)">
                                                                 <Pencil class="mr-2" /> Edit
                                                             </DropdownMenuItem>
@@ -1026,9 +1031,9 @@ const lastUsedDisplay = (value?: string | null) => {
                                                                 <Ban class="mr-2" /> Revoke
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
-                                                        <DropdownMenuSeparator v-if="deleteTokens" />
+                                                        <DropdownMenuSeparator v-if="deleteTokens && !token.locked" />
                                                         <DropdownMenuItem
-                                                            v-if="deleteTokens"
+                                                            v-if="deleteTokens && !token.locked"
                                                             class="text-destructive"
                                                             @click.prevent="requestTokenDeletion(token)"
                                                         >

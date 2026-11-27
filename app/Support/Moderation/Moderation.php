@@ -9,7 +9,7 @@ use App\Notifications\AccountBanned;
 use App\Notifications\BanLifted;
 use App\Notifications\WarningIssued;
 use App\Support\Localization\DateFormatter;
-use App\Support\Routing\ZiggyRouteGroup;
+use App\Support\Security\Staff;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +39,7 @@ class Moderation
             return 'An administrator cannot be banned. Take the administrator role away first.';
         }
 
-        if ($member->hasAnyRole(ZiggyRouteGroup::STAFF_ROLES) && ! $moderator->hasRole('admin')) {
+        if (Staff::is($member) && ! $moderator->hasRole('admin')) {
             return 'Only an administrator can moderate a member of staff.';
         }
 

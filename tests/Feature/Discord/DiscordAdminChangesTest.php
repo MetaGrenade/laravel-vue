@@ -20,7 +20,8 @@ use Tests\TestCase;
 
 /**
  * The companion package's staff routes (docs/discord-companion.md): looking needs system.acp.view, changing needs system.acp.edit, and
- * a mapping of the administrator role, which gives that role to whoever holds a Discord role, is an administrator's to change.
+ * a mapping, which gives its role to whoever holds a Discord role, is theirs to change only if they could give that role themselves.
+ * The staff roles are an administrator's to map.
  */
 class DiscordAdminChangesTest extends TestCase
 {
@@ -33,13 +34,17 @@ class DiscordAdminChangesTest extends TestCase
         $this->seed(RolePermissionSeeder::class);
         Http::preventStrayRequests();
         Queue::fake();
+
+        // One role anybody here holds all of (an editor has polls.acp.view), and one they do not.
+        Role::findOrCreate('helper')->syncPermissions(['polls.acp.view']);
+        Role::findOrCreate('finance')->syncPermissions(['billing.acp.view']);
     }
 
     #[Test]
     public function looking_does_not_let_somebody_change_anything(): void
     {
         $viewer = $this->staffWith('system.acp.view');
-        $mapping = $this->mapping('editor');
+        $mapping = $this->mapping('helper');
 
         $writes = collect(Route::getRoutes()->getRoutes())
             ->filter(fn (RegisteredRoute $route) => str_starts_with($route->uri(), 'discord/admin/'))
@@ -52,11 +57,11 @@ class DiscordAdminChangesTest extends TestCase
 
         foreach ($writes as [$method, $uri]) {
             $this->actingAs($viewer)
-                ->json($method, '/'.$uri, ['spatie_role_name' => 'editor', 'discord_role_id' => '1', 'sync_from_discord' => true])
+                ->json($method, '/'.$uri, ['spatie_role_name' => 'helper', 'discord_role_id' => '1', 'sync_from_discord' => true])
                 ->assertForbidden();
         }
 
-        $this->assertSame([['editor', '100', false]], $this->mappings());
+        $this->assertSame([['helper', '100', false]], $this->mappings());
         Queue::assertNothingPushed();
     }
 
@@ -72,17 +77,17 @@ class DiscordAdminChangesTest extends TestCase
     }
 
     #[Test]
-    public function editing_changes_the_mappings_of_other_roles(): void
+    public function editing_changes_the_mappings_of_a_role_the_editor_could_give(): void
     {
         $editor = $this->staffWith('system.acp.view', 'system.acp.edit');
 
         $id = $this->actingAs($editor)
-            ->postJson('/discord/admin/role-mappings', ['spatie_role_name' => 'editor', 'discord_role_id' => '200'])
+            ->postJson('/discord/admin/role-mappings', ['spatie_role_name' => 'helper', 'discord_role_id' => '200'])
             ->assertCreated()
             ->json('data.id');
 
         $this->actingAs($editor)->putJson("/discord/admin/role-mappings/{$id}", ['sync_from_discord' => true])->assertOk();
-        $this->assertSame([['editor', '200', true]], $this->mappings());
+        $this->assertSame([['helper', '200', true]], $this->mappings());
 
         $this->actingAs($editor)->deleteJson("/discord/admin/role-mappings/{$id}")->assertNoContent();
         $this->assertSame([], $this->mappings());
@@ -93,32 +98,38 @@ class DiscordAdminChangesTest extends TestCase
      */
     public static function spellings(): array
     {
-        return ['as stored' => ['admin'], 'capitals' => ['ADMIN'], 'one capital' => ['Admin']];
+        return [
+            'admin as stored' => ['admin'],
+            'admin in capitals' => ['ADMIN'],
+            'admin with one capital' => ['Admin'],
+            'editor' => ['editor'],
+            'moderator with one capital' => ['Moderator'],
+        ];
     }
 
     #[Test]
     #[DataProvider('spellings')]
-    public function editing_does_not_map_the_administrator_role(string $spelling): void
+    public function editing_does_not_map_a_staff_role(string $spelling): void
     {
         $editor = $this->staffWith('system.acp.view', 'system.acp.edit');
-        $other = $this->mapping('editor');
+        $other = $this->mapping('helper');
 
         $this->refused($this->actingAs($editor)->postJson('/discord/admin/role-mappings', ['spatie_role_name' => $spelling, 'discord_role_id' => '300']));
         $this->refused($this->actingAs($editor)->putJson("/discord/admin/role-mappings/{$other->id}", ['spatie_role_name' => $spelling]));
 
-        $this->assertSame([['editor', '100', false]], $this->mappings());
+        $this->assertSame([['helper', '100', false]], $this->mappings());
     }
 
     #[Test]
     #[DataProvider('spellings')]
-    public function editing_does_not_touch_a_mapping_of_the_administrator_role(string $stored): void
+    public function editing_does_not_touch_a_mapping_of_a_staff_role(string $stored): void
     {
         $editor = $this->staffWith('system.acp.view', 'system.acp.edit');
         $mapping = $this->mapping($stored);
 
         $this->refused($this->actingAs($editor)->putJson("/discord/admin/role-mappings/{$mapping->id}", ['sync_from_discord' => true]));
         // Pointing it at another role would take the administrator's own mapping away.
-        $this->refused($this->actingAs($editor)->putJson("/discord/admin/role-mappings/{$mapping->id}", ['spatie_role_name' => 'editor']));
+        $this->refused($this->actingAs($editor)->putJson("/discord/admin/role-mappings/{$mapping->id}", ['spatie_role_name' => 'helper']));
         $this->refused($this->actingAs($editor)->deleteJson("/discord/admin/role-mappings/{$mapping->id}"));
 
         $this->assertSame([[$stored, '100', false]], $this->mappings());
@@ -141,6 +152,126 @@ class DiscordAdminChangesTest extends TestCase
             ->filter(fn (string $stored) => Role::query()->where('name', $stored)->value('name') === 'admin');
 
         $this->assertSame([], $administrators->values()->all());
+    }
+
+    #[Test]
+    public function editing_does_not_map_a_role_with_a_permission_the_editor_does_not_hold(): void
+    {
+        $editor = $this->staffWith('system.acp.view', 'system.acp.edit');
+        $own = $this->mapping('helper');
+        $theirs = $this->mapping('finance', '101');
+        $notHeld = ['message' => 'You can only give permissions you hold yourself.'];
+
+        $this->actingAs($editor)->postJson('/discord/admin/role-mappings', ['spatie_role_name' => 'finance', 'discord_role_id' => '300'])->assertForbidden()->assertJson($notHeld);
+        $this->actingAs($editor)->putJson("/discord/admin/role-mappings/{$own->id}", ['spatie_role_name' => 'finance'])->assertForbidden()->assertJson($notHeld);
+        $this->actingAs($editor)->putJson("/discord/admin/role-mappings/{$theirs->id}", ['sync_from_discord' => true])->assertForbidden()->assertJson($notHeld);
+        $this->actingAs($editor)->putJson("/discord/admin/role-mappings/{$theirs->id}", ['spatie_role_name' => 'helper'])->assertForbidden()->assertJson($notHeld);
+        $this->actingAs($editor)->deleteJson("/discord/admin/role-mappings/{$theirs->id}")->assertForbidden()->assertJson($notHeld);
+
+        $this->assertSame([['helper', '100', false], ['finance', '101', false]], $this->mappings());
+
+        // Holding what the role holds is what opens it.
+        $editor->givePermissionTo('billing.acp.view');
+
+        $this->actingAs($editor->fresh())->putJson("/discord/admin/role-mappings/{$theirs->id}", ['sync_from_discord' => true])->assertOk();
+    }
+
+    #[Test]
+    public function editing_does_not_map_a_role_that_does_not_exist_but_tidies_its_mapping_away(): void
+    {
+        $editor = $this->staffWith('system.acp.view', 'system.acp.edit');
+        $own = $this->mapping('helper');
+        $stale = $this->mapping('gone', '101');
+        $missing = ['message' => 'Only an administrator can map a role that does not exist.'];
+
+        // It could be made later, with anything on it.
+        $this->actingAs($editor)->postJson('/discord/admin/role-mappings', ['spatie_role_name' => 'later', 'discord_role_id' => '300'])->assertForbidden()->assertJson($missing);
+        $this->actingAs($editor)->putJson("/discord/admin/role-mappings/{$own->id}", ['spatie_role_name' => 'later'])->assertForbidden()->assertJson($missing);
+        // Nor is one that is there already pointed at another Discord role, to wait for the role to come back.
+        $this->actingAs($editor)->putJson("/discord/admin/role-mappings/{$stale->id}", ['discord_role_id' => '999', 'sync_from_discord' => true])->assertForbidden()->assertJson($missing);
+        $this->assertSame([['helper', '100', false], ['gone', '101', false]], $this->mappings());
+        $this->actingAs($editor)->deleteJson("/discord/admin/role-mappings/{$stale->id}")->assertNoContent();
+
+        $this->assertSame([['helper', '100', false]], $this->mappings());
+    }
+
+    /** Syncing from Discord also takes the role from a linked account that lacks the Discord role. */
+    #[Test]
+    public function editing_does_not_set_discord_to_take_a_role_somebody_has(): void
+    {
+        $editor = $this->staffWith('system.acp.view', 'system.acp.edit');
+        $given = $this->mapping('helper');
+        User::factory()->create()->assignRole('helper');
+        $actor = fn () => $this->actingAs($editor->fresh());
+        $taking = ['message' => 'Syncing from Discord takes a role from accounts without the Discord role. Somebody has this one, so ask an administrator.'];
+
+        $actor()->postJson('/discord/admin/role-mappings', ['spatie_role_name' => 'helper', 'discord_role_id' => '300', 'sync_from_discord' => true])->assertForbidden()->assertJson($taking);
+        $actor()->putJson("/discord/admin/role-mappings/{$given->id}", ['sync_from_discord' => true])->assertForbidden()->assertJson($taking);
+        $this->assertSame([['helper', '100', false]], $this->mappings());
+
+        // Sent to Discord only, it takes nothing.
+        $actor()->putJson("/discord/admin/role-mappings/{$given->id}", ['sync_to_discord' => false])->assertOk();
+        Role::findOrCreate('quiz')->syncPermissions(['polls.acp.view']);
+        User::factory()->create()->assignRole('quiz');
+        $actor()->postJson('/discord/admin/role-mappings', ['spatie_role_name' => 'quiz', 'discord_role_id' => '301'])->assertCreated();
+    }
+
+    #[Test]
+    public function a_mapping_that_already_takes_a_role_is_not_pointed_elsewhere_but_can_be_stopped(): void
+    {
+        $editor = $this->staffWith('system.acp.view', 'system.acp.edit');
+        Role::findOrCreate('quiz')->syncPermissions(['polls.acp.view']);
+        $inbound = $this->mapping('helper');
+        $inbound->update(['sync_from_discord' => true]);
+        User::factory()->create()->assignRole('helper', 'quiz');
+        $actor = fn () => $this->actingAs($editor->fresh());
+        $address = "/discord/admin/role-mappings/{$inbound->id}";
+
+        $actor()->putJson($address, ['discord_role_id' => '999'])->assertForbidden();
+        $actor()->putJson($address, ['spatie_role_name' => 'quiz'])->assertForbidden();
+        $this->assertSame([['helper', '100', true]], $this->mappings());
+
+        // What changes nothing about who it takes from is theirs, and so is switching it off or removing it.
+        $actor()->putJson($address, ['sync_to_discord' => false])->assertOk();
+        $actor()->putJson($address, ['discord_role_id' => '100', 'spatie_role_name' => 'helper', 'sync_from_discord' => true])->assertOk();
+        $actor()->putJson($address, ['sync_from_discord' => false])->assertOk();
+        $inbound->update(['sync_from_discord' => true]);
+        $actor()->deleteJson($address)->assertNoContent();
+    }
+
+    #[Test]
+    public function an_administrator_sets_discord_to_take_a_role_somebody_has(): void
+    {
+        $admin = User::factory()->create();
+        $admin->syncRoles(['admin']);
+        User::factory()->create()->assignRole('helper');
+
+        $this->actingAs($admin)
+            ->postJson('/discord/admin/role-mappings', ['spatie_role_name' => 'helper', 'discord_role_id' => '300', 'sync_from_discord' => true])
+            ->assertCreated();
+    }
+
+    /** The bot gives a mapping's role by its name, and Spatie reads a name shaped like an id as a role's number. */
+    #[Test]
+    public function nobody_maps_a_role_whose_name_would_be_read_as_a_number(): void
+    {
+        $admin = User::factory()->create();
+        $admin->syncRoles(['admin']);
+        $name = sprintf('%026d', Role::findByName('admin')->id);
+        Role::query()->create(['name' => $name, 'guard_name' => 'web']);
+        $own = $this->mapping('helper', '101');
+
+        foreach ([$admin, $this->staffWith('system.acp.view', 'system.acp.edit')] as $somebody) {
+            $actor = fn () => $this->actingAs($somebody->fresh());
+            $actor()->postJson('/discord/admin/role-mappings', ['spatie_role_name' => $name, 'discord_role_id' => '300'])->assertUnprocessable()->assertJsonValidationErrors('spatie_role_name');
+            $actor()->putJson("/discord/admin/role-mappings/{$own->id}", ['spatie_role_name' => $name])->assertUnprocessable();
+        }
+        $this->assertSame([['helper', '101', false]], $this->mappings());
+
+        // One made before is not switched on, and can be removed.
+        $before = $this->mapping($name);
+        $this->actingAs($admin)->putJson("/discord/admin/role-mappings/{$before->id}", ['sync_from_discord' => true])->assertUnprocessable();
+        $this->actingAs($admin)->deleteJson("/discord/admin/role-mappings/{$before->id}")->assertNoContent();
     }
 
     #[Test]
@@ -184,7 +315,7 @@ class DiscordAdminChangesTest extends TestCase
     }
 
     #[Test]
-    public function the_mappings_page_offers_the_administrator_role_to_an_administrator_only(): void
+    public function the_mappings_page_offers_the_roles_the_person_could_give(): void
     {
         config(['inertia.testing.ensure_pages_exist' => true]);
         $admin = User::factory()->create();
@@ -193,13 +324,13 @@ class DiscordAdminChangesTest extends TestCase
         $this->actingAs($this->staffWith('system.acp.view', 'system.acp.edit'))
             ->get(route('acp.discord.role-mappings'))
             ->assertInertia(fn ($page) => $page
-                ->where('spatieRoles', ['editor', 'moderator', 'user'])
-                ->where('lockedRoles', ['admin']));
+                ->where('spatieRoles', ['helper', 'user'])
+                ->where('lockedRoles', ['admin', 'editor', 'finance', 'moderator']));
 
         $this->actingAs($admin)
             ->get(route('acp.discord.role-mappings'))
             ->assertInertia(fn ($page) => $page
-                ->where('spatieRoles', ['admin', 'editor', 'moderator', 'user'])
+                ->where('spatieRoles', ['admin', 'editor', 'finance', 'helper', 'moderator', 'user'])
                 ->where('lockedRoles', []));
     }
 
@@ -241,11 +372,11 @@ class DiscordAdminChangesTest extends TestCase
         return $staff->fresh();
     }
 
-    private function mapping(string $role): DiscordRoleMapping
+    private function mapping(string $role, string $discordRole = '100'): DiscordRoleMapping
     {
         return DiscordRoleMapping::query()->create([
             'spatie_role_name' => $role,
-            'discord_role_id' => '100',
+            'discord_role_id' => $discordRole,
             'sync_to_discord' => true,
             'sync_from_discord' => false,
         ]);
@@ -263,6 +394,6 @@ class DiscordAdminChangesTest extends TestCase
 
     private function refused(TestResponse $response): void
     {
-        $response->assertForbidden()->assertJson(['message' => 'Only an administrator can change what the administrator role is mapped to.']);
+        $response->assertForbidden()->assertJson(['message' => 'Only an administrator can change what the admin, editor and moderator roles are mapped to.']);
     }
 }

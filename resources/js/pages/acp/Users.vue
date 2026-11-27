@@ -77,6 +77,8 @@ const props = defineProps<{
             banned_at: string | null;
             banned_until: string | null;
             banned_by: { id: number; nickname: string } | null;
+            /** A staff account, which only an administrator changes. */
+            locked: boolean;
         }>;
         meta?: PaginationMeta | null;
         links?: PaginationLinks | null;
@@ -663,7 +665,7 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || cle
                                                         <Link :href="route('acp.users.edit', { user: user.id })"> <Pencil class="mr-2" /> Edit </Link>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
-                                                        v-if="verifyUsers && !user.email_verified_at"
+                                                        v-if="verifyUsers && !user.email_verified_at && !user.locked"
                                                         class="text-success"
                                                         @click="$inertia.put(route('acp.users.verify', { user: user.id }))"
                                                     >
@@ -674,9 +676,9 @@ const hasBulkActions = computed(() => verifyUsers.value || banUsers.value || cle
                                                             <UserX class="mr-2" /> Moderate
                                                         </Link>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuSeparator v-if="deleteUsers" />
+                                                    <DropdownMenuSeparator v-if="deleteUsers && !user.locked" />
                                                     <DropdownMenuItem
-                                                        v-if="deleteUsers"
+                                                        v-if="deleteUsers && !user.locked"
                                                         class="text-destructive"
                                                         @click="
                                                             openConfirmDialog({

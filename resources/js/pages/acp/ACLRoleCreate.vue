@@ -19,6 +19,8 @@ const props = defineProps<{
         name: string;
         guard_name: string;
     }>;
+    /** The permissions the person looking may give, or null for any. */
+    grantable: string[] | null;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -108,7 +110,10 @@ const handleSubmit = () => {
                         <Card>
                             <CardHeader>
                                 <CardTitle>Permissions</CardTitle>
-                                <CardDescription>Select the permissions this role should include.</CardDescription>
+                                <CardDescription>
+                                    Select the permissions this role should include.
+                                    <template v-if="props.grantable !== null">You can give the ones you hold yourself.</template>
+                                </CardDescription>
                             </CardHeader>
                             <CardContent class="space-y-4">
                                 <div v-if="props.permissions.length === 0" class="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
@@ -123,6 +128,7 @@ const handleSubmit = () => {
                                         <Checkbox
                                             :id="`permission-${permission.id}`"
                                             :model-value="form.permissions.includes(permission.name)"
+                                            :disabled="props.grantable !== null && !props.grantable.includes(permission.name)"
                                             @update:model-value="(value) => togglePermission(permission.name, value)"
                                         />
                                         <div class="grid min-w-0 grid-cols-1 gap-1">

@@ -26,6 +26,7 @@ use App\Support\Security\TwoFactorReset;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Events\Verified;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -109,8 +110,15 @@ class UsersController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
+        $viewer = $request->user();
+
+        // What says whether each is staff, whose account somebody who is not an administrator cannot change.
+        if (! Administrators::is($viewer)) {
+            EloquentCollection::make($users->items())->loadMissing(['roles.permissions', 'permissions']);
+        }
+
         $userItems = $users->getCollection()
-            ->map(function (User $user) use ($formatter) {
+            ->map(function (User $user) use ($formatter, $viewer) {
                 return [
                     'id' => $user->id,
                     'nickname' => $user->nickname,
@@ -126,6 +134,7 @@ class UsersController extends Controller
                         ->map(fn ($role) => ['name' => $role->name])
                         ->values()
                         ->all(),
+                    'locked' => ! Administrators::mayChange($viewer, $user),
                 ];
             })
             ->values()
@@ -209,6 +218,10 @@ class UsersController extends Controller
         return Inertia::render('acp/UsersEdit', [
             'user' => $userData,
             'allRoles' => Role::all(),
+            // Why this account cannot be changed by the person looking at it, and the roles they cannot give it (those it has stay
+            // theirs to leave as they are).
+            'locked' => Administrators::mayChange($admin, $user) ? null : Administrators::ACCOUNT,
+            'lockedRoles' => array_values(array_diff(Administrators::rolesNotGivenBy($admin), $user->roles->pluck('name')->all())),
             'availableSocialProviders' => $providers,
             // The "view as this user" card (docs/impersonation.md): whether the staff member may, and if this person cannot be viewed
             // as, why. Not called `impersonation`: that is the shared prop the bar at the top of a view reads, which a page prop of the
@@ -235,7 +248,7 @@ class UsersController extends Controller
     public function store(StoreUserRequest $request)
     {
         $user = User::create($request->validated());
-        app(Audit::class)->tracking($user, 'roles', fn () => $user->syncRoles($request->roles ?? []));
+        app(Audit::class)->tracking($user, 'roles', fn () => $user->syncRoles($this->rolesNamed($request->roles ?? [])));
 
         return redirect()->route('acp.users.index')
             ->with('success', 'User created.');
@@ -247,10 +260,10 @@ class UsersController extends Controller
     public function update(UpdateUserRequest $request, User $user)
     {
         Administrators::authorizeAccount($request->user(), $user);
-        Administrators::authorizeGrant($request->user(), $request->roles ?? []);
+        Administrators::authorizeGrant($request->user(), $user, $request->roles ?? []);
 
         $user->update($request->validated());
-        app(Audit::class)->tracking($user, 'roles', fn () => $user->syncRoles($request->roles ?? []));
+        app(Audit::class)->tracking($user, 'roles', fn () => $user->syncRoles($this->rolesNamed($request->roles ?? [])));
 
         return redirect()->route('acp.users.index')
             ->with('success', 'User updated.');
@@ -319,7 +332,8 @@ class UsersController extends Controller
         // The order the ids were sent in. A database may return a where-in list in any order, and the
         // message that names the first few people who were not deleted depends on this order.
         $users = User::query()
-            ->with('roles')
+            // What says whether each is staff (Staff).
+            ->with(['roles.permissions', 'permissions'])
             ->whereIn('id', $ids)
             ->get()
             ->sortBy(function (User $user) use ($ids): int {
@@ -336,8 +350,8 @@ class UsersController extends Controller
         $now = now();
         $updatedCount = 0;
         $notDeleted = [];
-        // Members who may not be banned, unbanned or cleared out (oneself, staff, an administrator), or verified or deleted (an
-        // administrator, by somebody who is not one), with why.
+        // Members who may not be banned, unbanned or cleared out (oneself, staff, an administrator), or verified or deleted (staff,
+        // by somebody who is not an administrator), with why.
         $refused = [];
         // What came down, for all of them.
         $taken = new ContentTakenDown;
@@ -516,5 +530,17 @@ class UsersController extends Controller
         if (! $wasVerified) {
             event(new Verified($user));
         }
+    }
+
+    /**
+     * The roles with these names. Spatie is handed the roles, not the names: it takes a name shaped like a UUID or a ULID for a
+     * role's number (App\Rules\NotShapedLikeAnId).
+     *
+     * @param  array<int, string>  $names
+     * @return array<int, \Spatie\Permission\Contracts\Role>
+     */
+    private function rolesNamed(array $names): array
+    {
+        return array_map(fn (string $name) => Role::findByName($name), $names);
     }
 }

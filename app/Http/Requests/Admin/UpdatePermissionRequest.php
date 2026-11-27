@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Rules\NotShapedLikeAnId;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,6 +21,7 @@ class UpdatePermissionRequest extends FormRequest
             'name' => [
                 'required', 'string', 'max:255',
                 Rule::unique('permissions', 'name')->ignore($permId),
+                new NotShapedLikeAnId,
             ],
             'guard_name' => 'required|string|max:255',
         ];
