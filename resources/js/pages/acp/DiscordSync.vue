@@ -11,15 +11,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Input from '@/components/ui/input/Input.vue';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { usePermissions } from '@/composables/usePermissions';
 import { type BreadcrumbItem } from '@/types';
 import { discordAdminApi, type DiscordSyncFailure, type DiscordSyncStatus } from '@/lib/discord-api';
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Discord sync', href: '/acp/discord/sync' }];
+// Starting a sync or a retry changes things, which looking at this page does not allow. The server says whether this person may.
+defineProps<{ canEdit: boolean }>();
 
-// Starting a sync or a retry changes things, which looking at this page does not allow.
-const { hasPermission } = usePermissions();
-const canEdit = computed(() => hasPermission('system.acp.edit'));
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Discord sync', href: '/acp/discord/sync' }];
 
 const status = ref<DiscordSyncStatus | null>(null);
 const runs = ref<Record<string, unknown>[]>([]);

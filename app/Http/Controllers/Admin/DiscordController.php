@@ -19,6 +19,8 @@ class DiscordController extends Controller
         $locked = Administrators::is($request->user()) ? [] : [Administrators::ROLE];
 
         return Inertia::render('acp/DiscordRoleMappings', [
+            // Asked here, where an administrator is allowed everything: the permission names the browser is given do not say so.
+            'canEdit' => $request->user()->can('system.acp.edit'),
             'spatieRoles' => Role::query()->whereNotIn('name', $locked)->orderBy('name')->pluck('name')->values()->all(),
             'lockedRoles' => $locked,
             // Without a server and a bot token there are no Discord roles to list; the page does not ask for them then. (The companion
@@ -31,6 +33,6 @@ class DiscordController extends Controller
     {
         abort_unless($request->user()?->can('system.acp.view'), 403);
 
-        return Inertia::render('acp/DiscordSync');
+        return Inertia::render('acp/DiscordSync', ['canEdit' => $request->user()->can('system.acp.edit')]);
     }
 }

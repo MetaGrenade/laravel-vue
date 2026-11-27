@@ -10,11 +10,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { usePermissions } from '@/composables/usePermissions';
 import { type BreadcrumbItem } from '@/types';
 import { discordAdminApi, type DiscordGuildRole, type DiscordRoleMapping } from '@/lib/discord-api';
 
 const props = defineProps<{
+    /** Whether the server will take changes from this person. */
+    canEdit: boolean;
     spatieRoles: string[];
     /** Roles whose mappings this person may look at and not change. */
     lockedRoles: string[];
@@ -24,9 +25,7 @@ const props = defineProps<{
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Discord role mappings', href: '/acp/discord/role-mappings' }];
 
-const { hasPermission } = usePermissions();
-const canEdit = computed(() => hasPermission('system.acp.edit'));
-const canChange = (mapping: DiscordRoleMapping) => canEdit.value && !props.lockedRoles.includes(mapping.spatie_role_name);
+const canChange = (mapping: DiscordRoleMapping) => props.canEdit && !props.lockedRoles.includes(mapping.spatie_role_name);
 
 const mappings = ref<DiscordRoleMapping[]>([]);
 const discordRoles = ref<DiscordGuildRole[]>([]);

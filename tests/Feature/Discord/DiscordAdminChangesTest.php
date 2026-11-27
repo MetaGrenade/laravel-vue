@@ -203,6 +203,35 @@ class DiscordAdminChangesTest extends TestCase
                 ->where('lockedRoles', []));
     }
 
+    /**
+     * The access control page lets an administrator take permissions off the administrator role. The server still allows them
+     * everything, so each page is told what it allows: the permission names the browser is given do not say so.
+     */
+    #[Test]
+    public function the_pages_say_who_the_server_lets_make_changes(): void
+    {
+        config(['inertia.testing.ensure_pages_exist' => true]);
+        Role::findByName('admin')->syncPermissions([]);
+        $admin = User::factory()->create();
+        $admin->syncRoles(['admin']);
+
+        $staff = [
+            [$admin, true],
+            [$this->staffWith('system.acp.view', 'system.acp.edit'), true],
+            [$this->staffWith('system.acp.view'), false],
+        ];
+
+        foreach (['acp.discord.role-mappings', 'acp.discord.sync'] as $page) {
+            foreach ($staff as [$who, $allowed]) {
+                $this->actingAs($who)->get(route($page))->assertInertia(fn ($inertia) => $inertia->where('canEdit', $allowed));
+            }
+        }
+
+        $this->actingAs($admin)
+            ->postJson('/discord/admin/role-mappings', ['spatie_role_name' => 'editor', 'discord_role_id' => '200'])
+            ->assertCreated();
+    }
+
     private function staffWith(string ...$permissions): User
     {
         $staff = User::factory()->create();
