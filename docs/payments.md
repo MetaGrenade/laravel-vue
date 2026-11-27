@@ -61,6 +61,8 @@ It prints a signing secret (`whsec_...`). Put it in `.env` as `STRIPE_CLI_WEBHOO
 
 **On a real site,** add an endpoint in the Dashboard (**Developers → Webhooks**) at `https://your-site.example/stripe/webhook`, tick the events below, and copy the endpoint's signing secret into `.env` as `STRIPE_WEBHOOK_SECRET`.
 
+That is the only address that takes Stripe's events: Cashier's own (`/billing/webhook`) is switched off. So make the endpoint in the Dashboard and not with `php artisan cashier:webhook`, which stops with *Route [cashier.webhook] not defined* and, given `--url`, ticks only Cashier's events and none of the shop's.
+
 | Events | For |
 |---|---|
 | `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired` | A shop order being paid, paid late (a bank debit), failing or running out. |

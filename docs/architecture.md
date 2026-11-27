@@ -35,7 +35,7 @@ The versions are the constraints in `composer.json` and `package.json`.
 | A script | `routes/api.php`, under `/api` | A bearer key (Sanctum) | The `api` group, then the key's checks ([api.md](api.md)) |
 | Another service | `POST /stripe/webhook`, `POST /webhooks/tebex` (in `web.php`, with the forgery check taken off: they are proved by what the sender attaches instead) | Nothing: a signature on the body (Tebex's are also checked against the sender's address) | [webhooks.md](webhooks.md) |
 
-There is also the command line (`php artisan list` shows the site's own commands: `metaforger:install`, `metaforger:queue`, `metaforger:search:*`, `lang:check`, `api:docs`, `commerce:expire-orders`, `tebex:sync`, and a few that upgrade older data), and `/up`, Laravel's health address.
+There is also the command line (`php artisan list` shows the site's own commands: `metaforger:install`, `metaforger:queue`, `metaforger:search:*`, `lang:check`, `api:docs`, `commerce:expire-orders`, `tebex:sync`, and a few that upgrade older data), and `/up`, Laravel's health address. `routes/cashier.php` holds one more address, in no middleware group: `/billing/payment/{id}`, Cashier's page where a customer confirms a payment with their bank.
 
 ## A page request
 
