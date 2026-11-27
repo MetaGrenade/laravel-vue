@@ -5,7 +5,7 @@ namespace App\Support\Impersonation;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Support\Audit\Audit;
-use App\Support\Routing\ZiggyRouteGroup;
+use App\Support\Security\Staff;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Carbon;
@@ -88,7 +88,7 @@ class Impersonation
             return 'This account is banned, so it cannot be viewed as.';
         }
 
-        if ($target->hasAnyRole(ZiggyRouteGroup::STAFF_ROLES)) {
+        if (Staff::is($target)) {
             return 'Staff accounts cannot be viewed as. Only customers can.';
         }
 
@@ -125,7 +125,7 @@ class Impersonation
             return 'expired';
         }
 
-        if ($target->is_banned || $target->hasAnyRole(ZiggyRouteGroup::STAFF_ROLES)) {
+        if ($target->is_banned || Staff::is($target)) {
             return 'account';
         }
 

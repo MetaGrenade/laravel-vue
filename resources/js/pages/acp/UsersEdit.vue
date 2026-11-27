@@ -87,6 +87,10 @@ const props = defineProps<{
     /** Viewing as this person, read only: whether the staff member may, why not if this person cannot be viewed as, and for how long. */
     viewAs: { can: boolean; refusal: string | null; minutes: number };
     twoFactor: { can: boolean; state: 'on' | 'pending' | 'off'; refusal: string | null; canEmail: boolean };
+    /** Why the person looking cannot change this account (a staff account, to anybody but an administrator); null when they can. */
+    locked: string | null;
+    /** Roles the person looking cannot give this account. */
+    lockedRoles: string[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -275,9 +279,11 @@ const removeSocialLink = (index: number) => {
                         <Button v-if="canViewAuditLog" variant="outline" as-child>
                             <Link :href="route('acp.audit-log.index', { account: props.user.id })">Audit log</Link>
                         </Button>
-                        <Button type="submit" :disabled="form.processing">Save changes</Button>
+                        <Button type="submit" :disabled="form.processing || props.locked !== null">Save changes</Button>
                     </div>
                 </div>
+
+                <p v-if="props.locked" role="note" class="rounded-md border border-warning/40 bg-warning/10 p-4 text-sm">{{ props.locked }}</p>
 
                 <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <div class="flex flex-col gap-6">
@@ -386,6 +392,7 @@ const removeSocialLink = (index: number) => {
                                         <Checkbox
                                             :id="`role-${role.id}`"
                                             :model-value="form.roles.includes(role.name)"
+                                            :disabled="props.locked !== null || props.lockedRoles.includes(role.name)"
                                             @update:model-value="(value) => toggleRole(role.name, value)"
                                         />
                                         <div class="grid gap-1">
@@ -399,6 +406,10 @@ const removeSocialLink = (index: number) => {
                                         </div>
                                     </div>
                                 </div>
+                                <p v-if="!props.locked && props.lockedRoles.length" class="text-xs text-muted-foreground">
+                                    Only an administrator gives the roles switched off here: the staff roles, and any with a permission you do not
+                                    hold.
+                                </p>
                                 <InputError :message="form.errors.roles" />
                             </CardContent>
                         </Card>
@@ -434,7 +445,7 @@ const removeSocialLink = (index: number) => {
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            :disabled="detachForm.processing && removingAccountId === account.id"
+                                            :disabled="props.locked !== null || (detachForm.processing && removingAccountId === account.id)"
                                             @click="detachAccount(account.id)"
                                         >
                                             <LoaderCircle
@@ -516,7 +527,7 @@ const removeSocialLink = (index: number) => {
                                     </div>
 
                                     <div class="flex justify-end">
-                                        <Button type="submit" :disabled="attachForm.processing || !attachForm.provider">
+                                        <Button type="submit" :disabled="props.locked !== null || attachForm.processing || !attachForm.provider">
                                             <LoaderCircle v-if="attachForm.processing" class="mr-2 h-4 w-4 animate-spin" />
                                             Attach provider
                                         </Button>
@@ -564,7 +575,7 @@ const removeSocialLink = (index: number) => {
                                     </span>
                                 </div>
                             </CardContent>
-                            <CardFooter v-if="!props.user.email_verified_at && canVerifyUsers" class="justify-end">
+                            <CardFooter v-if="!props.user.email_verified_at && canVerifyUsers && !props.locked" class="justify-end">
                                 <Button variant="secondary" type="button" :disabled="verifyForm.processing" @click="verifyUser">
                                     Mark as verified
                                 </Button>
@@ -586,7 +597,7 @@ const removeSocialLink = (index: number) => {
                             :can-email="props.twoFactor.canEmail"
                         />
 
-                        <Card v-if="canDeleteUsers">
+                        <Card v-if="canDeleteUsers && !props.locked">
                             <CardHeader>
                                 <CardTitle>Danger zone</CardTitle>
                                 <CardDescription>Permanently remove this account from the system.</CardDescription>

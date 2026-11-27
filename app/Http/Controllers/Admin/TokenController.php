@@ -19,6 +19,7 @@ use App\Support\Localization\DateFormatter;
 use App\Support\Members\StaffUserSearch;
 use App\Support\Search\LikePattern;
 use App\Support\Security\Administrators;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -61,8 +62,16 @@ class TokenController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
+        $viewer = $request->user();
+
+        // What says whether each owner is staff, whose keys somebody who is not an administrator cannot change.
+        if (! Administrators::is($viewer)) {
+            EloquentCollection::make($tokens->getCollection()->pluck('tokenable')->whereInstanceOf(User::class))
+                ->loadMissing(['roles.permissions', 'permissions']);
+        }
+
         $tokenItems = $tokens->getCollection()
-            ->map(function (PersonalAccessToken $token) use ($formatter, $hourlyUsage, $dailyUsage) {
+            ->map(function (PersonalAccessToken $token) use ($formatter, $hourlyUsage, $dailyUsage, $viewer) {
                 $user = $token->tokenable;
 
                 return [
@@ -82,6 +91,7 @@ class TokenController extends Controller
                         'nickname' => $user->nickname,
                         'email' => $user->email,
                     ] : null,
+                    'locked' => ! Administrators::mayChange($viewer, $user),
                 ];
             })
             ->values()

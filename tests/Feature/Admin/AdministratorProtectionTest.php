@@ -51,6 +51,7 @@ class AdministratorProtectionTest extends TestCase
 
     /** Those that name one of these and change nothing about who somebody is or what signs in as them. */
     private const NOT_THE_ACCOUNT = [
+        // What may be done with a permission is in DelegatedGrantsTest.
         'DELETE acp/acl/permissions/{permission}',
         'PUT acp/acl/permissions/{permission}',
         // Which support teams somebody is in.
@@ -175,23 +176,25 @@ class AdministratorProtectionTest extends TestCase
     public function another_spelling_of_the_role_does_not_give_it_either(string $spelling): void
     {
         $editor = $this->staffWith('users.acp.edit');
+        $member = User::factory()->create();
 
-        $this->actingAs($editor)->put(route('acp.users.update', $editor), ['nickname' => $editor->nickname, 'email' => $editor->email, 'roles' => [$spelling]]);
+        $this->actingAs($editor)->put(route('acp.users.update', $member), ['nickname' => $member->nickname, 'email' => $member->email, 'roles' => [$spelling]]);
 
-        $this->assertFalse($editor->fresh()->hasRole('admin'));
+        $this->assertFalse($member->fresh()->hasRole('admin'));
     }
 
     #[Test]
-    public function editing_members_still_gives_the_other_roles(): void
+    public function editing_members_still_gives_a_role_whose_permissions_the_editor_holds(): void
     {
         $editor = $this->staffWith('users.acp.edit');
         $member = User::factory()->create();
+        Role::findOrCreate('helper')->syncPermissions(['polls.acp.view']);
 
         $this->actingAs($editor)
-            ->put(route('acp.users.update', $member), ['nickname' => 'helper', 'email' => $member->email, 'roles' => ['moderator']])
+            ->put(route('acp.users.update', $member), ['nickname' => 'helper', 'email' => $member->email, 'roles' => ['helper']])
             ->assertRedirect(route('acp.users.index'));
 
-        $this->assertSame(['moderator'], $member->fresh()->getRoleNames()->all());
+        $this->assertSame(['helper'], $member->fresh()->getRoleNames()->all());
         $this->assertSame('helper', $member->fresh()->nickname);
     }
 
@@ -222,7 +225,7 @@ class AdministratorProtectionTest extends TestCase
             ->from(route('acp.users.edit', $this->admin))
             ->put(route('acp.users.update', $this->admin), ['nickname' => 'boss', 'email' => 'boss@example.test'], ['X-Inertia' => 'true'])
             ->assertRedirect(route('acp.users.edit', $this->admin))
-            ->assertSessionHasErrors(['refused' => "Only an administrator can change an administrator's account."]);
+            ->assertSessionHasErrors(['refused' => 'Only an administrator can change a staff account.']);
     }
 
     #[Test]
@@ -234,7 +237,7 @@ class AdministratorProtectionTest extends TestCase
         $this->actingAs($deleter)
             ->patch(route('acp.users.bulk-update'), ['action' => 'delete', 'ids' => [$this->admin->id, $member->id]])
             ->assertSessionHas('success', 'Deleted 1 user.')
-            ->assertSessionHas('error', "Not deleted: boss (Only an administrator can change an administrator's account.).");
+            ->assertSessionHas('error', 'Not deleted: boss (Only an administrator can change a staff account.).');
 
         $this->assertModelExists($this->admin);
         $this->assertModelMissing($member);
@@ -249,7 +252,7 @@ class AdministratorProtectionTest extends TestCase
         $this->actingAs($verifier)
             ->patch(route('acp.users.bulk-update'), ['action' => 'verify', 'ids' => [$this->admin->id, $member->id]])
             ->assertSessionHas('success', 'Verified 1 user.')
-            ->assertSessionHas('error', "Not verified: boss (Only an administrator can change an administrator's account.).");
+            ->assertSessionHas('error', 'Not verified: boss (Only an administrator can change a staff account.).');
 
         $this->assertNull($this->admin->fresh()->email_verified_at);
         $this->assertNotNull($member->fresh()->email_verified_at);
@@ -278,7 +281,9 @@ class AdministratorProtectionTest extends TestCase
         $this->assertSame(0, PersonalAccessToken::query()->count());
         Notification::assertNothingSent();
 
-        $this->actingAs($maker)->post(route('acp.tokens.store'), ['user_id' => $maker->id] + $form)->assertSessionHas('plain_text_token');
+        $member = User::factory()->create();
+
+        $this->actingAs($maker)->post(route('acp.tokens.store'), ['user_id' => $member->id] + $form)->assertSessionHas('plain_text_token');
         $this->actingAs($this->admin)->post(route('acp.tokens.store'), $form)->assertSessionHas('plain_text_token');
 
         $this->assertSame(1, $this->admin->tokens()->count());
@@ -349,11 +354,11 @@ class AdministratorProtectionTest extends TestCase
         $holder = $this->staffWith('acl.acp.create', 'acl.acp.edit', 'acl.acp.delete');
 
         $this->actingAs($holder)->post(route('acp.acl.roles.store'), ['name' => 'helper', 'guard_name' => 'web'])->assertRedirect(route('acp.acl.index'));
-        $this->actingAs($holder)->put(route('acp.acl.roles.update', Role::findByName('helper')), ['name' => 'helpers', 'guard_name' => 'web', 'permissions' => ['polls.acp.view']])->assertSessionHas('success');
-        $this->assertTrue(Role::findByName('helpers')->hasPermissionTo('polls.acp.view'));
+        $this->actingAs($holder)->put(route('acp.acl.roles.update', Role::findByName('helper')), ['name' => 'helper', 'guard_name' => 'web', 'permissions' => ['polls.acp.view']])->assertSessionHas('success');
+        $this->assertTrue(Role::findByName('helper')->hasPermissionTo('polls.acp.view'));
 
-        $this->actingAs($holder)->delete(route('acp.acl.roles.destroy', Role::findByName('helpers')))->assertSessionHas('success');
-        $this->assertFalse(Role::query()->where('name', 'helpers')->exists());
+        $this->actingAs($holder)->delete(route('acp.acl.roles.destroy', Role::findByName('helper')))->assertSessionHas('success');
+        $this->assertFalse(Role::query()->where('name', 'helper')->exists());
     }
 
     #[Test]

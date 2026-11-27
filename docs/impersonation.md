@@ -16,7 +16,7 @@ A member of staff can see the site **as one customer sees it**, to help with a s
 
 ## Who can be viewed
 
-**Customers only.** Not anybody with a staff role (`admin`, `editor`, `moderator`), not your own account, and not a banned account (a ban signs the account out, which would end the view). The page says why when it is one of those.
+**Customers only.** Not a [staff account](acp-permissions.md#what-only-an-administrator-can-do) (an `admin`, `editor` or `moderator`, or anybody with a permission of the admin area), not your own account, and not a banned account (a ban signs the account out, which would end the view). The page says why when it is one of those.
 
 ## How it works
 
@@ -53,7 +53,7 @@ The "verify your email" notice **is** viewable: it is where a customer who has n
 
 A view also ends, on the next request, when:
 
-- the account is deleted, banned, or given a staff role (`account`);
+- the account is deleted, banned, or made a staff account (`account`);
 - the staff member is banned or loses the permission (`permission`).
 
 ## What is recorded

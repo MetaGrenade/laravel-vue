@@ -23,6 +23,8 @@ class UserSocialAccountController extends Controller
 
         $data = $request->validated();
 
+        Administrators::authorizeProviderLink($request->user(), $data['provider']);
+
         $account = $user->socialAccounts()->firstOrNew([
             'provider' => $data['provider'],
         ]);

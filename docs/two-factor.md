@@ -60,7 +60,7 @@ A member who has two-factor on and has lost both the authenticator app and the r
 **From the admin area:** **Admin → Users → Edit → Two-factor authentication → Turn two-factor off.** It needs the `users.acp.reset-two-factor` permission. Administrators have it; editors and moderators do not, and it is not in the moderators' list ([Moderation](moderation.md#permissions)). A support team that should do it gets the permission on its role under **Admin → Roles and permissions**. You are asked **why** (5 to 500 characters; a ticket number will do), and the reason is kept in the audit log.
 
 - **Never your own account.** A member of staff turns their own off in **Settings → Security**, which asks for the password. Here it would be a way round that for whoever holds an administrator's session.
-- **A member of staff only by an administrator.** The same rule as moderation.
+- **A [staff account](acp-permissions.md#what-only-an-administrator-can-do) only by an administrator.** The same rule as moderation.
 - **Nothing set up is refused,** with the reason. A setup that was started and never confirmed counts as something to clear.
 
 **From the console:** `php artisan metaforger:two-factor:reset <id or email> --reason="Ticket 4411" [--force]`. It is for the case the admin area cannot cover: the **only administrator** is the person who lost their phone, and nobody is left to ask. Having a shell on the server is the authority, so it works on any account, an administrator's and your own included, and warns when the account is staff. It asks for the reason when `--reason` is not given (and refuses to run without one when nobody can be asked, such as from a script), and asks for confirmation unless `--force` is given.

@@ -275,6 +275,31 @@ Now only an administrator can give the role, or change the role, an administrato
 4. **Admin → Access control**: the roles still have their own names.
 5. The [audit log](audit-log.md) has what was changed under `/acp`. Changes to Discord mappings were never recorded.
 
+### Staff accounts and giving permissions
+
+Somebody without the `admin` role can now **give only permissions they hold themselves**, and **cannot change a staff account**: one with the `admin`, `editor` or `moderator` role, or with any permission of the admin area. Only an administrator can give or change those three roles, rename a role or a permission, or take something away that somebody has. The whole list is in [acp-permissions.md](acp-permissions.md#what-only-an-administrator-can-do). Nothing stored changes and nothing has to be run. A default install notices only this: a moderator cannot warn or ban, and nobody but an administrator can [view the site as](impersonation.md) or reset the two-factor of, an account that was given a permission of the admin area without a staff role.
+
+**If you gave `users.acp.*`, `acl.acp.*`, `tokens.acp.*` or `system.acp.edit` to somebody who is not an administrator**, they can do less than before:
+
+- They cannot edit, verify or delete another staff account, or their own under **Admin → Users**, and cannot handle its keys under **Admin → Tokens**.
+- They cannot make anybody an editor or a moderator. A role of your own they can give only if they hold everything on it: give them those permissions, or have an administrator give the role.
+- On the Discord pages they map only such roles.
+
+What was given before stays. To look over it, see who has which role (**Admin → Users**) and what each role holds (**Admin → Access control**); the [audit log](audit-log.md) has the changes made under `/acp`.
+
+### A role name shaped like an id
+
+The library that keeps roles takes a name in the shape of a UUID or a ULID for a role's number, and the database then makes a number of what it can of it. Somebody who could make a role and give it (`acl.acp.create` with `users.acp.edit`) could make one named `00000000000000000000000001` and, by giving it, give role number 1: on a site set up in the usual order, `admin`. On MariaDB and MySQL any such name worked that begins with the number. The role seeder gives those permissions to administrators only. Names of those shapes are refused now.
+
+To see whether a site has one (an empty collection is the answer you want):
+
+```bash
+php artisan tinker
+>>> Spatie\Permission\Models\Role::pluck('name')->concat(Spatie\Permission\Models\Permission::pluck('name'))->filter(fn ($name) => Spatie\Permission\PermissionRegistrar::isUid($name));
+```
+
+If it names one that you did not make for a reason, delete it and any Discord mapping of it, and check who has the `admin` role ([the first step above](#staff-permissions-and-the-administrator-role)). One that you did make has to be renamed before it can be saved or mapped again.
+
 ### Nicknames and email addresses that differ only by case
 
 MySQL and MariaDB compare text without regard to case, so on them `Ada` and `ada` were already the same nickname and `Ada@Example.com` and `ada@example.com` the same address. SQLite and PostgreSQL compare exactly, so on them the check for "already taken" let both through: two members whose names differ only by case (one can pass for the other, `Admin` and `admin`), or two accounts for one mailbox.
@@ -359,6 +384,8 @@ Behaviour that was different in an earlier build and is different now. The CHANG
 | **Every answer carries the security headers.** | Unknown addresses, missing records, redirects to sign in, the maintenance page of `php artisan down` and the API had none of them. | Nothing, unless your web server adds the same headers to the application's answers: take them out there ([Security headers on every answer](#security-headers-on-every-answer)). |
 | **Stripe's deliveries to `/billing/webhook` fail.** | The webhook that Laravel Cashier adds by itself is switched off: with no signing secret set, it applied unsigned events. | Point the endpoint in Stripe at `/stripe/webhook` ([Stripe events sent to `/billing/webhook`](#stripe-events-sent-to-billingwebhook)). |
 | **Only an administrator can touch the administrator role and administrators' accounts. A change on the Discord admin pages needs `system.acp.edit`.** | Permissions meant for one part of the admin area could be used to become an administrator, or to take one's place. | If you ever gave such a permission to somebody else, check who is an administrator, and the Discord mappings ([Staff permissions and the administrator role](#staff-permissions-and-the-administrator-role)). |
+| **Somebody who is not an administrator is refused on a staff account, or when giving a role or a permission.** | They can give only what they hold, and staff accounts and the `admin`, `editor` and `moderator` roles are an administrator's to change. | Have an administrator do it, or give them the permissions they are to hand on ([Staff accounts and giving permissions](#staff-accounts-and-giving-permissions)). |
+| **A role or permission name is refused for having the shape of a UUID or a ULID.** | Giving a role of such a name could give another role, the administrator's among them. | Use another name, and look for ones made earlier ([A role name shaped like an id](#a-role-name-shaped-like-an-id)). |
 | **New colours, type and logo.** | The interface, the logo and every icon in `public/` follow the MetaForger design. | If you changed any of them, read [theming.md](theming.md) before you check out the new code. |
 
 ## If you changed the code

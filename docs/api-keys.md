@@ -127,7 +127,7 @@ Sanctum's own `sanctum.expiration` (in minutes, `null` by default) still applies
 
 Revoking in the ACP now really revokes. **Restoring** a revoked token (clearing the revocation in the edit dialog) makes it work again.
 
-**An administrator's keys are for an administrator to handle.** A key acts as its account, and whoever makes it is shown it. Somebody else with `tokens.acp.create`, `.edit` or `.delete` cannot make a key for an administrator, or change, revoke or delete one of theirs; with `.view` they still see them in the list ([acp-permissions.md](acp-permissions.md#what-only-an-administrator-can-do)).
+**A staff account's keys are for an administrator to handle.** A key acts as its account, and whoever makes it is shown it. Somebody else with `tokens.acp.create`, `.edit` or `.delete` cannot make a key for a staff account, or change, revoke or delete one of its keys, their own included (those are in **Settings → API keys**); with `.view` they still see them in the list ([acp-permissions.md](acp-permissions.md#what-only-an-administrator-can-do)).
 
 ## The request log
 
@@ -191,7 +191,7 @@ Run `php artisan api:docs` after deploying, so the generated OpenAPI document (c
 ## Not built
 
 - **A key rotating itself over the API.** A leaked key could renew itself for ever, so rotation needs the person's own session. A service that must renew without a person should sign in again (`POST /api/v1/auth/token`) when its key is about to end.
-- **A password prompt on Admin → Tokens.** Staff can make a key of any scope for any member there (an administrator's only if they are one), with the `tokens.acp.create` permission and nothing else, so a staff session that was left open could make one. Asking staff again before the sensitive things they can do is a decision about the whole staff area, not about keys.
+- **A password prompt on Admin → Tokens.** Staff can make a key of any scope for any member there (a staff account's only if they are an administrator), with the `tokens.acp.create` permission and nothing else, so a staff session that was left open could make one. Asking staff again before the sensitive things they can do is a decision about the whole staff area, not about keys.
 - **A way through the password prompt for members who have no password.** A made-up `…@oauth.local` address is not asked, and a member with a real address who never chose a password has to set one first with **Forgot your password?**.
 - **Opting out of the email**, or choosing another channel. It is a security notice, sent by email always.
 - **Two-factor authentication on `POST /api/v1/auth/token`.** It takes a password only, so an account with two-factor authentication can make a key without a code. Keys made on the settings page are made from a signed-in session, which has been through it.

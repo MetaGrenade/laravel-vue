@@ -35,9 +35,16 @@ JSON APIs are provided by the package under `/discord/admin/*` and `/discord/use
 
 The admin routes need a member of staff with `system.acp.view`. That is enough to open the two admin pages and read their lists. **Every change needs `system.acp.edit`**: adding, changing or deleting a mapping, syncing a user, and retrying failures.
 
-A mapping with **sync from Discord** on gives its site role to any member whose linked Discord account is given the Discord role it names. So **only an administrator can add, change or delete a mapping of the `admin` role**, and for anybody else the page does not offer that role. Think about who can hand out the mapped Discord role on your server: for the site, they hand out the site role.
+A mapping with **sync from Discord** on gives its site role to any member whose linked Discord account is given the Discord role it names. So a mapping is changed only by somebody who could give that role themselves ([acp-permissions.md](acp-permissions.md#giving-permissions)):
 
-Both rules are `App\Http\Middleware\RestrictDiscordAdminChanges`, the last entry of `admin_middleware`. The package runs the list it finds there, so if you published your own `config/discord.php` or changed the list, keep that entry.
+- **an administrator** maps any role;
+- **anybody else** adds, changes or deletes a mapping only of a role whose every permission they hold, and never of `admin`, `editor` or `moderator`. The page offers them no other role. A mapping whose role is no longer there, they can only delete;
+- **sync from Discord also takes the role away** from a linked account that lacks the Discord role. While somebody has the role, only an administrator can switch it on, or point a mapping that has it on at another role or Discord role. Whoever may change the mapping can switch it off or delete it;
+- **linking a Discord account to a member by hand** (**Admin → Users → Edit**) is refused to them while a mapping that syncs from Discord names a role they could not give.
+
+Think about who can hand out the mapped Discord role on your server: for the site, they hand out the site role.
+
+The rules for the Discord pages are `App\Http\Middleware\RestrictDiscordAdminChanges`, the last entry of `admin_middleware`. The package runs the list it finds there, so if you published your own `config/discord.php` or changed the list, keep that entry.
 
 These changes are **not** in the [audit log](audit-log.md), which records writes under `/acp` only.
 

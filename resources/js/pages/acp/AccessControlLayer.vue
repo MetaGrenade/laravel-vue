@@ -50,6 +50,9 @@ type RoleItem = {
     guard_name: string;
     created_at: string;
     permissions: RolePermission[];
+    /** Whether the person looking may change it at all, and whether they may take something from it (or delete it). */
+    can_edit: boolean;
+    can_take_away: boolean;
 };
 
 type PermissionItem = {
@@ -57,6 +60,7 @@ type PermissionItem = {
     name: string;
     guard_name: string;
     created_at: string;
+    can_delete: boolean;
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -85,6 +89,10 @@ const props = defineProps<{
         links?: PaginationLinks | null;
     };
     availablePermissions: RolePermission[];
+    /** An administrator renames roles and permissions; nobody else does. */
+    canRename: boolean;
+    /** The permissions the person looking may give, or null for any. */
+    grantable: string[] | null;
 }>();
 
 const currentRolesPage = computed(() => props.roles.meta?.current_page ?? 1);
@@ -213,6 +221,17 @@ const handlePermissionDialogChange = (open: boolean) => {
     }
 };
 
+// What the server would refuse: taking from a role somebody has, and adding a permission the person looking does not hold.
+const isPermissionLocked = (permissionName: string) => {
+    const role = selectedRole.value;
+
+    if (role?.permissions.some((permission) => permission.name === permissionName)) {
+        return !role.can_take_away;
+    }
+
+    return props.grantable !== null && !props.grantable.includes(permissionName);
+};
+
 const toggleRolePermission = (permissionName: string, checked: boolean | string) => {
     const isChecked = checked === true || checked === 'indeterminate';
 
@@ -286,6 +305,11 @@ const filteredPermissions = computed(() => {
 
         <AdminLayout>
             <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pb-4">
+                <p v-if="!props.canRename && (canEdit || canDelete)" role="note" class="text-sm text-muted-foreground">
+                    Only an administrator changes the admin, editor and moderator roles, renames a role or a permission, or takes away what somebody
+                    has. You can give the permissions you hold.
+                </p>
+
                 <Tabs default-value="roles" class="w-full">
                     <TabsList>
                         <TabsTrigger value="roles">Roles</TabsTrigger>
@@ -325,7 +349,7 @@ const filteredPermissions = computed(() => {
                                                 {{ role.created_at ? dayjs(role.created_at).fromNow() : '—' }}
                                             </TableCell>
                                             <TableCell class="text-center">
-                                                <template v-if="canEdit || canDelete">
+                                                <template v-if="(canEdit && role.can_edit) || (canDelete && role.can_take_away)">
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger as-child>
                                                             <Button variant="outline" size="icon" :aria-label="`Actions for role ${role.name}`">
@@ -334,15 +358,15 @@ const filteredPermissions = computed(() => {
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent>
                                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                            <DropdownMenuSeparator v-if="canEdit" />
-                                                            <DropdownMenuGroup v-if="canEdit">
+                                                            <DropdownMenuSeparator v-if="canEdit && role.can_edit" />
+                                                            <DropdownMenuGroup v-if="canEdit && role.can_edit">
                                                                 <DropdownMenuItem @click="openRoleDialog(role)">
                                                                     <Pencil class="mr-2" /> Edit
                                                                 </DropdownMenuItem>
                                                             </DropdownMenuGroup>
-                                                            <DropdownMenuSeparator v-if="canDelete" />
+                                                            <DropdownMenuSeparator v-if="canDelete && role.can_take_away" />
                                                             <DropdownMenuItem
-                                                                v-if="canDelete"
+                                                                v-if="canDelete && role.can_take_away"
                                                                 class="text-destructive"
                                                                 @click="confirmRoleDeletion(role)"
                                                             >
@@ -432,7 +456,7 @@ const filteredPermissions = computed(() => {
                                                 {{ permission.created_at ? dayjs(permission.created_at).fromNow() : '—' }}
                                             </TableCell>
                                             <TableCell class="text-center">
-                                                <template v-if="canEdit || canDelete">
+                                                <template v-if="(canEdit && props.canRename) || (canDelete && permission.can_delete)">
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger as-child>
                                                             <Button
@@ -445,15 +469,15 @@ const filteredPermissions = computed(() => {
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent>
                                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                            <DropdownMenuSeparator v-if="canEdit" />
-                                                            <DropdownMenuGroup v-if="canEdit">
+                                                            <DropdownMenuSeparator v-if="canEdit && props.canRename" />
+                                                            <DropdownMenuGroup v-if="canEdit && props.canRename">
                                                                 <DropdownMenuItem @click="openPermissionDialog(permission)">
                                                                     <Pencil class="mr-2" /> Edit
                                                                 </DropdownMenuItem>
                                                             </DropdownMenuGroup>
-                                                            <DropdownMenuSeparator v-if="canDelete" />
+                                                            <DropdownMenuSeparator v-if="canDelete && permission.can_delete" />
                                                             <DropdownMenuItem
-                                                                v-if="canDelete"
+                                                                v-if="canDelete && permission.can_delete"
                                                                 class="text-destructive"
                                                                 @click="confirmPermissionDeletion(permission)"
                                                             >
@@ -528,13 +552,13 @@ const filteredPermissions = computed(() => {
                         <div class="grid gap-4">
                             <div class="grid gap-2">
                                 <Label for="role-name">Name</Label>
-                                <Input id="role-name" v-model="roleForm.name" type="text" autocomplete="off" required />
+                                <Input id="role-name" v-model="roleForm.name" type="text" autocomplete="off" :disabled="!props.canRename" required />
                                 <InputError :message="roleForm.errors.name" />
                             </div>
 
                             <div class="grid gap-2">
                                 <Label for="role-guard">Guard name</Label>
-                                <Input id="role-guard" v-model="roleForm.guard_name" type="text" required />
+                                <Input id="role-guard" v-model="roleForm.guard_name" type="text" :disabled="!props.canRename" required />
                                 <InputError :message="roleForm.errors.guard_name" />
                             </div>
 
@@ -555,6 +579,7 @@ const filteredPermissions = computed(() => {
                                         <Checkbox
                                             :id="`dialog-permission-${permission.id}`"
                                             :model-value="roleForm.permissions.includes(permission.name)"
+                                            :disabled="isPermissionLocked(permission.name)"
                                             @update:model-value="(value) => toggleRolePermission(permission.name, value)"
                                         />
                                         <div class="grid gap-1">

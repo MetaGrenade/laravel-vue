@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
-use App\Support\Routing\ZiggyRouteGroup;
+use App\Support\Security\Staff;
 use App\Support\Security\TwoFactorReset;
 use Illuminate\Console\Command;
 
@@ -48,7 +48,7 @@ class ResetTwoFactorCommand extends Command
 
         $this->line(sprintf('Account: %s (%s), id %d.', $member->nickname, $member->email, $member->id));
 
-        if ($member->hasAnyRole(ZiggyRouteGroup::STAFF_ROLES)) {
+        if (Staff::is($member)) {
             $this->warn('This is a member of staff. Be sure it is them: with two-factor off, their password is all that stands between a stranger and the admin area.');
         }
 
