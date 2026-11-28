@@ -196,6 +196,20 @@ class DeletedMemberTest extends TestCase
     }
 
     #[Test]
+    public function an_export_row_that_names_another_members_export_does_not_take_it(): void
+    {
+        $member = User::factory()->create();
+        $other = User::factory()->create();
+        $theirs = "exports/user-{$other->id}-20261117_090000.zip";
+        Storage::disk('local')->put($theirs, 'the other member');
+        DataExport::factory()->for($member)->completed()->create(['file_path' => $theirs]);
+
+        $member->delete();
+
+        Storage::disk('local')->assertExists($theirs);
+    }
+
+    #[Test]
     public function what_a_member_of_staff_attached_to_somebody_elses_ticket_stays_with_that_ticket(): void
     {
         $staff = User::factory()->create();

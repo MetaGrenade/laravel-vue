@@ -786,10 +786,12 @@ const submitErasureForm = () => {
                             v-model="exportForm.file_path"
                             type="text"
                             class="mt-1"
-                            placeholder="storage/app/exports/filename.zip"
+                            :placeholder="`exports/user-${activeExport?.user?.id ?? '…'}-filename.zip`"
                         />
                         <InputError :message="exportForm.errors.file_path" class="mt-1" />
-                        <p class="mt-1 text-xs text-muted-foreground">Required when marking an export as completed.</p>
+                        <p class="mt-1 text-xs text-muted-foreground">
+                            Required when marking an export as completed. It has to be this member's own export file.
+                        </p>
                     </div>
 
                     <div>

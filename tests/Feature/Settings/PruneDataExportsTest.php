@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -53,10 +54,11 @@ class PruneDataExportsTest extends TestCase
      */
     private function export(int $secondsAgo, ?User $member = null, ?string $path = null): DataExport
     {
-        $path ??= 'exports/user-'.fake()->unique()->numberBetween(1000, 999999).'-20261116_120000.zip';
+        $member ??= User::factory()->create();
+        $path ??= DataExport::filePrefix($member->id).fake()->unique()->numberBetween(1000, 999999).'.zip';
         $this->file($path, $secondsAgo);
 
-        return DataExport::factory()->for($member ?? User::factory()->create())->create([
+        return DataExport::factory()->for($member)->create([
             'status' => DataExport::STATUS_COMPLETED,
             'file_path' => $path,
             'completed_at' => now()->subSeconds($secondsAgo),
@@ -120,7 +122,7 @@ class PruneDataExportsTest extends TestCase
 
         $ids = [];
         foreach (range(1, 230) as $n) {
-            $ids[] = $this->export(2 * 3600, $member, "exports/user-1-$n.zip")->id;
+            $ids[] = $this->export(2 * 3600, $member, DataExport::filePrefix($member->id)."$n.zip")->id;
         }
 
         $this->prune();
@@ -169,13 +171,14 @@ class PruneDataExportsTest extends TestCase
     public function a_file_that_an_open_export_names_is_never_taken_even_if_it_is_old(): void
     {
         // A job that took a long time to write its file: the file is older than two windows, the export's window has only just opened.
-        $export = $this->export(10 * 60, null, 'exports/user-3-slow.zip');
-        $this->file('exports/user-3-slow.zip', 3 * 3600);
+        $export = $this->export(10 * 60);
+        $path = (string) $export->file_path;
+        $this->file($path, 3 * 3600);
 
         $this->prune();
 
-        Storage::disk('local')->assertExists('exports/user-3-slow.zip');
-        $this->assertSame('exports/user-3-slow.zip', $export->fresh()->file_path);
+        Storage::disk('local')->assertExists($path);
+        $this->assertSame($path, $export->fresh()->file_path);
     }
 
     #[Test]
@@ -298,14 +301,43 @@ class PruneDataExportsTest extends TestCase
     }
 
     #[Test]
+    public function a_row_that_names_another_members_export_does_not_offer_serve_or_delete_it(): void
+    {
+        $theirs = $this->export(5 * 60);
+        $path = (string) $theirs->file_path;
+
+        // Saved by staff before a path had to be the member's own: one still inside its window, one past it.
+        $other = User::factory()->create();
+        $open = DataExport::factory()->for($other)->completed()->create(['file_path' => $path, 'completed_at' => now()->subMinutes(5)]);
+        $over = DataExport::factory()->for($other)->completed()->create(['file_path' => $path, 'completed_at' => now()->subMinutes(40)]);
+
+        $this->actingAs($other)
+            ->get(URL::temporarySignedRoute('privacy.exports.download', now()->addMinutes(5), ['export' => $open->id]))
+            ->assertNotFound();
+        $this->actingAs($other)->get(route('privacy.index'))->assertInertia(fn (Assert $page) => $page
+            ->has('exports', 2)
+            ->where('exports.0.download_url', null)
+            ->where('exports.1.download_url', null));
+
+        $this->prune();
+
+        Storage::disk('local')->assertExists($path);
+        $this->assertNull($over->fresh()->file_path, 'the expired row no longer names it');
+        $this->assertTrue($theirs->fresh()->isReady(), 'and the member whose export it is still has it');
+    }
+
+    #[Test]
     public function the_pattern_is_the_one_staff_are_held_to_and_a_real_export_matches_it(): void
     {
-        $this->assertSame(1, preg_match(DataExport::pathPattern(), 'exports/user-4-20261116_120000.zip'));
-        $this->assertSame(0, preg_match(DataExport::pathPattern(), "exports/user-4.zip\n"));
+        $this->assertSame(1, preg_match(DataExport::pathPattern(4), 'exports/user-4-20261116_120000.zip'));
+        $this->assertSame(0, preg_match(DataExport::pathPattern(4), "exports/user-4-1.zip\n"));
 
-        $this->assertTrue((new DataExport(['file_path' => 'exports/user-4-20261116_120000.zip']))->namesAnExportFile());
-        $this->assertFalse((new DataExport(['file_path' => null]))->namesAnExportFile());
-        $this->assertFalse((new DataExport(['file_path' => 'products/12/game.zip']))->namesAnExportFile());
+        $named = fn (int $member, ?string $path): bool => (new DataExport(['user_id' => $member, 'file_path' => $path]))->namesAnExportFile();
+
+        $this->assertTrue($named(4, 'exports/user-4-20261116_120000.zip'));
+        $this->assertFalse($named(5, 'exports/user-4-20261116_120000.zip'), 'another member\'s');
+        $this->assertFalse($named(4, null));
+        $this->assertFalse($named(4, 'products/12/game.zip'));
     }
 
     #[Test]
@@ -361,8 +393,9 @@ class PruneDataExportsTest extends TestCase
         Notification::fake();
         (new GenerateUserDataExport($export->id))->handle();
 
-        $this->assertStringStartsWith(DataExport::DIRECTORY.'/', (string) $export->fresh()->file_path);
+        $this->assertStringStartsWith(DataExport::DIRECTORY."/user-{$member->id}-", (string) $export->fresh()->file_path);
         Storage::disk('local')->assertExists((string) $export->fresh()->file_path);
+        $this->assertTrue($export->fresh()->isReady(), 'what the job names is what the member may download');
         $this->assertSame('exports', DataExport::DIRECTORY);
     }
 }

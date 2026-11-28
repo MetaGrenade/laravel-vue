@@ -29,7 +29,8 @@ class DataExportFactory extends Factory
     {
         return $this->state(fn () => [
             'status' => DataExport::STATUS_COMPLETED,
-            'file_path' => 'exports/'.$this->faker->uuid.'.zip',
+            // Named for the member, as every export file has to be.
+            'file_path' => fn (array $attributes) => DataExport::filePrefix((int) $attributes['user_id']).$this->faker->uuid.'.zip',
             'completed_at' => now(),
         ]);
     }
