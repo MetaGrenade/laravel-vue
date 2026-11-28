@@ -304,6 +304,10 @@ If it names one that you did not make for a reason, delete it and any Discord ma
 
 In **Admin → Trust and safety**, the file of an export has to be that member's own now: `exports/user-`, their number, a dash and the rest of the name, which is how the site names every export it makes. Any file in `exports/` was accepted, so somebody with `trust_safety.acp.edit` could have another member's zip handed to them. The role seeder gives that permission to administrators only. Nothing has to be run. A file you made by hand has to be named that way before an export can name it. If anybody else ever held the permission, [look for rows that name another path](private-uploads.md#data-export-files).
 
+### A data export's 30 minutes cannot be moved
+
+In **Admin → Trust and safety**, the time an export was completed cannot be in the future, nor after its file was written. Any date was accepted: one next year kept the zip, and the member's link, until then. Left empty, the time is when the file was written. Nothing has to be run, and **the next run of `PruneDataExports` deletes the file of any export that was saved with a time still to come.** If you make export files by hand, mark the export finished within 30 minutes of writing the file ([When the 30 minutes begin](private-uploads.md#when-the-30-minutes-begin)).
+
 ### Nicknames and email addresses that differ only by case
 
 MySQL and MariaDB compare text without regard to case, so on them `Ada` and `ada` were already the same nickname and `Ada@Example.com` and `ada@example.com` the same address. SQLite and PostgreSQL compare exactly, so on them the check for "already taken" let both through: two members whose names differ only by case (one can pass for the other, `Admin` and `admin`), or two accounts for one mailbox.
@@ -391,6 +395,7 @@ Behaviour that was different in an earlier build and is different now. The CHANG
 | **Somebody who is not an administrator is refused on a staff account, or when giving a role or a permission.** | They can give only what they hold, and staff accounts and the `admin`, `editor` and `moderator` roles are an administrator's to change. | Have an administrator do it, or give them the permissions they are to hand on ([Staff accounts and giving permissions](#staff-accounts-and-giving-permissions)). |
 | **A role or permission name is refused for having the shape of a UUID or a ULID.** | Giving a role of such a name could give another role, the administrator's among them. | Use another name, and look for ones made earlier ([A role name shaped like an id](#a-role-name-shaped-like-an-id)). |
 | **The file path of a data export is refused, or an export saved earlier is not offered for download.** | The file has to be the member's own, `exports/user-<their number>-…`. Any file in `exports/` was accepted, another member's among them. | Name a file you made by hand that way ([A data export's file is its own member's](#a-data-exports-file-is-its-own-members)). |
+| **The time typed for a data export is refused, or the page says its 30 minutes are already over.** | The member's 30 minutes run from that time, so it cannot be in the future or after the file was written. Any date was accepted. | Leave the box empty. A file made by hand has to be marked within 30 minutes of being written ([A data export's 30 minutes cannot be moved](#a-data-exports-30-minutes-cannot-be-moved)). |
 | **New colours, type and logo.** | The interface, the logo and every icon in `public/` follow the MetaForger design. | If you changed any of them, read [theming.md](theming.md) before you check out the new code. |
 
 ## If you changed the code

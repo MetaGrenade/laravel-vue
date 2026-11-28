@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\DataExport;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -20,8 +21,9 @@ use Illuminate\Support\Facades\Storage;
  *
  * Two passes:
  *  1. an export the window of which is over and that still names a file loses the file (the row stays, as the record that the
- *     member asked, with no file). Only a file of the exports directory is deleted: a row saved before staff were held to that
- *     can name any file on the private disk, and that file is not this job's to delete (DataExport::purgeExpiredFile());
+ *     member asked, with no file). A finish time that has not come counts as over, as DataExport::hasExpired() says. Only the
+ *     member's own export file is deleted: a row saved before staff were held to that can name any file on the private disk, and
+ *     that file is not this job's to delete (DataExport::purgeExpiredFile());
  *  2. a file in the exports directory that no row names and that is older than two windows is deleted: a deleted member's, or one
  *     a job wrote and then could not record. A younger one may be a job that has just written it, so it is left.
  */
@@ -46,7 +48,9 @@ class PruneDataExports implements ShouldQueue
         // The same test as DataExport::hasExpired(), made by the database so that only the rows that need it are read.
         DataExport::query()
             ->whereNotNull('file_path')
-            ->where('completed_at', '<', now()->subMinutes(DataExport::DOWNLOAD_TTL_MINUTES))
+            ->where(fn (Builder $query) => $query
+                ->where('completed_at', '<', now()->subMinutes(DataExport::DOWNLOAD_TTL_MINUTES))
+                ->orWhere('completed_at', '>', now()->addMinutes(DataExport::CLOCK_SLACK_MINUTES)))
             ->chunkById(100, function ($exports): void {
                 foreach ($exports as $export) {
                     $export->purgeExpiredFile();

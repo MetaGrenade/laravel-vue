@@ -4,6 +4,8 @@ namespace App\Http\Requests\Admin;
 
 use App\Models\DataExport;
 use App\Support\Http\RequestText;
+use App\Support\Localization\BrowserTime;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -64,6 +66,31 @@ class UpdateDataExportRequest extends FormRequest
             if ($status === DataExport::STATUS_COMPLETED && $filePath === '') {
                 $validator->errors()->add('file_path', 'A file path is required when marking an export as completed.');
             }
+
+            // Of a path and a time that are themselves good: a path that was refused is not looked up on the disk, and what is not a
+            // date is not read as one. Only a finished export keeps a time.
+            if ($status === DataExport::STATUS_COMPLETED && ! $validator->errors()->hasAny(['file_path', 'completed_at'])) {
+                $this->refuseAFinishThatCannotBe($validator, $filePath);
+            }
         });
+    }
+
+    /**
+     * The member's window runs from the time an export was completed, so that time cannot be one that is still to come, nor one after
+     * its file was written (DataExport::latestFinish()). A few minutes past either is a fast clock, and the controller takes it back.
+     */
+    private function refuseAFinishThatCannotBe(Validator $validator, string $filePath): void
+    {
+        $typed = BrowserTime::parse(RequestText::input($this, 'completed_at'));
+
+        if ($typed === null) {
+            return;
+        }
+
+        if ($typed->greaterThan(now()->addMinutes(DataExport::CLOCK_SLACK_MINUTES))) {
+            $validator->errors()->add('completed_at', 'The time cannot be in the future.');
+        } elseif ($typed->greaterThan(DataExport::latestFinish($filePath)->addMinutes(DataExport::CLOCK_SLACK_MINUTES))) {
+            $validator->errors()->add('completed_at', 'The time cannot be after the file was written. Leave it empty to use that time.');
+        }
     }
 }

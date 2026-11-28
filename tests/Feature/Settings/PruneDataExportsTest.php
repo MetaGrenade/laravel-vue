@@ -99,20 +99,44 @@ class PruneDataExportsTest extends TestCase
     #[Test]
     public function the_window_ends_where_the_model_says_it_does(): void
     {
-        // The job asks the database what DataExport::hasExpired() asks the clock, so the two must give the same answer at the edge.
+        // The job asks the database what DataExport::hasExpired() asks the clock, so the two must give the same answer at the edges:
+        // the end of the window, and (a time before zero is one still to come) as far ahead as a fast clock is believed.
         $edge = DataExport::DOWNLOAD_TTL_MINUTES * 60;
+        $ahead = -DataExport::CLOCK_SLACK_MINUTES * 60;
 
-        foreach ([$edge - 1, $edge, $edge + 1] as $seconds) {
+        foreach ([[$edge - 1, false], [$edge, false], [$edge + 1, true], [$ahead + 1, false], [$ahead, false], [$ahead - 1, true]] as [$seconds, $over]) {
             $export = $this->export($seconds);
-            $expired = $export->hasExpired();
+
+            $this->assertSame($over, $export->hasExpired(), "at $seconds seconds");
 
             $this->prune();
 
-            $this->assertSame($expired, $export->fresh()->file_path === null, "at $seconds seconds hasExpired() is ".json_encode($expired).' and the job must agree');
-            $this->assertSame($expired, ! Storage::disk('local')->exists((string) $export->file_path));
+            $this->assertSame($over, $export->fresh()->file_path === null, "at $seconds seconds the job must agree with hasExpired()");
+            $this->assertSame($over, ! Storage::disk('local')->exists((string) $export->file_path));
         }
 
         $this->assertSame(1800, $edge, 'the member is told 30 minutes');
+        $this->assertSame(-300, $ahead);
+    }
+
+    #[Test]
+    public function an_export_saved_with_a_finish_still_to_come_is_not_offered_or_served(): void
+    {
+        // Staff could save any date as the time an export was completed, and such a row is still there on a site that upgraded: its
+        // window would have stayed open until the date came round.
+        $export = $this->export(-24 * 3600);
+        $path = (string) $export->file_path;
+
+        $this->actingAs($export->user)->get(route('privacy.index'))->assertInertia(fn (Assert $page) => $page->where('exports.0.download_url', null));
+        Storage::disk('local')->assertMissing($path);
+        $this->assertNull($export->fresh()->file_path);
+
+        $other = $this->export(-24 * 3600);
+
+        $this->actingAs($other->user)
+            ->get(URL::temporarySignedRoute('privacy.exports.download', now()->addMinutes(5), ['export' => $other->id]))
+            ->assertStatus(410);
+        Storage::disk('local')->assertMissing((string) $other->file_path);
     }
 
     #[Test]
@@ -350,6 +374,7 @@ class PruneDataExportsTest extends TestCase
             'file_path' => null,
             'completed_at' => now()->subDays(40),
         ]);
+        DataExport::factory()->create(['status' => DataExport::STATUS_COMPLETED, 'file_path' => null, 'completed_at' => now()->addDays(40)]);
         $waiting = $this->export(31 * 60);
 
         $read = [];

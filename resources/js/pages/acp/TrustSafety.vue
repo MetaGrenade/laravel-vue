@@ -798,6 +798,9 @@ const submitErasureForm = () => {
                         <label for="export-completed-at" class="text-sm font-medium text-muted-foreground">Completed at</label>
                         <Input id="export-completed-at" v-model="exportForm.completed_at" type="datetime-local" class="mt-1" />
                         <InputError :message="exportForm.errors.completed_at" class="mt-1" />
+                        <p class="mt-1 text-xs text-muted-foreground">
+                            Leave empty for the time the file was written. The member has 30 minutes from this time, so it cannot be later.
+                        </p>
                     </div>
 
                     <div>
