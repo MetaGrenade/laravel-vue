@@ -325,6 +325,19 @@ SELECT id, starts_at FROM coupons WHERE starts_at >= '10000-01-01';
 SELECT id, starts_at FROM coupons WHERE length(starts_at) <> 19;
 ```
 
+### The database cache after January 2028
+
+`cache.expiration` and `cache_locks.expiration` held the moment an entry runs out in a 32-bit integer, which ends in January 2038. An entry kept "forever" is written to run out ten years from now, so from **22 January 2028** a site on MySQL, MariaDB or PostgreSQL with `CACHE_STORE=database` (what a new install starts with) would have answered with a 500 page to anybody opening a support ticket, and `php artisan queue:restart`, `schedule:pause` and `queue:pause` would have failed. SQLite and Redis are not affected.
+
+`migrate` makes the two columns 64-bit, and nothing else has to be run. If `DB_CACHE_TABLE`, `DB_CACHE_LOCK_TABLE` or `DB_CACHE_CONNECTION` point at tables of your own, the migration does not know them: widen their `expiration` column yourself, for each table.
+
+```sql
+-- MySQL and MariaDB
+ALTER TABLE my_cache MODIFY expiration BIGINT NOT NULL;
+-- PostgreSQL
+ALTER TABLE my_cache ALTER COLUMN expiration TYPE BIGINT;
+```
+
 ### Nicknames and email addresses that differ only by case
 
 MySQL and MariaDB compare text without regard to case, so on them `Ada` and `ada` were already the same nickname and `Ada@Example.com` and `ada@example.com` the same address. SQLite and PostgreSQL compare exactly, so on them the check for "already taken" let both through: two members whose names differ only by case (one can pass for the other, `Admin` and `admin`), or two accounts for one mailbox.
@@ -414,6 +427,7 @@ Behaviour that was different in an earlier build and is different now. The CHANG
 | **The file path of a data export is refused, or an export saved earlier is not offered for download.** | The file has to be the member's own, `exports/user-<their number>-…`. Any file in `exports/` was accepted, another member's among them. | Name a file you made by hand that way ([A data export's file is its own member's](#a-data-exports-file-is-its-own-members)). |
 | **The time typed for a data export is refused, or the page says its 30 minutes are already over.** | The member's 30 minutes run from that time, so it cannot be in the future or after the file was written. Any date was accepted. | Leave the box empty. A file made by hand has to be marked within 30 minutes of being written ([A data export's 30 minutes cannot be moved](#a-data-exports-30-minutes-cannot-be-moved)). |
 | **A date before 1971 or after 2037 is refused in the admin area, and a ban cannot end on the last day of 9999.** | MySQL and MariaDB cannot keep such a date and answered with a 500, and a year of five digits was a 500 on every database. PostgreSQL and SQLite took the years after 2037. | Nothing, unless a list stopped opening on SQLite or PostgreSQL after a date was saved ([Dates the database cannot keep](#dates-the-database-cannot-keep)). For something that never ends, leave the box empty. |
+| **The cache tables hold times after 2038.** | `cache.expiration` and `cache_locks.expiration` were 32-bit. From 22 January 2028 nothing could be kept forever in a database cache on MySQL, MariaDB or PostgreSQL: no support ticket could be opened and `queue:restart` failed. | Nothing: `migrate` widens them. A cache table of your own has to be widened by hand ([The database cache after January 2028](#the-database-cache-after-january-2028)). |
 | **New colours, type and logo.** | The interface, the logo and every icon in `public/` follow the MetaForger design. | If you changed any of them, read [theming.md](theming.md) before you check out the new code. |
 
 ## If you changed the code
