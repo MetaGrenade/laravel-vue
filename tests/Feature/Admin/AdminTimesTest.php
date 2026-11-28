@@ -12,6 +12,7 @@ use App\Support\Localization\BrowserTime;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Role;
@@ -188,6 +189,9 @@ class AdminTimesTest extends TestCase
     {
         $export = DataExport::factory()->create(['status' => DataExport::STATUS_PENDING, 'file_path' => null, 'failure_reason' => null]);
 
+        // Both are recorded afterwards: an export cannot be completed at a time that has not come.
+        Carbon::setTestNow(Carbon::parse('2027-03-10 12:00:00', self::ZONE));
+
         $this->patch(route('acp.trust-safety.exports.update', $export), [
             'status' => DataExport::STATUS_COMPLETED,
             'file_path' => "exports/user-{$export->user_id}-1.zip",
@@ -234,6 +238,25 @@ class AdminTimesTest extends TestCase
 
         // Nothing typed means "now", as it did.
         $this->assertTrue(now()->equalTo($export->fresh()->completed_at));
+    }
+
+    #[Test]
+    public function the_time_a_file_was_written_is_kept_as_the_sites_wall_clock(): void
+    {
+        Storage::fake('local');
+        $export = DataExport::factory()->create(['status' => DataExport::STATUS_PENDING, 'file_path' => null]);
+        $path = DataExport::filePrefix($export->user_id).'1.zip';
+        Storage::disk('local')->put($path, 'zip');
+        touch(Storage::disk('local')->path($path), Carbon::parse('2027-03-01 07:50:00', self::ZONE)->getTimestamp());
+
+        $this->patch(route('acp.trust-safety.exports.update', $export), [
+            'status' => DataExport::STATUS_COMPLETED,
+            'file_path' => $path,
+            'completed_at' => null,
+        ])->assertSessionHasNoErrors();
+
+        // The file's time is a number of seconds with no zone of its own; what is stored is what the site calls that moment.
+        $this->assertSame('2027-03-01 07:50:00', (string) DB::table('data_exports')->where('id', $export->id)->value('completed_at'));
     }
 
     #[Test]

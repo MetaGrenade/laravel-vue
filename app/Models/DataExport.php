@@ -33,6 +33,12 @@ class DataExport extends Model
     public const DOWNLOAD_TTL_MINUTES = 30;
 
     /**
+     * How far ahead a finish time may be and still be one that a fast clock gave: the computer it was typed on, or another of the
+     * site's servers.
+     */
+    public const CLOCK_SLACK_MINUTES = 5;
+
+    /**
      * Where, on the `local` disk, the zip of an export is written. Nothing else is kept there, and PruneDataExports empties it.
      */
     public const DIRECTORY = 'exports';
@@ -96,6 +102,23 @@ class DataExport extends Model
         return is_string($this->file_path) && preg_match(self::pathPattern((int) $this->user_id), $this->file_path) === 1;
     }
 
+    /**
+     * The latest an export can have been finished if this is its file: when the file was written, and never later than now (which is
+     * also the answer when there is no such file). The member's window runs from the finish, so a finish put later than this would
+     * keep their data longer than they are told.
+     */
+    public static function latestFinish(string $path): Carbon
+    {
+        $now = Carbon::now();
+        $disk = Storage::disk('local');
+
+        if (! $disk->exists($path)) {
+            return $now;
+        }
+
+        return $now->min(Carbon::createFromTimestamp($disk->lastModified($path), config('app.timezone')));
+    }
+
     public function isReady(): bool
     {
         if ($this->status !== self::STATUS_COMPLETED || ! $this->file_path || ! $this->namesAnExportFile()) {
@@ -124,6 +147,12 @@ class DataExport extends Model
     {
         if (! $this->completed_at) {
             return false;
+        }
+
+        // A finish that has not come is one staff could save before they were held to latestFinish(). Its window would stay open until
+        // the date came round, so it counts as over. PruneDataExports asks the database the same two things.
+        if ($this->completed_at->greaterThan(now()->addMinutes(self::CLOCK_SLACK_MINUTES))) {
+            return true;
         }
 
         return $this->completed_at->copy()->addMinutes(self::DOWNLOAD_TTL_MINUTES)->isPast();

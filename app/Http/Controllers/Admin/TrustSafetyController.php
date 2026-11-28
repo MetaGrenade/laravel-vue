@@ -176,17 +176,32 @@ class TrustSafetyController extends Controller
         $data = $request->validated();
         $status = $data['status'];
 
+        $completedAt = null;
+
+        if ($status === DataExport::STATUS_COMPLETED) {
+            // Never later than the file: the member's window runs from here. Nothing typed means that latest time, and a time that a
+            // fast clock put a few minutes past it (the request allows no more) is taken as it.
+            $latest = DataExport::latestFinish($data['file_path']);
+            $completedAt = BrowserTime::parse($data['completed_at'] ?? null)?->min($latest) ?? $latest;
+        }
+
         $export->forceFill([
             'status' => $status,
             'file_path' => $data['file_path'] ?? null,
             'failure_reason' => $status === DataExport::STATUS_FAILED ? ($data['failure_reason'] ?? null) : null,
-            'completed_at' => $status === DataExport::STATUS_COMPLETED
-                ? (BrowserTime::parse($data['completed_at'] ?? null) ?? now())
-                : null,
+            'completed_at' => $completedAt,
         ])->save();
 
         if ($status !== DataExport::STATUS_COMPLETED) {
             $export->purgeExpiredFile();
+        }
+
+        // An old file, or an old time, saves an export that nobody can download: say so rather than only "updated".
+        if ($export->hasExpired()) {
+            return back()->with('warning', sprintf(
+                'Data export updated, but its %d minutes are already over, so the member cannot download the file.',
+                DataExport::DOWNLOAD_TTL_MINUTES,
+            ));
         }
 
         return back()->with('success', 'Data export updated.');
