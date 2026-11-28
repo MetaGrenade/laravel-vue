@@ -31,6 +31,7 @@ use App\Notifications\TicketOpened;
 use App\Notifications\TicketReplied;
 use App\Notifications\TicketStatusUpdated;
 use App\Support\Database\Sql;
+use App\Support\Database\TimestampRange;
 use App\Support\Database\Transaction;
 use App\Support\Http\RequestText;
 use App\Support\Localization\DateFormatter;
@@ -660,9 +661,7 @@ class SupportController extends Controller
         try {
             $date = Carbon::parse($value);
 
-            return $boundary === 'start'
-                ? $date->startOfDay()
-                : $date->endOfDay();
+            return TimestampRange::nearest($boundary === 'start' ? $date->startOfDay() : $date->endOfDay());
         } catch (\Exception) {
             return null;
         }

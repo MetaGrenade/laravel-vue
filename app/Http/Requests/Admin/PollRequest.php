@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Rules\StorableDate;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -41,8 +42,8 @@ class PollRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:16000'],
             'status' => ['required', 'string', Rule::in(['draft', 'published', 'closed'])],
             'allow_multiple' => ['sometimes', 'boolean'],
-            'starts_at' => ['nullable', 'date'],
-            'ends_at' => ['nullable', 'date', 'after:starts_at'],
+            'starts_at' => ['nullable', 'date', new StorableDate],
+            'ends_at' => ['nullable', 'date', 'after:starts_at', new StorableDate],
             'options' => ['required', 'array', 'min:2'],
             'options.*.id' => ['nullable', 'integer', 'exists:poll_options,id'],
             'options.*.label' => ['required', 'string', 'max:255'],

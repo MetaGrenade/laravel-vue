@@ -25,6 +25,12 @@ use Illuminate\Support\Facades\DB;
 class Moderation
 {
     /**
+     * What a moderator is told about an end date the database cannot keep once it is turned into the site's time zone: the last
+     * day of the year 9999, which is the last year a `datetime` column holds.
+     */
+    public const TOO_FAR_OFF = 'Choose an earlier date, or leave it empty for a ban with no end.';
+
+    /**
      * Why this moderator may not do this to this member, in words to show them, or null when they may.
      *
      * @param  'warn'|'ban'|'unban'|'cleanup'  $action

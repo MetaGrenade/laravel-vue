@@ -13,6 +13,7 @@ use App\Notifications\ApiKeyCreated;
 use App\Support\Api\ApiKeys;
 use App\Support\Api\Scope;
 use App\Support\Api\Scopes;
+use App\Support\Database\TimestampRange;
 use App\Support\Http\RequestText;
 use App\Support\Localization\BrowserTime;
 use App\Support\Localization\DateFormatter;
@@ -135,7 +136,7 @@ class TokenController extends Controller
             $parsedFrom = rescue(fn () => Carbon::parse($dateFrom), null, false);
 
             if ($parsedFrom) {
-                $tokenLogQuery->where('created_at', '>=', $parsedFrom->startOfDay());
+                $tokenLogQuery->where('created_at', '>=', TimestampRange::nearest($parsedFrom->startOfDay()));
             }
         }
 
@@ -144,7 +145,7 @@ class TokenController extends Controller
             $parsedTo = rescue(fn () => Carbon::parse($dateTo), null, false);
 
             if ($parsedTo) {
-                $tokenLogQuery->where('created_at', '<=', $parsedTo->endOfDay());
+                $tokenLogQuery->where('created_at', '<=', TimestampRange::nearest($parsedTo->endOfDay()));
             }
         }
 

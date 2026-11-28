@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Enums\CouponType;
 use App\Models\Coupon;
+use App\Rules\StorableDate;
 use App\Support\Commerce\Discounts\CouponCode;
 use App\Support\Http\RequestText;
 use Illuminate\Foundation\Http\FormRequest;
@@ -66,8 +67,8 @@ class CouponRequest extends FormRequest
                     $type === CouponType::Percent ? 'decimal:0,4' : 'decimal:0,2',
                 ],
             'minimum_subtotal' => ['nullable', 'numeric', 'min:0', 'max:9999999999', 'decimal:0,2'],
-            'starts_at' => ['nullable', 'date'],
-            'ends_at' => array_filter(['nullable', 'date', $this->filled('starts_at') ? 'after:starts_at' : null]),
+            'starts_at' => ['nullable', 'date', new StorableDate],
+            'ends_at' => ['nullable', 'date', new StorableDate, ...($this->filled('starts_at') ? ['after:starts_at'] : [])],
             'max_redemptions' => ['nullable', 'integer', 'min:1', 'max:1000000000'],
             'max_redemptions_per_customer' => ['nullable', 'integer', 'min:1', 'max:1000000000'],
             'is_active' => ['sometimes', 'boolean'],

@@ -8,6 +8,7 @@ use App\Models\GiftCard;
 use App\Models\GiftCardTransaction;
 use App\Models\Order;
 use App\Models\Refund;
+use App\Rules\StorableDate;
 use App\Support\Commerce\GiftCards\GiftCardCode;
 use App\Support\Commerce\GiftCards\GiftCardException;
 use App\Support\Commerce\GiftCards\GiftCards;
@@ -100,7 +101,7 @@ class GiftCardController extends Controller
     {
         $validated = $request->validate([
             'amount' => ['required', 'numeric', 'gt:0', 'max:99999999.99', 'decimal:0,2'],
-            'expires_at' => ['nullable', 'date', 'after:today'],
+            'expires_at' => ['nullable', 'date', 'after:today', new StorableDate],
             'note' => ['nullable', 'string', 'max:500'],
         ], [
             'amount.required' => 'Enter what the card is worth.',
@@ -181,7 +182,7 @@ class GiftCardController extends Controller
     {
         $validated = $request->validate([
             'is_active' => ['required', 'boolean'],
-            'expires_at' => ['nullable', 'date'],
+            'expires_at' => ['nullable', 'date', new StorableDate],
             'note' => ['nullable', 'string', 'max:500'],
         ]);
 

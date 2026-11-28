@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Rules\StorableDate;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BlogRequest extends FormRequest
@@ -61,7 +62,7 @@ class BlogRequest extends FormRequest
             'excerpt' => 'nullable|string|max:16000',
             'body' => 'required|string',
             'status' => 'required|in:draft,scheduled,published,archived',
-            'scheduled_for' => 'nullable|date|after:now|required_if:status,scheduled',
+            'scheduled_for' => ['nullable', 'date', 'after:now', 'required_if:status,scheduled', new StorableDate],
             'cover_image' => 'nullable|image|max:5120',
             'category_ids' => 'array',
             'category_ids.*' => 'integer|exists:blog_categories,id',

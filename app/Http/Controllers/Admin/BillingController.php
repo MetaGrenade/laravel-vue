@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BillingInvoice;
+use App\Support\Database\TimestampRange;
 use App\Support\Search\LikePattern;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -104,8 +106,16 @@ class BillingController extends Controller
                         });
                 });
             })
-            ->when($filters['date_from'] ?? null, fn ($query, $date) => $query->whereDate('created_at', '>=', $date))
-            ->when($filters['date_to'] ?? null, fn ($query, $date) => $query->whereDate('created_at', '<=', $date));
+            ->when($filters['date_from'] ?? null, fn ($query, $date) => $query->whereDate('created_at', '>=', $this->filterDay($date)))
+            ->when($filters['date_to'] ?? null, fn ($query, $date) => $query->whereDate('created_at', '<=', $this->filterDay($date)));
+    }
+
+    /**
+     * A date the filter took, as the database reads one: `date` accepts `January 1st, 2027`, which PostgreSQL does not.
+     */
+    private function filterDay(string $date): string
+    {
+        return TimestampRange::nearest(Carbon::parse($date))->toDateString();
     }
 
     /**

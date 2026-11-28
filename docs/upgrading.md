@@ -308,6 +308,23 @@ In **Admin → Trust and safety**, the file of an export has to be that member's
 
 In **Admin → Trust and safety**, the time an export was completed cannot be in the future, nor after its file was written. Any date was accepted: one next year kept the zip, and the member's link, until then. Left empty, the time is when the file was written. Nothing has to be run, and **the next run of `PruneDataExports` deletes the file of any export that was saved with a time still to come.** If you make export files by hand, mark the export finished within 30 minutes of writing the file ([When the 30 minutes begin](private-uploads.md#when-the-30-minutes-begin)).
 
+### Dates the database cannot keep
+
+The date boxes of the admin area took any date. MySQL and MariaDB keep only 1970 to 2038 in the kind of column the site stores most times in, and refused the rest with a 500 page: a poll or a discount code from before 1970, a gift card or an API key meant to last until 2040, a post scheduled past January 2038. A year of five digits, which a browser's date box lets somebody type, was a 500 on every database, and SQLite and PostgreSQL saved it first, so a list that showed it stopped opening. A ban until the last day of 9999 was a 500 for a moderator west of the site's time zone. PostgreSQL also answered some dates in the filters of the admin lists with a 500.
+
+The forms now refuse a date outside **1971 to 2037**, with "Choose a date from 1971 to 2037.", on every database. It is so for a post's scheduled time, the start and end of a poll and of a discount code, the expiry of a gift card and of an API key, and the dates of a data export and of an erasure request. A ban has to end before 31 December 9999. The date filters of the admin lists take any date. For something that is never to end, leave its box empty.
+
+Nothing stored changes and nothing has to be run. On MySQL and MariaDB no row holds a date outside what the database keeps. On PostgreSQL and SQLite a row may hold a year after 2037: it goes on working, and saving it again in the admin area asks for a date inside the range.
+
+If a list in the admin area stopped opening on SQLite or PostgreSQL after somebody saved a date, a row holds a year the site cannot read back. This finds it in one column; the others are `blogs.scheduled_for`, `polls.starts_at` and `ends_at`, `coupons.ends_at`, `gift_cards.expires_at`, `personal_access_tokens.expires_at`, `data_erasure_requests.processed_at` and `data_exports.completed_at`. Correct the date, or set it to `NULL` where the box may be empty.
+
+```sql
+-- PostgreSQL
+SELECT id, starts_at FROM coupons WHERE starts_at >= '10000-01-01';
+-- SQLite: a date it can be read back from is 19 characters long
+SELECT id, starts_at FROM coupons WHERE length(starts_at) <> 19;
+```
+
 ### Nicknames and email addresses that differ only by case
 
 MySQL and MariaDB compare text without regard to case, so on them `Ada` and `ada` were already the same nickname and `Ada@Example.com` and `ada@example.com` the same address. SQLite and PostgreSQL compare exactly, so on them the check for "already taken" let both through: two members whose names differ only by case (one can pass for the other, `Admin` and `admin`), or two accounts for one mailbox.
@@ -396,6 +413,7 @@ Behaviour that was different in an earlier build and is different now. The CHANG
 | **A role or permission name is refused for having the shape of a UUID or a ULID.** | Giving a role of such a name could give another role, the administrator's among them. | Use another name, and look for ones made earlier ([A role name shaped like an id](#a-role-name-shaped-like-an-id)). |
 | **The file path of a data export is refused, or an export saved earlier is not offered for download.** | The file has to be the member's own, `exports/user-<their number>-…`. Any file in `exports/` was accepted, another member's among them. | Name a file you made by hand that way ([A data export's file is its own member's](#a-data-exports-file-is-its-own-members)). |
 | **The time typed for a data export is refused, or the page says its 30 minutes are already over.** | The member's 30 minutes run from that time, so it cannot be in the future or after the file was written. Any date was accepted. | Leave the box empty. A file made by hand has to be marked within 30 minutes of being written ([A data export's 30 minutes cannot be moved](#a-data-exports-30-minutes-cannot-be-moved)). |
+| **A date before 1971 or after 2037 is refused in the admin area, and a ban cannot end on the last day of 9999.** | MySQL and MariaDB cannot keep such a date and answered with a 500, and a year of five digits was a 500 on every database. PostgreSQL and SQLite took the years after 2037. | Nothing, unless a list stopped opening on SQLite or PostgreSQL after a date was saved ([Dates the database cannot keep](#dates-the-database-cannot-keep)). For something that never ends, leave the box empty. |
 | **New colours, type and logo.** | The interface, the logo and every icon in `public/` follow the MetaForger design. | If you changed any of them, read [theming.md](theming.md) before you check out the new code. |
 
 ## If you changed the code
