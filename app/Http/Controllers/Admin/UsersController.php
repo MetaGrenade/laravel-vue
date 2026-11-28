@@ -306,10 +306,12 @@ class UsersController extends Controller
             'ids.*' => ['integer', 'distinct', 'exists:users,id'],
             // A ban says why, as a single one does (docs/moderation.md), and so does taking down what they posted; lifting a ban may.
             'reason' => [Rule::requiredIf(in_array($request->input('action'), ['ban', 'cleanup'], true)), 'nullable', 'string', 'min:5', 'max:1000'],
-            'until' => ['nullable', 'date_format:Y-m-d'],
+            'until' => ['nullable', 'date_format:Y-m-d', 'before:9999-12-31'],
             'notify' => ['sometimes', 'boolean'],
             // With a ban: take down what they posted as well.
             'cleanup' => ['sometimes', 'boolean'],
+        ], [
+            'until.before' => Moderation::TOO_FAR_OFF,
         ]);
 
         $action = $validated['action'];

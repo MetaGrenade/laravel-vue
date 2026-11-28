@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\DataExport;
+use App\Rules\StorableDate;
 use App\Support\Http\RequestText;
 use App\Support\Localization\BrowserTime;
 use Illuminate\Contracts\Validation\Validator;
@@ -24,7 +25,7 @@ class UpdateDataExportRequest extends FormRequest
             // not somebody else's or another file on the private disk (a support attachment, a forum attachment, a digital product).
             'file_path' => ['nullable', 'string', 'max:255', 'regex:'.DataExport::pathPattern($this->memberId())],
             'failure_reason' => ['nullable', 'string', 'max:16000'],
-            'completed_at' => ['nullable', 'date'],
+            'completed_at' => ['nullable', 'date', new StorableDate],
         ];
     }
 

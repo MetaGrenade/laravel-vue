@@ -8,6 +8,7 @@ use App\Models\SearchQuery;
 use App\Models\SearchQueryAggregate;
 use App\Support\Csv\CsvCell;
 use App\Support\Csv\CsvRow;
+use App\Support\Database\TimestampRange;
 use App\Support\Localization\DateFormatter;
 use App\Support\Search\LikePattern;
 use Generator;
@@ -261,11 +262,11 @@ class SearchAnalyticsController extends Controller
         }
 
         if (! empty($filters['date_from'])) {
-            $query->where('created_at', '>=', SupportCarbon::parse($filters['date_from'])->startOfDay());
+            $query->where('created_at', '>=', TimestampRange::nearest(SupportCarbon::parse($filters['date_from'])->startOfDay()));
         }
 
         if (! empty($filters['date_to'])) {
-            $query->where('created_at', '<=', SupportCarbon::parse($filters['date_to'])->endOfDay());
+            $query->where('created_at', '<=', TimestampRange::nearest(SupportCarbon::parse($filters['date_to'])->endOfDay()));
         }
 
         return $query;

@@ -123,11 +123,13 @@ class UserModerationController extends Controller
         $validated = $request->validate([
             'reason' => ['required', 'string', 'min:5', 'max:1000'],
             'note' => ['nullable', 'string', 'max:1000'],
-            'until' => ['nullable', 'date_format:Y-m-d'],
+            'until' => ['nullable', 'date_format:Y-m-d', 'before:9999-12-31'],
             'notify' => ['sometimes', 'boolean'],
             'subject' => ['nullable', 'string', 'max:64'],
             // Take down what they posted as well: a spammer is banned and cleared out in one go.
             'cleanup' => ['sometimes', 'boolean'],
+        ], [
+            'until.before' => Moderation::TOO_FAR_OFF,
         ]);
 
         // Before anything is done, so that a moderator who may ban but not clear out is refused whole and not half way.

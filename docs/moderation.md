@@ -11,7 +11,7 @@ A moderator can **warn** a member, **ban** them (for good, or until a date), **l
 | | What it does |
 |---|---|
 | **Warn** | A notice with a reason. It is kept, and the member is emailed and can read it. **Nothing happens to their account:** it is not a penalty, and it never leads to a ban by itself. A moderator decides any ban. |
-| **Ban** | Signs the member out and stops them signing in. A reason is required. It lasts until a moderator lifts it, or until the date given (through the end of that day, in the moderator's own time zone). |
+| **Ban** | Signs the member out and stops them signing in. A reason is required. It lasts until a moderator lifts it, or until the date given (through the end of that day, in the moderator's own time zone). The date has to be before 31 December 9999; a ban with no end is one with no date. |
 | **Lift the ban** | The member can sign in again at once. The ban stays in their history, and a reason is optional. |
 
 Each form has a **note for staff** (never shown to the member) and **Email them** (leave it off for a spam account). Reasons are 5 to 1000 characters; the member is told them in the words they were written.

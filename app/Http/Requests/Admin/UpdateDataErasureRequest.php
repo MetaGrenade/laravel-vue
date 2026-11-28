@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\DataErasureRequest;
+use App\Rules\StorableDate;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,7 +18,7 @@ class UpdateDataErasureRequest extends FormRequest
     {
         return [
             'status' => ['required', Rule::in(DataErasureRequest::STATUSES)],
-            'processed_at' => ['nullable', 'date'],
+            'processed_at' => ['nullable', 'date', new StorableDate],
         ];
     }
 }

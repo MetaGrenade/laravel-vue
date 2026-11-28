@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\UsageEvent;
 use App\Models\User;
+use App\Support\Database\TimestampRange;
 use App\Support\Http\RequestText;
 use App\Support\Usage\Meters;
 use App\Support\Usage\Usage;
@@ -153,6 +154,9 @@ class BillingUsageController extends Controller
             return CarbonImmutable::now();
         }
 
-        return CarbonImmutable::create((int) $parts[1], (int) $parts[2], 1, 0, 0, 0);
+        $first = CarbonImmutable::create((int) $parts[1], (int) $parts[2], 1, 0, 0, 0);
+
+        // A month the site can have kept nothing for is no month at all, as text that names none is.
+        return TimestampRange::holds($first) ? $first : CarbonImmutable::now();
     }
 }

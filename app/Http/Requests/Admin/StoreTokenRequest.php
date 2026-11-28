@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Rules\StorableDate;
 use App\Support\Api\Scopes;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -21,7 +22,7 @@ class StoreTokenRequest extends FormRequest
             // What the token can do is chosen from the site's scopes, or full access: free text meant nothing, and now a token is held to it.
             'abilities' => ['required', 'array'],
             'abilities.*' => ['string', Rule::in([Scopes::FULL, ...app(Scopes::class)->keys()])],
-            'expires_at' => ['nullable', 'date', 'after:now'],
+            'expires_at' => ['nullable', 'date', 'after:now', new StorableDate],
             'user_id' => ['required', 'integer', 'exists:users,id'],
             'hourly_quota' => ['nullable', 'integer', 'min:1', 'max:2147483647'],
             'daily_quota' => ['nullable', 'integer', 'min:1', 'max:2147483647'],

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Support\Audit\Audit;
+use App\Support\Database\TimestampRange;
 use App\Support\Http\RequestText;
 use App\Support\Localization\DateFormatter;
 use App\Support\Search\LikePattern;
@@ -149,6 +150,7 @@ class AuditLogController extends Controller
             return null;
         }
 
-        return ($endOfDay ? $day->endOfDay() : $day->startOfDay())->utc();
+        // After the change of zone, which can carry the first day of a year into the year before.
+        return TimestampRange::nearest(($endOfDay ? $day->endOfDay() : $day->startOfDay())->utc());
     }
 }
